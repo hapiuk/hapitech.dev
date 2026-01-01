@@ -1,0 +1,33 @@
+{% extends "admin/layout.html" %}
+{% block content %}
+
+<div class="admin-page" style="display:grid; gap:14px;">
+  <div>
+    <h1 style="margin:0;">Command Center</h1>
+    <div style="opacity:.75; margin-top:4px;">Allowlisted server actions (admin only).</div>
+  </div>
+
+  <form method="post" style="display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
+    <div style="display:grid; gap:6px; min-width:280px;">
+      <label for="cmd" style="font-size:13px; opacity:.8;">Action</label>
+      <select name="cmd" id="cmd" style="padding:10px; border-radius:10px;">
+        {% for key, c in commands.items() %}
+          <option value="{{ key }}" {% if key == selected %}selected{% endif %}>{{ c.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit" class="btn">Run</button>
+
+    {% if exit_code is not none %}
+      <div style="font-size:13px; opacity:.8;">Exit code: {{ exit_code }}</div>
+    {% endif %}
+  </form>
+
+  <div>
+    <h3 style="margin:0 0 8px;">Output</h3>
+    <pre style="white-space:pre-wrap; word-break:break-word; padding:12px; border-radius:12px; background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); max-height:65vh; overflow:auto;">{{ output }}</pre>
+  </div>
+</div>
+
+{% endblock %}

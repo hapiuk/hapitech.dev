@@ -1,0 +1,34 @@
+{% extends "admin/layout.html" %}
+{% block content %}
+
+<h1 style="margin:0 0 10px;">Service Status</h1>
+<p style="opacity:.75; margin:0 0 16px;">Quick view of client services.</p>
+
+<div style="display:grid; gap:10px; max-width:900px;">
+  {% for s in service_states %}
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.10); background:rgba(0,0,0,.20);">
+      <div style="display:flex; align-items:center; gap:10px;">
+        {% if s.level == "green" %}
+          <span title="OK" style="font-size:18px;">🟢</span>
+        {% elif s.level == "amber" %}
+          <span title="Attention" style="font-size:18px;">🟠</span>
+        {% else %}
+          <span title="Down" style="font-size:18px;">🔴</span>
+        {% endif %}
+
+        <div>
+          <div style="font-weight:700;">{{ s.service }}</div>
+          <div style="opacity:.75; font-size:13px;">
+            {{ s.ActiveState }} / {{ s.SubState }}{% if s.Result and s.Result != "success" %} ({{ s.Result }}){% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <a class="btn" href="/admin/command-center" style="text-decoration:none;">Open Command Center</a>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

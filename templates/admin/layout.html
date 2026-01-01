@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>{% block title %}HapiTech Admin{% endblock %}</title>
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+	{% block head %}{% endblock %}
+</head>
+<body>
+	<div class="bg"></div>
+
+	<header class="admin-topbar">
+		<div class="admin-brand">
+			<img src="{{ url_for('static', filename='media/logo.png') }}" alt="HapiTech" class="admin-logo">
+			<div class="admin-brand__text">
+				<div class="admin-title">{% block header_title %}Admin Dashboard{% endblock %}</div>
+				<div class="admin-subtitle">{% block header_subtitle %}HapiTech Hub • internal tools{% endblock %}</div>
+			</div>
+		</div>
+
+<div class="admin-actions">
+	<button class="btn neon admin-nav-toggle" onclick="document.body.classList.toggle('nav-open')">
+		☰
+	</button>
+
+	<div class="admin-actions__desktop">
+		<a class="btn neon admin-btn" href="{{ url_for('admin_clients_new') }}">+ New Client</a>
+		<button class="btn neon admin-btn" onclick="fetch('/logout',{method:'POST'}).then(()=>location.href='/login')">
+			Log out
+		</button>
+	</div>
+</div>
+
+	</header>
+
+	<main class="admin-shell">
+		<div class="admin-overlay" onclick="document.body.classList.remove('nav-open')"></div>
+
+		<aside class="admin-nav neon-card">
+			<div class="admin-nav__section">
+				<div class="admin-nav__label">Navigation</div>
+
+				<a class="admin-nav__item {% if request.path == '/admin' %}is-active{% endif %}" href="{{ url_for('admin_dashboard') }}">
+					<span class="dot"></span> Overview
+				</a>
+				<a class="admin-nav__item {% if request.path.startswith('/admin/clients') %}is-active{% endif %}" href="{{ url_for('admin_clients') }}">
+					<span class="dot"></span> Clients
+				</a>
+
+				<a class="admin-nav__item" href="#" onclick="return false;"><span class="dot"></span> Invoices</a>
+				<a class="admin-nav__item" href="#" onclick="return false;"><span class="dot"></span> Site Status</a>
+				<a class="admin-nav__item" href="#" onclick="return false;"><span class="dot"></span> Work Logs</a>
+			</div>
+
+			{# Mobile-only actions inside the drawer #}
+			<div class="admin-nav__section admin-nav__mobile-actions">
+				<div class="admin-nav__label">Actions</div>
+				<a class="btn neon admin-btn" href="{{ url_for('admin_clients_new') }}">+ New Client</a>
+				<button class="btn neon admin-btn" type="button"
+					onclick="fetch('/logout',{method:'POST'}).then(()=>location.href='/login')">
+					Log out
+				</button>
+			</div>
+
+			<div class="admin-nav__section">
+				<div class="admin-nav__label">Shortcuts</div>
+				<a class="admin-nav__link" href="https://hapitech.dev" target="_blank" rel="noopener">Open hub site</a>
+				<a class="admin-nav__link" href="https://gravemistakegames.com" target="_blank" rel="noopener">GraveMistakeGames</a>
+				<a class="admin-nav__link" href="https://rolandshandyman.co.uk" target="_blank" rel="noopener">Roland’s Handyman</a>
+			</div>
+		</aside>
+
+		<section class="admin-content">
+			{% block content %}{% endblock %}
+		</section>
+	</main>
+
+	{% block scripts %}{% endblock %}
+	<script>
+		(function(){
+			function closeNavOnDesktop(){
+				if (window.innerWidth > 980) document.body.classList.remove('nav-open');
+			}
+			window.addEventListener('resize', closeNavOnDesktop);
+			closeNavOnDesktop();
+		})();
+	</script>
+
+<div id="svcModal" class="modal" aria-hidden="true">
+	<div class="modal__overlay" onclick="closeSvcModal()"></div>
+	<div class="modal__panel neon-card">
+		<div class="modal__head">
+			<div>
+				<div id="svcModalTitle" class="admin-title">Service</div>
+				<div id="svcModalSub" class="admin-subtitle">status / logs / restart</div>
+			</div>
+			<button class="btn neon" type="button" onclick="closeSvcModal()">✕</button>
+		</div>
+
+		<div class="btn-row" style="margin-top:10px;">
+			<button class="btn neon" type="button" onclick="loadSvcAction('status')">Status</button>
+			<button class="btn neon" type="button" onclick="loadSvcAction('logs')">Logs</button>
+			<button class="btn neon" type="button" onclick="prepRestart()">Restart</button>
+		</div>
+
+		<div id="svcModalBody" style="margin-top:12px;">
+			<div class="admin-muted">Select an action…</div>
+		</div>
+	</div>
+</div>
+
+<script>
+	let currentService = null;
+
+	function openSvcModal(service, title){
+		currentService = service;
+		document.getElementById('svcModalTitle').textContent = title || service;
+		document.getElementById('svcModalSub').textContent = service;
+		document.getElementById('svcModal').classList.add('is-open');
+		document.getElementById('svcModal').setAttribute('aria-hidden','false');
+		loadSvcAction('status');
+	}
+
+	function closeSvcModal(){
+		document.getElementById('svcModal').classList.remove('is-open');
+		document.getElementById('svcModal').setAttribute('aria-hidden','true');
+		currentService = null;
+	}
+
+	async function loadSvcAction(action){
+		if(!currentService) return;
+		const body = document.getElementById('svcModalBody');
+		body.innerHTML = '<div class="admin-muted">Loading…</div>';
+
+		const r = await fetch(`/admin/api/service/${encodeURIComponent(currentService)}/${action}`);
+		const data = await r.json();
+		if(!data.success){
+			body.innerHTML = `<pre class="admin-pre">${data.error || 'Error'}</pre>`;
+			return;
+		}
+		body.innerHTML = `<pre class="admin-pre">${escapeHtml(data.output)}</pre>`;
+	}
+
+	function prepRestart(){
+		const body = document.getElementById('svcModalBody');
+		body.innerHTML = `
+			<div class="admin-muted">Restart is protected to prevent accidents.</div>
+			<div style="margin-top:10px;" class="list-item">
+				<label style="display:flex; gap:10px; align-items:center;">
+					<input id="restartConfirm" type="checkbox">
+					I understand this will restart the service.
+				</label>
+				<button class="btn neon" type="button" onclick="doRestart()">Restart now</button>
+			</div>
+		`;
+	}
+
+	async function doRestart(){
+		const ok = document.getElementById('restartConfirm')?.checked;
+		if(!ok) return;
+
+		const body = document.getElementById('svcModalBody');
+		body.innerHTML = '<div class="admin-muted">Restarting…</div>';
+
+		const r = await fetch(`/admin/api/service/${encodeURIComponent(currentService)}/restart`, { method:'POST' });
+		const data = await r.json();
+		body.innerHTML = `<pre class="admin-pre">${escapeHtml(data.output || '')}</pre>`;
+	}
+
+	function escapeHtml(s){
+		return String(s).replace(/[&<>"']/g, m => ({
+			'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+		}[m]));
+	}
+</script>
+
+</body>
+</html>

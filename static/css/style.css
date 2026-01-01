@@ -1,0 +1,73 @@
+/* ==============================
+   Base theme – HapiTech
+   ============================== */
+
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+
+html,body{
+  height:100%;
+  background:#0b0f17;
+  color:#e6f0ff;
+}
+
+.bg{
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(1000px 700px at 10% 10%, rgba(80,140,255,0.12), transparent 40%),
+    radial-gradient(800px 600px at 80% 80%, rgba(180,90,255,0.12), transparent 40%),
+    linear-gradient(180deg,#081021 0%,#0b0f17 40%);
+  filter: blur(40px);
+  z-index:0;
+}
+
+a{color:inherit;text-decoration:none;}
+
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid rgba(140,200,255,0.18);
+  background:
+    linear-gradient(90deg,rgba(80,160,255,0.14),rgba(180,100,255,0.14)),
+    rgba(10,12,16,0.6);
+  color:#eaf6ff;
+  cursor:pointer;
+  font-weight:650;
+  letter-spacing:.3px;
+  box-shadow:0 6px 26px rgba(80,140,255,0.12);
+  transition:transform .15s, box-shadow .15s, border-color .15s;
+}
+
+.btn:hover{
+  transform:translateY(-1px);
+  box-shadow:0 10px 30px rgba(120,160,255,0.18);
+}
+
+.neon-card{
+  background:rgba(10,14,22,0.45);
+  border-radius:16px;
+  border:1px solid rgba(120,180,255,0.08);
+  box-shadow:
+    0 10px 40px rgba(3,6,12,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.03);
+  backdrop-filter: blur(10px) saturate(130%);
+}
+
+html { -webkit-text-size-adjust: 100%; }
+img, svg, video { max-width: 100%; height: auto; }
+
+@media (max-width: 640px){
+  .btn{
+    min-height: 44px;
+    width: 100%;          /* optional: makes actions feel “app-like” */
+  }
+}

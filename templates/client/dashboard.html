@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Client Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="bg"></div>
+
+  <!-- Top bar -->
+  <header class="client-topbar">
+    <div class="client-brand">
+      <img src="{{ url_for('static', filename='media/logo.png') }}" alt="HapiTech" class="client-logo">
+      <div>
+        <div class="client-title">Your Dashboard</div>
+        <div class="client-subtitle">Account • Site • Insights</div>
+      </div>
+    </div>
+
+    <div class="client-actions">
+      <a class="btn neon client-btn" href="#" title="Open your website">Open site</a>
+      <button class="btn neon client-btn"
+        onclick="fetch('/logout',{method:'POST'}).then(()=>location.href='/login')">
+        Log out
+      </button>
+    </div>
+  </header>
+
+  <main class="client-shell">
+    <!-- Left nav -->
+    <aside class="client-nav neon-card">
+      <div class="client-nav__section">
+        <div class="client-nav__label">Dashboard</div>
+        <button class="client-nav__item is-active" data-panel="home"><span class="dot"></span> Home</button>
+        <button class="client-nav__item" data-panel="account"><span class="dot"></span> My Account</button>
+        <button class="client-nav__item" data-panel="updates"><span class="dot"></span> Update Requests</button>
+        <button class="client-nav__item" data-panel="media"><span class="dot"></span> Media Uploads</button>
+        <button class="client-nav__item" data-panel="inbox"><span class="dot"></span> Lead Inbox</button>
+        <button class="client-nav__item" data-panel="reviews"><span class="dot"></span> Reviews</button>
+        <button class="client-nav__item" data-panel="reports"><span class="dot"></span> Monthly Report</button>
+        <button class="client-nav__item" data-panel="status"><span class="dot"></span> Site Status</button>
+      </div>
+
+      <div class="client-nav__section">
+        <div class="client-nav__label">Support</div>
+        <button class="client-nav__item" data-panel="support"><span class="dot"></span> Help & Support</button>
+        <a class="client-nav__link" href="#" target="_blank" rel="noopener">Plan & billing</a>
+        <a class="client-nav__link" href="#" target="_blank" rel="noopener">Privacy & data</a>
+      </div>
+
+      <div class="client-nav__section">
+        <div class="client-nav__label">Modules (preview)</div>
+        <div class="module-list">
+          <label class="module-item"><input type="checkbox" checked disabled> Website hits</label>
+          <label class="module-item"><input type="checkbox" checked disabled> Lead inbox</label>
+          <label class="module-item"><input type="checkbox" checked disabled> Reviews</label>
+          <label class="module-item"><input type="checkbox" disabled> Bookings</label>
+          <label class="module-item"><input type="checkbox" disabled> Gallery uploads</label>
+          <label class="module-item"><input type="checkbox" disabled> Monthly reports</label>
+          <div class="module-hint">Later these become per-client toggles set by admin.</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <section class="client-content">
+
+      <!-- HOME -->
+      <div class="client-panel is-active" id="panel-home">
+        <div class="client-hero neon-card">
+          <div>
+            <div class="client-hero__kicker">Welcome back</div>
+            <div class="client-hero__title">Your website control panel</div>
+            <div class="client-hero__subtitle">
+              Track enquiries, upload photos, request updates, and see how your site is performing.
+            </div>
+          </div>
+
+          <div class="client-hero__cta">
+            <button class="btn neon client-btn">+ New update request</button>
+            <button class="btn neon client-btn">+ Upload photos</button>
+          </div>
+        </div>
+
+        <!-- Widget cards (become modular later) -->
+        <div class="client-grid">
+          <div class="neon-card client-card">
+            <div class="client-card__kicker">Website hits</div>
+            <div class="client-card__value">—</div>
+            <div class="client-card__hint">Last 30 days (placeholder)</div>
+          </div>
+
+          <div class="neon-card client-card">
+            <div class="client-card__kicker">New enquiries</div>
+            <div class="client-card__value">—</div>
+            <div class="client-card__hint">Lead inbox (placeholder)</div>
+          </div>
+
+          <div class="neon-card client-card">
+            <div class="client-card__kicker">Reviews</div>
+            <div class="client-card__value">—</div>
+            <div class="client-card__hint">This month (placeholder)</div>
+          </div>
+
+          <div class="neon-card client-card">
+            <div class="client-card__kicker">System status</div>
+            <div class="client-card__value">OK</div>
+            <div class="client-card__hint">Uptime + SSL (placeholder)</div>
+          </div>
+        </div>
+
+        <div class="client-two">
+          <div class="neon-card client-block">
+            <h2 class="client-h2">Activity feed</h2>
+            <p class="client-muted">Updates, enquiries, uploads, and changes (placeholder).</p>
+            <div class="list-lite">
+              <div class="list-item">
+                <div class="list-title">Update request submitted</div>
+                <div class="list-meta">— date • status: pending</div>
+              </div>
+              <div class="list-item">
+                <div class="list-title">2 photos uploaded</div>
+                <div class="list-meta">— date • awaiting approval</div>
+              </div>
+              <div class="list-item">
+                <div class="list-title">New enquiry received</div>
+                <div class="list-meta">— date • source: contact form</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="neon-card client-block">
+            <h2 class="client-h2">Quick actions</h2>
+            <p class="client-muted">Fast ways to get things done (placeholder).</p>
+            <div class="quick-grid">
+              <button class="quick-tile">📣 Request a promo banner</button>
+              <button class="quick-tile">🖼 Upload gallery photos</button>
+              <button class="quick-tile">📝 Update services / pricing</button>
+              <button class="quick-tile">⭐ Generate a review link</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="client-two" style="margin-top:12px;">
+          <div class="neon-card client-block">
+            <h2 class="client-h2">Recommendations</h2>
+            <p class="client-muted">Later: automated suggestions (SEO, content ideas, missing pages).</p>
+            <div class="list-lite">
+              <div class="list-item">
+                <div class="list-title">Add 6 new photos to your gallery</div>
+                <div class="list-meta">Estimated impact: medium</div>
+              </div>
+              <div class="list-item">
+                <div class="list-title">Create a “Recent Work” page</div>
+                <div class="list-meta">Estimated impact: high</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="neon-card client-block">
+            <h2 class="client-h2">Monthly report card</h2>
+            <p class="client-muted">Simple summary you can export later (placeholder).</p>
+            <div class="report-strip">
+              <div class="mini-card">
+                <div class="mini-title">Visits</div>
+                <div class="mini-value">—</div>
+              </div>
+              <div class="mini-card">
+                <div class="mini-title">Enquiries</div>
+                <div class="mini-value">—</div>
+              </div>
+              <div class="mini-card">
+                <div class="mini-title">Calls</div>
+                <div class="mini-value">—</div>
+              </div>
+            </div>
+            <div class="client-row right" style="margin-top:10px;">
+              <button class="btn neon client-btn">Export PDF (later)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACCOUNT -->
+      <div class="client-panel" id="panel-account">
+        <div class="neon-card client-block">
+          <h2 class="client-h2">My Account</h2>
+          <p class="client-muted">Manage your profile and login settings (placeholder).</p>
+
+          <div class="form-grid">
+            <input class="client-input" placeholder="Business / client name">
+            <input class="client-input" placeholder="Email">
+            <input class="client-input" placeholder="Phone (optional)">
+            <input class="client-input" placeholder="Password (set new)">
+            <input class="client-input" placeholder="Website domain">
+            <input class="client-input" placeholder="Preferred contact method">
+          </div>
+
+          <div class="client-row right">
+            <button class="btn neon client-btn">Save changes</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPDATE REQUESTS -->
+      <div class="client-panel" id="panel-updates">
+        <div class="neon-card client-block">
+          <div class="client-row">
+            <div>
+              <h2 class="client-h2">Update Requests</h2>
+              <p class="client-muted">Submit change requests and track progress (placeholder).</p>
+            </div>
+            <button class="btn neon client-btn">+ New request</button>
+          </div>
+
+          <div class="table-lite">
+            <div class="t-head">
+              <div>Title</div><div>Type</div><div>Status</div><div>Last update</div><div>Actions</div>
+            </div>
+            <div class="t-row">
+              <div>
+                <div class="t-title">Update services list</div>
+                <div class="t-sub">Add new services + pricing</div>
+              </div>
+              <div>Content</div>
+              <div><span class="pill warn">In review</span></div>
+              <div>—</div>
+              <div><button class="btn neon client-btn-sm">View</button></div>
+            </div>
+            <div class="t-row">
+              <div>
+                <div class="t-title">New banner for homepage</div>
+                <div class="t-sub">Promo banner request</div>
+              </div>
+              <div>Design</div>
+              <div><span class="pill ok">Done</span></div>
+              <div>—</div>
+              <div><button class="btn neon client-btn-sm">View</button></div>
+            </div>
+          </div>
+
+          <div class="neon-card client-block" style="margin-top:12px;">
+            <h2 class="client-h2">Submit a request</h2>
+            <p class="client-muted">Later: this will create a ticket + notify admin.</p>
+            <div class="form-grid">
+              <input class="client-input" placeholder="Title (e.g. Update opening hours)">
+              <input class="client-input" placeholder="Category (content, design, bugfix)">
+              <textarea class="client-input client-textarea" rows="5" placeholder="Describe exactly what you want changed..."></textarea>
+            </div>
+            <div class="client-row right">
+              <button class="btn neon client-btn">Submit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MEDIA UPLOADS -->
+      <div class="client-panel" id="panel-media">
+        <div class="neon-card client-block">
+          <h2 class="client-h2">Media Uploads</h2>
+          <p class="client-muted">Upload photos for your gallery. (Later: approval flow.)</p>
+
+          <div class="client-two">
+            <div class="mini-card">
+              <div class="mini-title">Pending approval</div>
+              <div class="mini-value">—</div>
+            </div>
+            <div class="mini-card">
+              <div class="mini-title">Live in gallery</div>
+              <div class="mini-value">—</div>
+            </div>
+          </div>
+
+          <div class="upload-drop">
+            <div class="upload-title">Drag & drop files here (later)</div>
+            <div class="upload-sub">For now this is a placeholder block.</div>
+            <button class="btn neon client-btn" style="margin-top:10px;">Choose files</button>
+          </div>
+
+          <h3 class="client-h3" style="margin-top:14px;">Recent uploads</h3>
+          <div class="thumb-grid">
+            <div class="thumb">IMG</div>
+            <div class="thumb">IMG</div>
+            <div class="thumb">IMG</div>
+            <div class="thumb">IMG</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEAD INBOX -->
+      <div class="client-panel" id="panel-inbox">
+        <div class="neon-card client-block">
+          <div class="client-row">
+            <div>
+              <h2 class="client-h2">Lead Inbox</h2>
+              <p class="client-muted">All enquiries from your website in one place (placeholder).</p>
+            </div>
+            <div class="chip-row">
+              <span class="pill ok">New</span>
+              <span class="pill warn">In progress</span>
+              <span class="pill bad">Closed</span>
+            </div>
+          </div>
+
+          <div class="list-lite">
+            <div class="list-item">
+              <div class="list-title">“Need a quote for…”</div>
+              <div class="list-meta">— date • status: New</div>
+            </div>
+            <div class="list-item">
+              <div class="list-title">“Can you call me about…”</div>
+              <div class="list-meta">— date • status: In progress</div>
+            </div>
+          </div>
+
+          <div class="neon-card client-block" style="margin-top:12px;">
+            <h2 class="client-h2">Lead details (preview)</h2>
+            <p class="client-muted">Later: click a lead to open full details + notes.</p>
+            <div class="form-grid">
+              <input class="client-input" placeholder="Name">
+              <input class="client-input" placeholder="Email / phone">
+              <input class="client-input" placeholder="Source (contact form, WhatsApp, etc.)">
+              <input class="client-input" placeholder="Status (new/in progress/closed)">
+              <textarea class="client-input client-textarea" rows="4" placeholder="Internal notes (for client/admin later)"></textarea>
+            </div>
+            <div class="client-row right">
+              <button class="btn neon client-btn">Save notes</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REVIEWS -->
+      <div class="client-panel" id="panel-reviews">
+        <div class="neon-card client-block">
+          <div class="client-row">
+            <div>
+              <h2 class="client-h2">Reviews</h2>
+              <p class="client-muted">Track reviews and generate a “leave a review” link/QR (placeholder).</p>
+            </div>
+            <button class="btn neon client-btn-sm">Generate review link</button>
+          </div>
+
+          <div class="client-two">
+            <div class="mini-card">
+              <div class="mini-title">Average rating</div>
+              <div class="mini-value">—</div>
+            </div>
+            <div class="mini-card">
+              <div class="mini-title">New this month</div>
+              <div class="mini-value">—</div>
+            </div>
+          </div>
+
+          <div class="list-lite" style="margin-top:12px;">
+            <div class="list-item">
+              <div class="list-title">“Great service!”</div>
+              <div class="list-meta">— date • — platform</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REPORTS -->
+      <div class="client-panel" id="panel-reports">
+        <div class="neon-card client-block">
+          <h2 class="client-h2">Monthly Report</h2>
+          <p class="client-muted">A clear summary of performance. Export to PDF later.</p>
+
+          <div class="report-strip">
+            <div class="mini-card">
+              <div class="mini-title">Visits</div>
+              <div class="mini-value">—</div>
+            </div>
+            <div class="mini-card">
+              <div class="mini-title">Enquiries</div>
+              <div class="mini-value">—</div>
+            </div>
+            <div class="mini-card">
+              <div class="mini-title">Reviews</div>
+              <div class="mini-value">—</div>
+            </div>
+          </div>
+
+          <div class="neon-card client-block" style="margin-top:12px;">
+            <h2 class="client-h2">Highlights</h2>
+            <div class="list-lite">
+              <div class="list-item"><div class="list-title">Top page</div><div class="list-meta">—</div></div>
+              <div class="list-item"><div class="list-title">Top traffic source</div><div class="list-meta">—</div></div>
+              <div class="list-item"><div class="list-title">Best performing day</div><div class="list-meta">—</div></div>
+            </div>
+            <div class="client-row right" style="margin-top:10px;">
+              <button class="btn neon client-btn">Export PDF (later)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATUS -->
+      <div class="client-panel" id="panel-status">
+        <div class="neon-card client-block">
+          <h2 class="client-h2">Site Status</h2>
+          <p class="client-muted">Uptime, SSL, and last update details (placeholder).</p>
+
+          <div class="status-list">
+            <div class="status-row">
+              <span class="pill ok">OK</span>
+              <div class="status-main">
+                <div class="status-title">Website</div>
+                <div class="status-meta">HTTPS • last check: —</div>
+              </div>
+              <button class="btn neon client-btn-sm">Details</button>
+            </div>
+
+            <div class="status-row">
+              <span class="pill ok">OK</span>
+              <div class="status-main">
+                <div class="status-title">SSL Certificate</div>
+                <div class="status-meta">Expiry: —</div>
+              </div>
+              <button class="btn neon client-btn-sm">Details</button>
+            </div>
+
+            <div class="status-row">
+              <span class="pill warn">Info</span>
+              <div class="status-main">
+                <div class="status-title">Last deployment</div>
+                <div class="status-meta">—</div>
+              </div>
+              <button class="btn neon client-btn-sm">View log</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUPPORT -->
+      <div class="client-panel" id="panel-support">
+        <div class="neon-card client-block">
+          <h2 class="client-h2">Help & Support</h2>
+          <p class="client-muted">Send a request to HapiTech (placeholder).</p>
+
+          <div class="form-grid">
+            <input class="client-input" placeholder="Subject">
+            <textarea class="client-input client-textarea" rows="5" placeholder="Describe what you need..."></textarea>
+          </div>
+
+          <div class="client-row right">
+            <button class="btn neon client-btn">Send request</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Tiny no-framework panel switching -->
+  <script>
+    const navItems = document.querySelectorAll('.client-nav__item');
+    const panels = document.querySelectorAll('.client-panel');
+
+    function showPanel(key){
+      panels.forEach(p => p.classList.remove('is-active'));
+      const target = document.getElementById(`panel-${key}`);
+      if (target) target.classList.add('is-active');
+
+      navItems.forEach(i => i.classList.remove('is-active'));
+      const active = document.querySelector(`.client-nav__item[data-panel="${key}"]`);
+      if (active) active.classList.add('is-active');
+    }
+
+    navItems.forEach(btn => btn.addEventListener('click', () => showPanel(btn.dataset.panel)));
+  </script>
+
+  <!-- Minimal client styles scoped to this page -->
+  <style>
+    .client-topbar{
+      position: sticky; top: 0; z-index: 10;
+      display:flex; justify-content:space-between; align-items:center;
+      padding: 16px 18px;
+      background: rgba(6, 10, 16, 0.55);
+      border-bottom: 1px solid rgba(120,180,255,0.06);
+      backdrop-filter: blur(10px) saturate(130%);
+    }
+    .client-brand{ display:flex; gap: 12px; align-items:center; }
+    .client-logo{ width: 36px; height: 36px; object-fit: contain; }
+    .client-title{ font-weight: 700; letter-spacing: 0.4px; }
+    .client-subtitle{ font-size: 12px; opacity: 0.7; }
+
+    .client-actions{ display:flex; gap: 10px; align-items:center; }
+    .client-btn{ width: auto; padding: 10px 12px; border-radius: 10px; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
+    .client-btn-sm{ width:auto; padding: 8px 10px; border-radius: 10px; font-size: 13px; }
+
+    .client-shell{
+      position: relative;
+      z-index: 2;
+      display:grid;
+      grid-template-columns: 280px 1fr;
+      gap: 16px;
+      padding: 16px 18px 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .client-nav{ padding: 16px; }
+    .client-nav__section + .client-nav__section{ margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(120,180,255,0.06); }
+    .client-nav__label{ font-size: 11px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+
+    .client-nav__item{
+      width: 100%;
+      text-align: left;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(120,180,255,0.06);
+      background: rgba(10, 12, 16, 0.35);
+      color: #e6f0ff;
+      cursor: pointer;
+      display:flex; gap: 10px; align-items:center;
+      margin-bottom: 10px;
+      transition: transform .15s, border-color .15s, background .15s;
+    }
+    .client-nav__item:hover{ transform: translateY(-1px); border-color: rgba(140,200,255,0.18); background: rgba(12, 16, 24, 0.55); }
+    .client-nav__item.is-active{ border-color: rgba(180,120,255,0.28); background: rgba(12, 16, 24, 0.75); }
+    .dot{ width: 8px; height: 8px; border-radius: 50%; background: rgba(140,200,255,0.35); box-shadow: 0 0 16px rgba(160,90,255,0.10); }
+
+    .client-nav__link{
+      display:block;
+      color: rgba(230,240,255,0.8);
+      text-decoration: none;
+      padding: 8px 6px;
+      border-radius: 10px;
+    }
+    .client-nav__link:hover{ background: rgba(12, 16, 24, 0.45); }
+
+    .module-list{ display:flex; flex-direction:column; gap: 8px; }
+    .module-item{ font-size: 12px; opacity: 0.85; display:flex; gap: 8px; align-items:center; }
+    .module-item input{ accent-color: #9ad7ff; }
+    .module-hint{ font-size: 11px; opacity: 0.65; margin-top: 6px; }
+
+    .client-content{ display:flex; flex-direction:column; gap: 16px; }
+    .client-panel{ display:none; }
+    .client-panel.is-active{ display:block; }
+
+    .client-hero{
+      padding: 18px;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .client-hero__kicker{ font-size: 11px; opacity: 0.72; text-transform: uppercase; letter-spacing: 0.6px; }
+    .client-hero__title{ font-size: 20px; font-weight: 800; margin-top: 6px; }
+    .client-hero__subtitle{ font-size: 12px; opacity: 0.75; margin-top: 6px; max-width: 560px; }
+    .client-hero__cta{ display:flex; gap: 10px; flex-wrap: wrap; justify-content:flex-end; }
+
+    .client-grid{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .client-card{ padding: 16px; }
+    .client-card__kicker{ font-size: 11px; opacity: 0.72; text-transform: uppercase; letter-spacing: 0.6px; }
+    .client-card__value{ font-size: 28px; font-weight: 800; margin-top: 8px; }
+    .client-card__hint{ font-size: 12px; opacity: 0.7; margin-top: 6px; }
+
+    .client-two{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .client-block{ padding: 16px; }
+    .client-h2{ font-size: 16px; margin-bottom: 6px; }
+    .client-h3{ font-size: 13px; margin-top: 6px; opacity: 0.9; }
+    .client-muted{ font-size: 12px; opacity: 0.7; margin-bottom: 12px; }
+
+    .client-row{ display:flex; justify-content:space-between; align-items:center; gap: 12px; margin-bottom: 12px; }
+    .client-row.right{ justify-content:flex-end; }
+
+    .client-input{
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(10, 12, 16, 0.65);
+      color: #eaf6ff;
+      outline: none;
+      font-size: 14px;
+    }
+    .client-textarea{ resize: vertical; }
+
+    .quick-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .quick-tile{
+      text-align:left;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(120,180,255,0.06);
+      background: rgba(10, 12, 16, 0.35);
+      color: #e6f0ff;
+      cursor:pointer;
+      transition: transform .15s, border-color .15s, background .15s;
+    }
+    .quick-tile:hover{
+      transform: translateY(-1px);
+      border-color: rgba(140,200,255,0.18);
+      background: rgba(12, 16, 24, 0.55);
+    }
+
+    .list-lite{ display:flex; flex-direction:column; gap: 10px; }
+    .list-item{
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(120,180,255,0.06);
+      background: rgba(10, 12, 16, 0.35);
+      display:flex; justify-content:space-between; gap: 10px;
+    }
+    .list-title{ font-weight: 700; }
+    .list-meta{ font-size: 12px; opacity: 0.7; }
+
+    .mini-card{
+      border: 1px solid rgba(120,180,255,0.06);
+      background: rgba(10, 12, 16, 0.35);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .mini-title{ font-size: 12px; opacity: 0.7; }
+    .mini-value{ font-size: 22px; font-weight: 800; margin-top: 6px; }
+
+    .report-strip{ display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+
+    .form-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .form-grid textarea{ grid-column: 1 / -1; }
+
+    .table-lite{ display:flex; flex-direction:column; gap: 10px; }
+    .t-head, .t-row{
+      display:grid;
+      grid-template-columns: 1.6fr 0.8fr 0.8fr 0.8fr 0.7fr;
+      gap: 10px;
+      align-items:center;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(120,180,255,0.06);
+      background: rgba(10, 12, 16, 0.35);
+    }
+    .t-head{ opacity: 0.75; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .t-title{ font-weight: 700; }
+    .t-sub{ font-size: 12px; opacity: 0.7; margin-top: 2px; }
+
+    .status-list{ display:flex; flex-direction:column; gap: 10px; }
+    .status-row{
+      display:flex; align-items:center; gap: 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(120,180,255,0.06);
+      background: rgba(10, 12, 16, 0.35);
+    }
+    .status-main{ flex: 1; min-width: 0; }
+    .status-title{ font-weight: 700; }
+    .status-meta{ font-size: 12px; opacity: 0.7; margin-top: 2px; }
+
+    .pill{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      white-space: nowrap;
+    }
+    .pill.ok{ color: #bfffdc; border-color: rgba(191,255,220,0.22); background: rgba(191,255,220,0.06); }
+    .pill.warn{ color: #ffe7b0; border-color: rgba(255,231,176,0.22); background: rgba(255,231,176,0.06); }
+    .pill.bad{ color: #ffb7b7; border-color: rgba(255,183,183,0.22); background: rgba(255,183,183,0.06); }
+    .chip-row{ display:flex; gap: 8px; flex-wrap: wrap; justify-content:flex-end; }
+
+    .upload-drop{
+      margin-top: 12px;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px dashed rgba(160,200,255,0.22);
+      background: rgba(10, 12, 16, 0.28);
+    }
+    .upload-title{ font-weight: 700; }
+    .upload-sub{ font-size: 12px; opacity: 0.7; margin-top: 4px; }
+
+    .thumb-grid{
+      margin-top: 10px;
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .thumb{
+      height: 80px;
+      border-radius: 12px;
+      border: 1px solid rgba(120,180,255,0.06);
+      background: rgba(10, 12, 16, 0.35);
+      display:flex; align-items:center; justify-content:center;
+      opacity: 0.85;
+    }
+
+    @media (max-width: 980px){
+      .client-shell{ grid-template-columns: 1fr; }
+      .client-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .client-two{ grid-template-columns: 1fr; }
+      .form-grid{ grid-template-columns: 1fr; }
+      .client-hero{ align-items:flex-start; flex-direction:column; }
+      .client-hero__cta{ justify-content:flex-start; }
+      .report-strip{ grid-template-columns: 1fr; }
+      .thumb-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 420px){
+      .quick-grid{ grid-template-columns: 1fr; }
+    }
+  </style>
+</body>
+</html>
+

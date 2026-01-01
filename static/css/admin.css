@@ -1,0 +1,639 @@
+/* ==============================
+   HapiTech Admin UI
+   - Layout
+   - Navigation (desktop sidebar + mobile drawer)
+   - Components (cards, lists, tables, pills)
+   - Responsive
+   ============================== */
+
+
+/* ==============================
+   Topbar
+   ============================== */
+
+.admin-topbar{
+	position:sticky;
+	top:0;
+	z-index:50;
+	display:flex;
+	justify-content:space-between;
+	align-items:center;
+	gap:12px;
+	padding:16px 18px;
+	background:rgba(6,10,16,0.55);
+	border-bottom:1px solid rgba(120,180,255,0.06);
+	backdrop-filter:blur(10px) saturate(130%);
+}
+
+.admin-brand{
+	display:flex;
+	gap:12px;
+	align-items:center;
+	min-width:0;
+}
+
+.admin-logo{
+	width:36px;
+	height:36px;
+	object-fit:contain;
+}
+
+.admin-brand__text{min-width:0;}
+
+.admin-title{
+	font-weight:800;
+	letter-spacing:.4px;
+	white-space:nowrap;
+	overflow:hidden;
+	text-overflow:ellipsis;
+	max-width:58vw; /* keeps title from smashing buttons */
+}
+
+.admin-subtitle{
+	font-size:12px;
+	opacity:.7;
+	white-space:nowrap;
+	overflow:hidden;
+	text-overflow:ellipsis;
+	max-width:58vw;
+}
+
+.admin-actions{
+	display:flex;
+	gap:10px;
+	align-items:center;
+	flex-wrap:wrap;
+}
+
+.admin-actions__desktop{
+	display:flex;
+	gap:10px;
+	align-items:center;
+}
+
+/* burger icon button (mobile only) */
+.admin-nav-toggle{
+	display:none;
+	width:44px;
+	justify-content:center;
+	padding:10px 12px;
+}
+
+
+/* ==============================
+   Shell layout
+   ============================== */
+
+.admin-shell{
+	position:relative;
+	z-index:2;
+	display:grid;
+	grid-template-columns:280px 1fr;
+	gap:16px;
+	padding:16px 18px 24px;
+	max-width:1200px;
+	margin:0 auto;
+}
+
+.admin-content{
+	display:flex;
+	flex-direction:column;
+	gap:16px;
+}
+
+
+/* ==============================
+   Sidebar navigation
+   ============================== */
+
+.admin-nav{
+	padding:16px;
+}
+
+.admin-nav__section + .admin-nav__section{
+	margin-top:16px;
+	padding-top:16px;
+	border-top:1px solid rgba(120,180,255,0.06);
+}
+
+.admin-nav__label{
+	font-size:11px;
+	text-transform:uppercase;
+	letter-spacing:.6px;
+	opacity:.7;
+	margin-bottom:10px;
+}
+
+.admin-nav__item{
+	display:flex;
+	align-items:center;
+	gap:10px;
+	width:100%;
+	padding:10px 12px;
+	border-radius:14px;
+	border:1px solid rgba(120,180,255,0.06);
+	background:rgba(10,12,16,0.35);
+	cursor:pointer;
+	margin-bottom:10px;
+	transition:transform .15s, border-color .15s, background .15s;
+	user-select:none;
+}
+
+.admin-nav__item:hover{
+	transform:translateY(-1px);
+	background:rgba(12,16,24,0.55);
+	border-color:rgba(140,200,255,0.18);
+}
+
+.admin-nav__item.is-active{
+	background:rgba(12,16,24,0.75);
+	border-color:rgba(180,120,255,0.28);
+}
+
+.dot{
+	width:8px;
+	height:8px;
+	border-radius:50%;
+	background:rgba(160,200,255,0.45);
+	box-shadow:0 0 16px rgba(160,90,255,0.2);
+	flex:0 0 auto;
+}
+
+.admin-nav__link{
+	display:block;
+	padding:8px 6px;
+	border-radius:10px;
+	font-size:13px;
+	opacity:.8;
+}
+
+.admin-nav__link:hover{
+	background:rgba(12,16,24,0.45);
+}
+
+/* Mobile-only actions section inside drawer */
+.admin-nav__mobile-actions{display:none;}
+
+
+/* ==============================
+   Overlay (mobile drawer)
+   ============================== */
+
+.admin-overlay{
+	display:none;
+	position:fixed;
+	inset:0;
+	background:rgba(0,0,0,0.55);
+	backdrop-filter: blur(2px);
+	z-index:20;
+}
+
+
+/* ==============================
+   Cards / dashboard blocks
+   ============================== */
+
+.admin-grid{
+	display:grid;
+	grid-template-columns:repeat(4,minmax(0,1fr));
+	gap:12px;
+}
+
+.admin-card{padding:16px;}
+
+.admin-card__kicker{
+	font-size:11px;
+	text-transform:uppercase;
+	letter-spacing:.6px;
+	opacity:.7;
+}
+.admin-card__value{
+	font-size:28px;
+	font-weight:800;
+	margin-top:8px;
+}
+.admin-card__hint{
+	font-size:12px;
+	opacity:.7;
+	margin-top:6px;
+}
+
+.admin-two{
+	display:grid;
+	grid-template-columns:1fr 1fr;
+	gap:12px;
+}
+
+.admin-block{padding:16px;}
+
+.admin-h2{
+	font-size:16px;
+	margin-bottom:6px;
+}
+
+.admin-muted{
+	font-size:12px;
+	opacity:.7;
+	margin-bottom:12px;
+}
+
+.admin-row{
+	display:flex;
+	justify-content:space-between;
+	align-items:center;
+	gap:12px;
+	margin-bottom:12px;
+	flex-wrap:wrap;
+}
+
+
+/* ==============================
+   Inputs / forms
+   ============================== */
+
+.admin-input{
+	width:100%;
+	padding:12px 14px;
+	border-radius:12px;
+	border:1px solid rgba(255,255,255,0.08);
+	background:rgba(10,12,16,0.65);
+	color:#eaf6ff;
+	font-size:14px;
+	outline:none;
+}
+
+.form-grid{
+	display:grid;
+	grid-template-columns:repeat(2,minmax(0,1fr));
+	gap:10px;
+}
+
+
+/* ==============================
+   Lists / tables
+   ============================== */
+
+.list-lite{
+	display:flex;
+	flex-direction:column;
+	gap:10px;
+}
+
+.list-item{
+	display:flex;
+	justify-content:space-between;
+	gap:12px;
+	padding:12px;
+	border-radius:14px;
+	border:1px solid rgba(120,180,255,0.06);
+	background:rgba(10,12,16,0.35);
+}
+
+.list-title{font-weight:700;}
+.list-meta{font-size:12px;opacity:.7;}
+
+/* “Grid table” style */
+.table-lite{
+	display:flex;
+	flex-direction:column;
+	gap:10px;
+}
+
+.t-head,.t-row{
+	display:grid;
+	grid-template-columns:1.4fr 1.6fr .8fr .8fr .8fr;
+	gap:10px;
+	align-items:center;
+	padding:12px;
+	border-radius:14px;
+	border:1px solid rgba(120,180,255,0.06);
+	background:rgba(10,12,16,0.35);
+}
+
+.t-head{
+	font-size:12px;
+	text-transform:uppercase;
+	opacity:.7;
+}
+
+.t-title{font-weight:700;}
+.t-sub{font-size:12px;opacity:.7;margin-top:2px;}
+
+
+/* ==============================
+   Pills
+   ============================== */
+
+.pill{
+	display:inline-flex;
+	padding:5px 10px;
+	border-radius:999px;
+	font-size:12px;
+	border:1px solid rgba(255,255,255,0.08);
+}
+
+.pill.ok{color:#bfffdc;border-color:rgba(191,255,220,0.25);}
+.pill.warn{color:#ffe7b0;border-color:rgba(255,231,176,0.25);}
+.pill.bad{color:#ffb7b7;border-color:rgba(255,183,183,0.25);}
+
+/* ==============================
+   Buttons
+   ============================== */
+
+.btn-row{
+	display:flex;
+	align-items:center;
+	gap:8px;              /* controls spacing between buttons */
+	flex-wrap:wrap;
+}
+
+.btn-row .btn{
+	width:auto !important; /* overrides style.css mobile rule */
+	min-height:40px;
+	padding:10px 12px;
+}
+
+
+/* ==============================
+   Status list (Operations / Backlog)
+   ============================== */
+
+.status-list{
+	display:flex;
+	flex-direction:column;
+	gap:10px;
+}
+
+.status-row{
+	display:grid;
+	grid-template-columns:110px 1fr auto;
+	gap:12px;
+	align-items:center;
+	padding:12px;
+	border-radius:14px;
+	border:1px solid rgba(120,180,255,0.06);
+	background:rgba(10,12,16,0.35);
+}
+
+.status-title{font-weight:700;}
+.status-meta{font-size:12px;opacity:.7;margin-top:2px;}
+
+.status-right{
+	opacity:.8;
+	font-size:12px;
+	white-space:nowrap;
+}
+
+/* ==============================
+   Modal
+   ============================== */
+
+.modal{ display:none; }
+.modal.is-open{ display:block; }
+
+.modal__overlay{
+	position:fixed;
+	inset:0;
+	background:rgba(0,0,0,0.55);
+	z-index:60;
+}
+
+.modal__panel{
+	position:fixed;
+	left:50%;
+	top:12vh;
+	transform:translateX(-50%);
+	width:min(920px, 92vw);
+	max-height:76vh;
+	overflow:auto;
+	z-index:61;
+	padding:14px;
+	border-radius:16px;
+}
+
+.modal__head{
+	display:flex;
+	justify-content:space-between;
+	align-items:center;
+	gap:12px;
+}
+
+.admin-pre{
+	white-space:pre-wrap;
+	word-break:break-word;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+	font-size:12px;
+	line-height:1.45;
+	padding:12px;
+	border-radius:14px;
+	border:1px solid rgba(120,180,255,0.08);
+	background:rgba(10,12,16,0.45);
+}
+
+
+/* ==============================
+   Navigation behavior
+   - Desktop sticky sidebar
+   - Mobile off-canvas drawer
+   ============================== */
+
+/* Desktop: sticky sidebar */
+@media (min-width:981px){
+	.admin-nav{
+		position:sticky;
+		top:92px;
+		align-self:start;
+		max-height:calc(100vh - 120px);
+		overflow:auto;
+	}
+
+	.admin-nav-toggle{ display:none; }
+	.admin-actions__desktop{ display:flex; }
+	.admin-nav__mobile-actions{ display:none; }
+
+	.admin-overlay{ display:none !important; }
+}
+
+/* Tablet/mobile: drawer nav */
+@media (max-width:980px){
+
+	/* Shell becomes single column */
+	.admin-shell{
+		grid-template-columns:1fr;
+		padding:12px 12px 18px;
+		gap:12px;
+	}
+
+	.admin-two{ grid-template-columns:1fr; }
+	.form-grid{ grid-template-columns:1fr; }
+	.admin-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+
+	/* Topbar stays ONE row */
+	.admin-topbar{
+		flex-wrap:nowrap;
+		padding:12px 12px;
+	}
+
+	/* Right side stays compact */
+	.admin-actions{
+		width:auto;
+		flex-wrap:nowrap;
+		justify-content:flex-end;
+	}
+
+	/* Show burger, hide desktop buttons */
+	.admin-nav-toggle{ display:inline-flex; }
+	.admin-actions__desktop{ display:none; }
+
+	/* Lock body when drawer open */
+	body.nav-open{ overflow:hidden; }
+
+	/* Overlay */
+	.admin-overlay{
+		display:none;
+		position:fixed;
+		inset:0;
+		background:rgba(0,0,0,0.55);
+		backdrop-filter: blur(2px);
+		z-index:20;
+	}
+
+	body.nav-open .admin-overlay{ display:block; }
+
+	/* Drawer */
+	.admin-nav{
+		position:fixed;
+		top:0;
+		left:0;
+		bottom:0;
+		width:min(320px, 86vw);
+		z-index:30;
+		transform:translateX(-110%);
+		transition:transform .2s ease;
+		overflow:auto;
+		padding-top:84px; /* space for topbar */
+	}
+
+	body.nav-open .admin-nav{ transform:translateX(0); }
+
+	/* Show the mobile actions inside drawer */
+	.admin-nav__mobile-actions{ display:block; }
+	.admin-nav__mobile-actions .btn{ width:100%; margin-bottom: 10px;}
+}
+
+/* Phone tweaks */
+@media (max-width:640px){
+
+	.admin-topbar{ padding:10px 12px; }
+
+	.admin-subtitle{ display:none; }
+
+	.admin-nav-toggle{
+		width:40px;
+		height:40px;
+		padding:0;
+		align-items:center;
+		justify-content:center;
+	}
+
+	/* stacked rows for status + table */
+	.status-row{
+		grid-template-columns:1fr;
+		gap:8px;
+	}
+	.status-right{ justify-self:start; }
+
+	.t-head{ display:none; }
+	.t-row{
+		grid-template-columns:1fr !important;
+		gap:8px;
+		align-items:start;
+		padding:14px;
+	}
+	.t-row > *{ white-space:normal; }
+}
+
+/* ==============================
+   Service status cards
+   ============================== */
+
+.service-grid{
+	display:grid;
+	grid-template-columns:repeat(2, minmax(0,1fr));
+	gap:12px;
+}
+
+@media (max-width:640px){
+	.service-grid{ grid-template-columns:1fr; }
+}
+
+.service-card{
+	padding:14px;
+	display:flex;
+	flex-direction:column;
+	gap:10px;
+}
+
+.service-head{
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+	gap:10px;
+}
+
+.service-name{
+	font-weight:800;
+}
+
+.service-meta{
+	font-size:12px;
+	opacity:.75;
+}
+
+.light{
+	width:10px;
+	height:10px;
+	border-radius:50%;
+	flex:0 0 auto;
+	box-shadow:0 0 18px rgba(0,0,0,0.2);
+}
+
+.light.green{ background:rgba(120,255,180,0.9); }
+.light.amber{ background:rgba(255,210,120,0.95); }
+.light.red{ background:rgba(255,130,130,0.9); }
+
+.service-actions{
+	display:flex;
+	gap:8px;
+	flex-wrap:wrap;
+}
+
+.service-actions .btn{ width:auto !important; }
+
+/* Operations header: title + quick buttons */
+@media (max-width:640px){
+	.admin-row{
+		align-items:flex-start;
+	}
+
+	/* if you want Disk/Tree to fill the row neatly */
+	.admin-row .btn-row{
+		width:100%;
+	}
+
+	.admin-row .btn-row .btn{
+		flex:1 1 auto;          /* makes Disk/Tree sit nicely */
+		min-width:120px;
+	}
+}
+
+@media (max-width:640px){
+	.service-head{
+		flex-direction:column;
+		align-items:stretch;
+	}
+
+	.service-head .btn{
+		width:100% !important;  /* Manage becomes full-width */
+	}
+}
