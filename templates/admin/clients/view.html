@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>{{ client.name }} • Client</title>
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+	<div style="max-width:1000px;margin:0 auto;padding:24px;">
+		<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+			<div>
+				<h1 style="margin:0;">{{ client.name }}</h1>
+				<div style="opacity:.85;margin-top:6px;">
+					{{ client.primary_email or "—" }} • {{ client.phone or "—" }} • Status: <b>{{ client.status }}</b>
+				</div>
+			</div>
+			<div style="display:flex;gap:10px;flex-wrap:wrap;">
+				<a class="btn" href="{{ url_for('admin_clients_edit', client_id=client.id) }}">Edit</a>
+				<a class="btn" href="{{ url_for('admin_clients') }}">Back</a>
+			</div>
+		</div>
+
+		<div style="margin-top:18px;padding:14px;border:1px solid rgba(255,255,255,0.08);border-radius:12px;">
+			<div style="font-weight:750;margin-bottom:10px;">Linked users</div>
+			{% if not client.users %}
+				<div style="opacity:.8;">No users linked yet.</div>
+			{% else %}
+				<ul style="margin:0;padding-left:18px;">
+					{% for u in client.users %}
+						<li>{{ u.username }} ({{ u.email }}) • <b>{{ u.role }}</b></li>
+					{% endfor %}
+				</ul>
+			{% endif %}
+		</div>
+
+		<!-- Next section later: sites, invoices, subscriptions -->
+	</div>
+</body>
+</html>

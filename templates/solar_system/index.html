@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solar System</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='solar-system/style.css') }}">
+  <script type="importmap">
+    {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="bg"></div>
+
+  <main class="solar-stage">
+    <div id="solar-canvas-wrap"></div>
+
+    <div class="solar-hud">
+      <div class="hud-card">
+        <div class="hud-inner">
+          <div class="hud-title">HapiTech • Solar System</div>
+          <div class="hud-spacer"></div>
+
+          <label class="hud-toggle">
+            <input id="toggleOrbits" type="checkbox"/>
+            Orbits
+          </label>
+
+          <label class="hud-toggle">
+            <input id="toggleLabels" type="checkbox" checked/>
+            Labels
+          </label>
+        </div>
+      </div>
+
+      <div class="hud-card">
+        <div class="hud-inner">
+          <div class="hud-title">Time</div>
+          <input id="timeSpeed" type="range" min="0" max="10" step="0.1" value="0.1" style="width:220px;">
+        </div>
+      </div>
+    </div>
+
+    <aside class="solar-panel hud-card">
+      <div class="panel-body">
+        <div class="panel-heading">
+          <h2 id="selName">Select a body</h2>
+          <button id="btnClose" class="btn neon" style="width:auto; padding:8px 10px;">Close</button>
+        </div>
+
+        <div class="panel-meta" id="selMeta">
+          Click a planet to focus the camera and show details here.
+        </div>
+
+        <div class="panel-actions">
+          <button id="btnFocus" class="btn neon">Focus</button>
+          <button id="btnReset" class="btn neon">Reset view</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script type="module" src="{{ url_for('static', filename='solar-system/app.js') }}"></script>
+
+</body>
+</html>

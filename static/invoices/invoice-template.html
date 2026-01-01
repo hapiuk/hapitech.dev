@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Invoice {{INVOICE_NUMBER}} • HapiTech</title>
+
+  <style>
+    /* =========================
+       HapiTech Invoice Template
+       Single-file HTML + CSS
+       ========================= */
+
+    /* Reset & base (HapiTech-style) */
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    html,body{
+      height:100%;
+      background:#0b0f17;
+      color:#e6f0ff;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    /* Animated gradient background (HapiTech-style) */
+    .bg{
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(1200px 800px at 10% 20%, rgba(80,140,255,0.12), transparent 10%),
+        radial-gradient(900px 600px at 80% 80%, rgba(200,80,220,0.12), transparent 10%),
+        linear-gradient(180deg, #081021 0%, #0b0f17 40%);
+      filter: blur(40px) saturate(120%);
+      transform: scale(1.05);
+      z-index: 0;
+      animation: floatBG 10s ease-in-out infinite alternate;
+    }
+    @keyframes floatBG{
+      from { transform: scale(1.03) translateY(0); }
+      to   { transform: scale(1.07) translateY(-10px); }
+    }
+
+    /* Page container */
+    .container{
+      position: relative;
+      min-height: 100vh;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      z-index: 2;
+      padding: 2rem;
+    }
+
+    /* Invoice card (neon-card inspired, wider) */
+    .invoice-card{
+      width:100%;
+      max-width: 980px;
+      background: rgba(10, 14, 22, 0.45);
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 8px 40px rgba(3,6,12,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+      border: 1px solid rgba(120,180,255,0.06);
+      backdrop-filter: blur(8px) saturate(120%);
+      position: relative;
+      overflow:hidden;
+    }
+
+    /* Neon stroke edges */
+    .invoice-card::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      pointer-events:none;
+      background: linear-gradient(90deg,
+        rgba(80,160,255,0.25),
+        rgba(160,90,255,0.25),
+        rgba(255,110,200,0.25)
+      );
+      mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      border-radius: 16px;
+      padding: 2px;
+      filter: blur(8px);
+      mix-blend-mode: screen;
+      opacity: 0.95;
+    }
+
+    /* Header */
+    .top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:18px;
+      margin-bottom: 16px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width: 260px;
+    }
+    .logo{
+      width: 64px;
+      height: 64px;
+      object-fit: contain;
+      filter: drop-shadow(0 6px 20px rgba(80,150,255,0.12));
+    }
+    .title-wrap{}
+    .title{
+      font-weight:700;
+      font-size: 18px;
+      letter-spacing:0.6px;
+      color:#e9f7ff;
+      margin-top: 2px;
+    }
+    .tagline{
+      font-size:12px;
+      opacity:0.75;
+      margin-top:4px;
+    }
+
+    .inv-meta{
+      text-align:right;
+      display:grid;
+      gap:6px;
+      min-width: 260px;
+    }
+
+    .pill{
+      width: fit-content;
+      justify-self:end;
+      font-size: 12px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: #e9f7ff;
+      background:
+        linear-gradient(90deg, rgba(120,180,255,0.22), rgba(180,120,255,0.22)),
+        rgba(6,10,16,0.55);
+      border: 1px solid rgba(160,200,255,0.28);
+      padding: 7px 14px;
+      border-radius: 999px;
+      backdrop-filter: blur(6px) saturate(140%);
+      box-shadow: 0 6px 22px rgba(80,140,255,0.18), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    .meta-row{
+      font-size: 13px;
+      color: #cfe7ff;
+      opacity: 0.92;
+    }
+    .meta-row b{ color:#eaf6ff; }
+    .meta-row code{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color:#eaf6ff;
+      background: rgba(10,12,16,0.35);
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 2px 6px;
+      border-radius: 8px;
+    }
+
+    /* Divider */
+    .divider{
+      height:1px;
+      background: rgba(255,255,255,0.06);
+      margin: 14px 0 18px;
+    }
+
+    /* Two-column details */
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+      margin-bottom: 16px;
+    }
+
+    .panel{
+      background: rgba(6,10,16,0.40);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .panel h2{
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #e9f7ff;
+      opacity: 0.92;
+      margin-bottom: 10px;
+    }
+
+    .kv{
+      display:grid;
+      grid-template-columns: 110px 1fr;
+      gap: 8px 12px;
+      font-size: 13px;
+    }
+    .kv .k{
+      color:#cfe7ff;
+      opacity: 0.75;
+    }
+    .kv .v{
+      color:#eaf6ff;
+      opacity: 0.98;
+      word-break: break-word;
+    }
+
+    /* Table */
+    table{
+      width:100%;
+      border-collapse: collapse;
+      overflow:hidden;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(6,10,16,0.28);
+    }
+    thead th{
+      text-align:left;
+      font-size: 11px;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color:#cfe7ff;
+      opacity: 0.78;
+      padding: 12px 12px;
+      background: rgba(10,12,16,0.45);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    tbody td{
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 13px;
+      color:#eaf6ff;
+      opacity: 0.95;
+      vertical-align: top;
+    }
+    tbody tr:last-child td{ border-bottom:none; }
+
+    .desc{ font-weight: 650; opacity: 0.98; }
+    .subdesc{
+      margin-top:6px;
+      font-size: 12px;
+      color:#cfe7ff;
+      opacity: 0.72;
+      line-height:1.45;
+    }
+
+    .right{ text-align:right; }
+    .qty{ width: 90px; }
+    .rate{ width: 130px; }
+    .amt{ width: 140px; }
+
+    /* Totals block */
+    .totals{
+      margin-top: 14px;
+      display:flex;
+      justify-content:flex-end;
+    }
+    .totals-box{
+      width: 420px;
+      max-width: 100%;
+      background: rgba(6,10,16,0.40);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .trow{
+      display:flex;
+      justify-content:space-between;
+      gap: 12px;
+      font-size: 13px;
+      color:#cfe7ff;
+      opacity: 0.86;
+      padding: 6px 0;
+    }
+    .trow b{ color:#eaf6ff; opacity:1; }
+    .trow.total{
+      border-top: 1px solid rgba(255,255,255,0.06);
+      margin-top: 6px;
+      padding-top: 10px;
+      font-size: 15px;
+      opacity: 1;
+    }
+    .trow.total b{
+      font-size: 18px;
+      letter-spacing: 0.2px;
+    }
+
+    /* Notes + footer */
+    .notes{
+      margin-top: 16px;
+      display:grid;
+      gap: 10px;
+    }
+    .note{
+      background: rgba(10,12,16,0.35);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color:#cfe7ff;
+      opacity: 0.88;
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+    .note b{ color:#eaf6ff; opacity: 1; }
+
+    .footer{
+      margin-top: 16px;
+      display:flex;
+      justify-content:space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color:#cfe7ff;
+      opacity: 0.72;
+    }
+
+    /* Buttons (optional for web view; hidden in print) */
+    .actions{
+      margin-top: 14px;
+      display:flex;
+      gap: 10px;
+      flex-wrap:wrap;
+    }
+    .btn{
+      display:inline-block;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(140,200,255,0.12);
+      background: linear-gradient(90deg, rgba(80,160,255,0.10), rgba(200,100,255,0.10));
+      color:#e9f7ff;
+      box-shadow: 0 6px 26px rgba(80,140,255,0.08), 0 0 40px rgba(160,90,255,0.02);
+      cursor:pointer;
+      font-weight: 650;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+      text-decoration:none;
+      user-select:none;
+    }
+    .btn:hover{ transform: translateY(-1px); }
+
+    /* Responsive */
+    @media (max-width: 900px){
+      .top{ flex-direction: column; }
+      .inv-meta{ text-align:left; }
+      .pill{ justify-self:start; }
+      .grid{ grid-template-columns: 1fr; }
+      .totals{ justify-content: flex-start; }
+    }
+
+    /* Print */
+    @media print{
+      .bg{ display:none !important; }
+      body{ background:#fff !important; color:#111 !important; }
+      .container{ padding:0 !important; }
+      .invoice-card{
+        max-width:none !important;
+        border: 1px solid #ddd !important;
+        background:#fff !important;
+        box-shadow:none !important;
+      }
+      .invoice-card::before{ display:none !important; }
+      .panel, table, .totals-box, .note{
+        background:#fff !important;
+        border:1px solid #ddd !important;
+        color:#111 !important;
+      }
+      .meta-row, .kv .k, .subdesc, thead th, tbody td, .trow, .footer{
+        color:#111 !important;
+        opacity:1 !important;
+      }
+      .actions{ display:none !important; }
+      .pill{
+        background:#fff !important;
+        border:1px solid #ddd !important;
+        color:#111 !important;
+        box-shadow:none !important;
+      }
+      .logo{ filter:none !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg" aria-hidden="true"></div>
+
+  <div class="container">
+    <main class="invoice-card" role="document" aria-label="Invoice">
+
+      <!-- Header -->
+      <header class="top">
+        <div class="brand">
+          <img class="logo" src="https://hapitech.dev/static/media/logo.png" alt="HapiTech logo">
+          <div class="title-wrap">
+            <div class="title">HapiTech</div>
+            <div class="tagline">Web, hosting & support</div>
+          </div>
+        </div>
+
+        <div class="inv-meta">
+          <div class="pill">Invoice</div>
+          <div class="meta-row"><b>Invoice #</b> <code>{{INVOICE_NUMBER}}</code></div>
+          <div class="meta-row"><b>Date</b> {{INVOICE_DATE}}</div>
+          <div class="meta-row"><b>Due</b> {{DUE_DATE}}</div>
+          <div class="meta-row"><b>Status</b> {{STATUS}}</div>
+        </div>
+      </header>
+
+      <div class="divider"></div>
+
+      <!-- Parties -->
+      <section class="grid" aria-label="Billing details">
+        <div class="panel">
+          <h2>Bill To</h2>
+          <div class="kv">
+            <div class="k">Client</div><div class="v"><b>{{CLIENT_NAME}}</b></div>
+            <div class="k">Company</div><div class="v">{{CLIENT_COMPANY}}</div>
+            <div class="k>Email</div><div class="v">{{CLIENT_EMAIL}}</div>
+            <div class="k">Phone</div><div class="v">{{CLIENT_PHONE}}</div>
+            <div class="k">Address</div><div class="v">{{CLIENT_ADDRESS}}</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>From</h2>
+          <div class="kv">
+            <div class="k">Business</div><div class="v"><b>{{FROM_BUSINESS}}</b></div>
+            <div class="k">Email</div><div class="v">{{FROM_EMAIL}}</div>
+            <div class="k">Phone</div><div class="v">{{FROM_PHONE}}</div>
+            <div class="k">Website</div><div class="v">{{FROM_WEBSITE}}</div>
+            <div class="k">Address</div><div class="v">{{FROM_ADDRESS}}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Project summary -->
+      <section class="panel" aria-label="Project summary">
+        <h2>Project</h2>
+        <div class="kv">
+          <div class="k">Domain</div><div class="v">{{DOMAIN}}</div>
+          <div class="k">Scope</div><div class="v">{{SCOPE_SUMMARY}}</div>
+          <div class="k">Work period</div><div class="v">{{WORK_PERIOD}}</div>
+          <div class="k">Reference</div><div class="v">{{REFERENCE}}</div>
+        </div>
+      </section>
+
+      <!-- Line items -->
+      <section style="margin-top:14px;" aria-label="Invoice items">
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th class="qty right">Qty</th>
+              <th class="rate right">Rate</th>
+              <th class="amt right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="desc">Website setup & deployment</div>
+                <div class="subdesc">
+                  Single-page site build, responsive layout, quote/contact modal, image lightbox,
+                  deployment with Nginx + Gunicorn + SSL setup/troubleshooting.
+                </div>
+              </td>
+              <td class="right">{{SETUP_QTY}}</td>
+              <td class="right">{{SETUP_RATE}}</td>
+              <td class="right">{{SETUP_AMOUNT}}</td>
+            </tr>
+
+            <tr>
+              <td>
+                <div class="desc">Domain registration (1 year)</div>
+                <div class="subdesc">{{DOMAIN}}</div>
+              </td>
+              <td class="right">1</td>
+              <td class="right">£{{DOMAIN_RATE}}</td>
+              <td class="right">£{{DOMAIN_AMOUNT}}</td>
+            </tr>
+
+            <tr>
+              <td>
+                <div class="desc">Managed hosting</div>
+                <div class="subdesc">VPS allocation, uptime responsibility, SSL renewals, app management.</div>
+              </td>
+              <td class="right">{{HOSTING_TERM}}</td>
+              <td class="right">{{HOSTING_RATE}}</td>
+              <td class="right">{{HOSTING_AMOUNT}}</td>
+            </tr>
+
+            <tr>
+              <td>
+                <div class="desc">Maintenance & support</div>
+                <div class="subdesc">Updates, minor edits, email/form troubleshooting, priority fixes.</div>
+              </td>
+              <td class="right">{{MAINT_TERM}}</td>
+              <td class="right">{{MAINT_RATE}}</td>
+              <td class="right">{{MAINT_AMOUNT}}</td>
+            </tr>
+
+            <tr>
+              <td>
+                <div class="desc">Business email hosting</div>
+                <div class="subdesc">info@ required, optional additional mailbox(es).</div>
+              </td>
+              <td class="right">{{EMAIL_TERM}}</td>
+              <td class="right">{{EMAIL_RATE}}</td>
+              <td class="right">{{EMAIL_AMOUNT}}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Totals -->
+        <div class="totals" aria-label="Totals">
+          <div class="totals-box">
+            <div class="trow"><span>Subtotal</span><b>£{{SUBTOTAL}}</b></div>
+            <div class="trow"><span>Discount</span><b>{{DISCOUNT_LINE}}</b></div>
+            <div class="trow"><span>VAT</span><b>{{VAT_LINE}}</b></div>
+            <div class="trow total"><span>Total Due</span><b>£{{TOTAL_DUE}}</b></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Notes -->
+      <section class="notes" aria-label="Notes">
+        <div class="note">
+          <b>Payment:</b> {{PAYMENT_INSTRUCTIONS}}
+        </div>
+        <div class="note">
+          <b>Ongoing services:</b> Hosting / maintenance / email can be billed monthly or annually and cancelled with {{CANCEL_NOTICE}} notice.
+        </div>
+        <div class="note">
+          <b>Included:</b> Standard monitoring, SSL renewal management, and minor fixes.
+          <br>
+          <b>Not included:</b> Major redesigns, new pages/features, or third-party paid plugins (quoted separately).
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <div>© {{YEAR}} {{FROM_BUSINESS}} • {{FROM_WEBSITE}}</div>
+        <div>Invoice #{{INVOICE_NUMBER}} • Reference: {{REFERENCE}}</div>
+      </footer>
+
+      <!-- Actions (web only) -->
+      <div class="actions" aria-label="Actions">
+        <button class="btn" onclick="window.print()">Print / Save as PDF</button>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // Optional: auto-fill "YEAR" if you want to use plain HTML (remove if templating server-side)
+    // document.body.innerHTML = document.body.innerHTML.replaceAll("{{YEAR}}", String(new Date().getFullYear()));
+  </script>
+</body>
+</html>

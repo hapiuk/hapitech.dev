@@ -1,0 +1,63 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Clients • Admin{% endblock %}
+{% block header_title %}Clients{% endblock %}
+{% block header_subtitle %}Manage client accounts{% endblock %}
+
+{% block content %}
+	<div class="neon-card admin-block">
+		<div class="admin-row">
+			<div>
+				<h2 class="admin-h2">Clients</h2>
+				<p class="admin-muted">Search, view, and update client accounts.</p>
+			</div>
+			<div style="display:flex;gap:10px;align-items:center;">
+				<input class="admin-input" placeholder="Search clients…" oninput="filterClients(this.value)">
+				<a class="btn neon admin-btn-sm" href="{{ url_for('admin_clients_new') }}">+ New</a>
+			</div>
+		</div>
+
+		<div class="table-lite" id="clientsTable">
+			<div class="t-head">
+				<div>Client</div><div>Email</div><div>Phone</div><div>Status</div><div>Actions</div>
+			</div>
+
+			{% for c in clients %}
+			<div class="t-row" data-name="{{ c.name|lower }}" data-email="{{ (c.primary_email or '')|lower }}">
+				<div>
+					<div class="t-title">{{ c.name }}</div>
+					<div class="t-sub">ID: {{ c.id }}</div>
+				</div>
+				<div>{{ c.primary_email or "—" }}</div>
+				<div>{{ c.phone or "—" }}</div>
+				<div>
+					{% if c.status == "active" %}
+						<span class="pill ok">Active</span>
+					{% elif c.status == "paused" %}
+						<span class="pill warn">Paused</span>
+					{% else %}
+						<span class="pill bad">Archived</span>
+					{% endif %}
+				</div>
+				<div style="display:flex;gap:10px;justify-content:flex-end;">
+					<a class="btn neon admin-btn-sm" href="{{ url_for('admin_clients_view', client_id=c.id) }}">View</a>
+					<a class="btn neon admin-btn-sm" href="{{ url_for('admin_clients_edit', client_id=c.id) }}">Edit</a>
+				</div>
+			</div>
+			{% endfor %}
+		</div>
+	</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+	function filterClients(q){
+		q = (q || "").toLowerCase().trim();
+		document.querySelectorAll('#clientsTable .t-row').forEach(row => {
+			const name = row.dataset.name || "";
+			const email = row.dataset.email || "";
+			row.style.display = (name.includes(q) || email.includes(q)) ? "" : "none";
+		});
+	}
+</script>
+{% endblock %}

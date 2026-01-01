@@ -1,0 +1,228 @@
+# app.py
+import os
+import datetime
+
+from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask_login import LoginManager, login_user, logout_user, current_user, login_required
+from dotenv import load_dotenv
+from sqlalchemy import func
+
+from models import db
+from models.user import User
+from models.client import Client
+
+from routes.solar_system import solar_system_bp
+from utils.mailer import send_contact_email
+from routes.admin_command_center import admin_command_center_bp
+from utils.command_center import get_service_state, SERVICES
+
+def handle_contact(data: dict) -> None:
+	print(f"[CONTACT {datetime.datetime.utcnow().isoformat()}] {data}")
+
+
+def admin_required(fn):
+	from functools import wraps
+
+	@wraps(fn)
+	def wrapper(*args, **kwargs):
+		if not current_user.is_authenticated:
+			return redirect(url_for("login"))
+		if current_user.role != "admin":
+			return redirect(url_for("client_dashboard"))
+		return fn(*args, **kwargs)
+
+	return wrapper
+
+
+def create_app():
+	app = Flask(__name__)
+
+	# --------------------------------------------------
+	# config
+	# --------------------------------------------------
+	load_dotenv()
+
+	app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-only-fallback-change-me")
+	app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///hapitech.db")
+	app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+	# --------------------------------------------------
+	# extensions
+	# --------------------------------------------------
+	db.init_app(app)
+
+	login_manager = LoginManager()
+	login_manager.login_view = "login"
+	login_manager.init_app(app)
+
+	@login_manager.user_loader
+	def load_user(user_id):
+		return User.query.get(int(user_id))
+
+	# --------------------------------------------------
+	# blueprints
+	# --------------------------------------------------
+	app.register_blueprint(solar_system_bp, url_prefix="/solar-system")
+	app.register_blueprint(admin_command_center_bp)
+	# --------------------------------------------------
+	# routes
+	# --------------------------------------------------
+	@app.route("/")
+	def index():
+		if not current_user.is_authenticated:
+			return redirect(url_for("login"))
+		return redirect(url_for("admin_dashboard" if current_user.role == "admin" else "client_dashboard"))
+
+	@app.route("/login", methods=["GET", "POST"])
+	def login():
+		if request.method == "POST":
+			data = request.get_json(silent=True) or {}
+			username = (data.get("username") or "").strip()
+			password = data.get("password") or ""
+
+			user = User.query.filter_by(username=username).first()
+			if user and user.check_password(password):
+				login_user(user)
+				return jsonify({
+					"success": True,
+					"message": "Logged in",
+					"role": user.role
+				})
+
+			return jsonify({
+				"success": False,
+				"message": "Invalid username or password"
+			}), 401
+
+		return render_template("login.html")
+
+	@app.route("/logout", methods=["POST"])
+	@login_required
+	def logout():
+		logout_user()
+		return jsonify({"success": True})
+
+	@app.route("/contact", methods=["POST"])
+	def contact():
+		data = request.get_json(silent=True) or {}
+		name = (data.get("name") or "").strip()
+		email = (data.get("email") or "").strip()
+		message = (data.get("message") or "").strip()
+		client = (data.get("client") or "").strip()
+
+		if not (name and email and message):
+			return jsonify({"success": False, "message": "All fields required"}), 400
+
+		meta = {
+			"client": client,
+			"host": request.host,
+			"ip": request.headers.get("X-Forwarded-For", request.remote_addr),
+			"ua": request.headers.get("User-Agent", ""),
+			"referer": request.headers.get("Referer", ""),
+			"utc": datetime.datetime.utcnow().isoformat(),
+		}
+
+		try:
+			send_contact_email(name=name, email=email, message=message, meta=meta)
+		except Exception as e:
+			# log server-side; return generic error to user
+			print(f"[CONTACT_EMAIL_ERROR] {e}")
+			return jsonify({"success": False, "message": "Could not send right now. Try again shortly."}), 500
+
+		return jsonify({"success": True, "message": "Sent — we’ll get back to you shortly."})
+
+
+	@app.route("/dashboard")
+	@login_required
+	def client_dashboard():
+		return render_template("client/dashboard.html")
+
+	@app.route("/admin")
+	@admin_required
+	def admin_dashboard():
+		clients_total = db.session.query(func.count(Client.id)).scalar() or 0
+		clients_active = db.session.query(func.count(Client.id)).filter(Client.status == "active").scalar() or 0
+		clients_paused = db.session.query(func.count(Client.id)).filter(Client.status == "paused").scalar() or 0
+		clients_archived = db.session.query(func.count(Client.id)).filter(Client.status == "archived").scalar() or 0
+
+		users_total = db.session.query(func.count(User.id)).scalar() or 0
+		users_admins = db.session.query(func.count(User.id)).filter(User.role == "admin").scalar() or 0
+		users_clients = db.session.query(func.count(User.id)).filter(User.role == "client").scalar() or 0
+
+		stats = {
+			"clients_total": clients_total,
+			"clients_active": clients_active,
+			"clients_paused": clients_paused,
+			"clients_archived": clients_archived,
+			"users_total": users_total,
+			"users_admins": users_admins,
+			"users_clients": users_clients,
+			"invoices_total": 0,
+			"invoices_unpaid": 0,
+			"invoices_overdue": 0,
+			"alerts_total": 0
+		}
+
+		# operations: service health cards
+		service_states = [get_service_state(svc) for svc in SERVICES.values()]
+
+		recent_clients = Client.query.order_by(Client.id.desc()).limit(5).all()
+
+		return render_template(
+			"admin/dashboard.html",
+			stats=stats,
+			recent_clients=recent_clients,
+			service_states=service_states,
+		)
+
+	@app.route("/admin/clients")
+	@admin_required
+	def admin_clients():
+		clients = Client.query.order_by(Client.name.asc()).all()
+		return render_template("admin/clients/index.html", clients=clients)
+
+	@app.route("/admin/clients/new", methods=["GET", "POST"])
+	@admin_required
+	def admin_clients_new():
+		if request.method == "POST":
+			form = request.form
+			c = Client(
+				name=(form.get("name") or "").strip(),
+				primary_email=(form.get("primary_email") or "").strip() or None,
+				phone=(form.get("phone") or "").strip() or None,
+				status=form.get("status") or "active"
+			)
+			db.session.add(c)
+			db.session.commit()
+			return redirect(url_for("admin_clients"))
+
+		return render_template("admin/clients/new.html")
+
+	@app.route("/admin/clients/<int:client_id>")
+	@admin_required
+	def admin_clients_view(client_id):
+		client = Client.query.get_or_404(client_id)
+		return render_template("admin/clients/view.html", client=client)
+
+	@app.route("/admin/clients/<int:client_id>/edit", methods=["GET", "POST"])
+	@admin_required
+	def admin_clients_edit(client_id):
+		client = Client.query.get_or_404(client_id)
+
+		if request.method == "POST":
+			form = request.form
+			client.name = (form.get("name") or "").strip()
+			client.primary_email = (form.get("primary_email") or "").strip() or None
+			client.phone = (form.get("phone") or "").strip() or None
+			client.status = (form.get("status") or "active")
+			db.session.commit()
+			return redirect(url_for("admin_clients_view", client_id=client.id))
+
+		return render_template("admin/clients/edit.html", client=client)
+
+	return app
+
+app = create_app()
+
+if __name__ == "__main__":
+	app.run(debug=True, host="0.0.0.0", port=5000)

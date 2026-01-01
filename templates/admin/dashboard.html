@@ -1,0 +1,224 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}HapiTech Admin{% endblock %}
+{% block header_title %}Admin Dashboard{% endblock %}
+{% block header_subtitle %}HapiTech Hub • command center{% endblock %}
+
+{% block content %}
+
+	<!-- KPIs -->
+	<div class="admin-grid">
+		<div class="neon-card admin-card">
+			<div class="admin-card__kicker">Clients</div>
+			<div class="admin-card__value">{{ stats.clients_total }}</div>
+			<div class="admin-card__hint">{{ stats.clients_active }} active • {{ stats.clients_paused }} paused • {{ stats.clients_archived }} archived</div>
+		</div>
+
+		<div class="neon-card admin-card">
+			<div class="admin-card__kicker">Users</div>
+			<div class="admin-card__value">{{ stats.users_total }}</div>
+			<div class="admin-card__hint">{{ stats.users_clients }} client users • {{ stats.users_admins }} admins</div>
+		</div>
+
+		<div class="neon-card admin-card">
+			<div class="admin-card__kicker">Invoices</div>
+			<div class="admin-card__value">{{ stats.invoices_total }}</div>
+			<div class="admin-card__hint">{{ stats.invoices_unpaid }} unpaid • {{ stats.invoices_overdue }} overdue</div>
+		</div>
+
+		<div class="neon-card admin-card">
+			<div class="admin-card__kicker">Alerts</div>
+			<div class="admin-card__value">{{ stats.alerts_total }}</div>
+			<div class="admin-card__hint">Sites down / expiring SSL (coming soon)</div>
+		</div>
+	</div>
+
+	<!-- Operations -->
+		<!-- Operations -->
+	<div class="neon-card admin-block">
+		<div class="admin-row">
+			<div>
+				<h2 class="admin-h2">Operations</h2>
+				<p class="admin-muted">Live service health. Manage opens status/logs/restart.</p>
+			</div>
+
+			<div class="btn-row">
+				<button class="btn neon admin-btn-sm" type="button" onclick="opsQuick('disk_var_www','Disk usage: /var/www')">Disk</button>
+				<button class="btn neon admin-btn-sm" type="button" onclick="opsQuick('tree_hapitech_dirs','Project folders')">Tree</button>
+			</div>
+		</div>
+
+		<div class="service-grid">
+			{% for s in service_states %}
+				<div class="neon-card service-card">
+					<div class="service-head">
+						<div style="display:flex;align-items:center;gap:10px;min-width:0;">
+							<span class="light {{ s.level }}"></span>
+							<div style="min-width:0;">
+								<div class="service-name">{{ s.service }}</div>
+								<div class="service-meta">{{ s.ActiveState }} / {{ s.SubState }}{% if s.Result and s.Result != "success" %} ({{ s.Result }}){% endif %}</div>
+							</div>
+						</div>
+
+						<button class="btn neon admin-btn-sm" type="button" onclick="openSvcModal('{{ s.service }}','{{ s.service }}')">
+							Manage
+						</button>
+					</div>
+				</div>
+			{% endfor %}
+		</div>
+	</div>
+
+
+	<!-- Two-column section -->
+	<div class="admin-two">
+		<div class="neon-card admin-block">
+			<div class="admin-row">
+				<div>
+					<h2 class="admin-h2">Quick Actions</h2>
+					<p class="admin-muted">Common tasks while we build the platform.</p>
+				</div>
+			</div>
+
+			<div class="list-lite">
+				<div class="list-item">
+					<div>
+						<div class="list-title">Manage clients</div>
+						<div class="list-meta">Create, edit, archive, link client logins.</div>
+					</div>
+					<a class="btn neon admin-btn-sm" href="{{ url_for('admin_clients') }}">Open</a>
+				</div>
+
+				<div class="list-item">
+					<div>
+						<div class="list-title">Create invoice</div>
+						<div class="list-meta">Invoice system next (placeholder).</div>
+					</div>
+					<a class="btn neon admin-btn-sm" href="#" onclick="return false;">Coming soon</a>
+				</div>
+
+				<div class="list-item">
+					<div>
+						<div class="list-title">Work logs</div>
+						<div class="list-meta">Track tasks per client (placeholder).</div>
+					</div>
+					<a class="btn neon admin-btn-sm" href="#" onclick="return false;">Coming soon</a>
+				</div>
+			</div>
+		</div>
+
+		<div class="neon-card admin-block">
+			<div class="admin-row">
+				<div>
+					<h2 class="admin-h2">Recent Clients</h2>
+					<p class="admin-muted">Most recently created client records.</p>
+				</div>
+				<a class="btn neon admin-btn-sm" href="{{ url_for('admin_clients_new') }}">+ New</a>
+			</div>
+
+			{% if recent_clients %}
+				<div class="list-lite">
+					{% for c in recent_clients %}
+						<div class="list-item">
+							<div>
+								<div class="list-title">{{ c.name }}</div>
+								<div class="list-meta">{{ c.primary_email or "—" }} • {{ c.phone or "—" }}</div>
+							</div>
+							<a class="btn neon admin-btn-sm" href="{{ url_for('admin_clients_view', client_id=c.id) }}">View</a>
+						</div>
+					{% endfor %}
+				</div>
+			{% else %}
+				<div class="admin-muted">No clients yet. Create one to get started.</div>
+			{% endif %}
+		</div>
+	</div>
+
+	<!-- Backlog -->
+	<div class="neon-card admin-block">
+		<div class="admin-row">
+			<div>
+				<h2 class="admin-h2">Backlog</h2>
+				<p class="admin-muted">Planned modules and platform health checks.</p>
+			</div>
+		</div>
+
+		<div class="status-list">
+			<div class="status-row">
+				<span class="pill warn">TODO</span>
+				<div class="status-main">
+					<div class="status-title">Invoice system not enabled</div>
+					<div class="status-meta">Next step: models + routes + render your invoice template via Jinja.</div>
+				</div>
+				<div class="status-right">—</div>
+			</div>
+
+			<div class="status-row">
+				<span class="pill ok">READY</span>
+				<div class="status-main">
+					<div class="status-title">Client management is live</div>
+					<div class="status-meta">DB-backed clients, edit pages, linked users soon.</div>
+				</div>
+				<div class="status-right">—</div>
+			</div>
+		</div>
+	</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+	// Quick admin commands (Disk/Tree) shown via the same service modal for consistency
+	async function opsQuick(cmdKey, title){
+		openTextModal(title || 'Command', '(running...)');
+
+		try{
+			const r = await fetch('/admin/api/run-command', {
+				method: 'POST',
+				headers: {'Content-Type': 'application/json'},
+				body: JSON.stringify({cmd: cmdKey})
+			});
+			const data = await r.json();
+			openTextModal(
+				(title || cmdKey) + ' • exit ' + (data.exit_code ?? '?'),
+				data.output || '(no output)'
+			);
+		}catch(e){
+			openTextModal('Error', String(e));
+		}
+	}
+
+	// Lightweight generic modal re-use (uses the existing svc modal panel/body styles)
+	function openTextModal(title, text){
+		// If your layout modal exists, use it. Otherwise fallback to alert.
+		const modal = document.getElementById('svcModal');
+		if(!modal){ alert(text); return; }
+
+		document.getElementById('svcModalTitle').textContent = title || 'Output';
+		document.getElementById('svcModalSub').textContent = '';
+		modal.classList.add('is-open');
+		modal.setAttribute('aria-hidden','false');
+
+		const body = document.getElementById('svcModalBody');
+		body.innerHTML = `<pre class="admin-pre">${escapeHtml(text || '')}</pre>`;
+
+		// Hide service action buttons row if present (optional)
+		const btnRow = modal.querySelector('.btn-row');
+		if(btnRow) btnRow.style.display = 'none';
+	}
+
+	// When closing service modal, restore buttons row (if we hid it)
+	const _origCloseSvcModal = window.closeSvcModal;
+	if(typeof _origCloseSvcModal === 'function'){
+		window.closeSvcModal = function(){
+			const modal = document.getElementById('svcModal');
+			const btnRow = modal?.querySelector('.btn-row');
+			if(btnRow) btnRow.style.display = '';
+			_origCloseSvcModal();
+		}
+	}
+</script>
+{% endblock %}
+
+
+
