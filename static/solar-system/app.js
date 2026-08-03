@@ -13,9 +13,8 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.setSize(wrap.clientWidth, wrap.clientHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-// ✅ Tone mapping / exposure belongs here (you already had it — just relocated)
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.25; // try 1.15 - 1.6
+renderer.toneMappingExposure = 1.25;
 
 wrap.appendChild(renderer.domElement);
 
@@ -24,39 +23,466 @@ const scene = new THREE.Scene();
 const _v3a = new THREE.Vector3();
 const _v3b = new THREE.Vector3();
 
-let moonGroup = null;
-let moonPivot = null;
-
 let saturnRings = null;
 
-const camera = new THREE.PerspectiveCamera(55, wrap.clientWidth / wrap.clientHeight, 0.1, 5000);
-camera.position.set(0, 180, 360);
+const camera = new THREE.PerspectiveCamera(55, wrap.clientWidth / wrap.clientHeight, 0.1, 20000);
+camera.position.set(0, 500, 1200);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
-controls.minDistance = 40;
-controls.maxDistance = 1500;
+controls.minDistance = 25;
+controls.maxDistance = 12000;
 controls.target.set(0, 0, 0);
 controls.update();
-
 
 /* -----------------------------------------------------
    Textures
 ----------------------------------------------------- */
-const textureLoader = new THREE.TextureLoader();
+const _texCache = new Map();
 
 function loadPlanetTexture(name) {
-  try {
-    const tex = textureLoader.load(
-      `/static/solar-system/textures/${name.toLowerCase()}.jpg`
-    );
-    tex.colorSpace = THREE.SRGBColorSpace;
-    return tex;
-  } catch (e) {
-    console.warn(`Texture missing for ${name}`);
-    return null;
+  if (!name) return null;
+
+  const key = String(name).toLowerCase();
+  if (_texCache.has(key)) return _texCache.get(key);
+
+  // Create the texture immediately so materials can reference it
+  const tex = new THREE.Texture();
+  tex.colorSpace = THREE.SRGBColorSpace;
+  _texCache.set(key, tex);
+
+  // --- Procedural fallback generator (deterministic per name) ---
+  function hashString(str) {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
   }
+
+  function makeRng(seed) {
+    // Mulberry32
+    let t = seed >>> 0;
+    return function () {
+      t += 0x6D2B79F5;
+      let r = Math.imul(t ^ (t >>> 15), 1 | t);
+      r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+      return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function clamp01(x) { return Math.min(1, Math.max(0, x)); }
+
+  function hexToRgb(hex) {
+    const h = hex.replace("#", "");
+    const n = parseInt(h.length === 3 ? h.split("").map(c => c + c).join("") : h, 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function mixRgb(c1, c2, t) {
+    return {
+      r: Math.round(lerp(c1.r, c2.r, t)),
+      g: Math.round(lerp(c1.g, c2.g, t)),
+      b: Math.round(lerp(c1.b, c2.b, t)),
+    };
+  }
+
+  function pickPalette(body) {
+    // Basic “vibe” palettes for some famous moons
+    const palettes = {
+      io:        ["#d6b23a", "#b86a1f", "#f2d36b"], // sulphur-ish
+      europa:    ["#e9eef2", "#b9cde1", "#f7f9fb"], // icy
+      ganymede:  ["#7b6f63", "#4a4038", "#a69b90"], // rocky/gray-brown
+      callisto:  ["#4b3f37", "#2b2622", "#6a5b52"], // dark cratered
+      titan:     ["#c9782c", "#7a3f1b", "#e3a15a"], // orange haze
+      triton:    ["#b8d8e6", "#5aa3c6", "#e8f4fb"], // icy blue
+      phobos:    ["#6a615b", "#3a3431", "#8b817a"],
+      deimos:    ["#7a6f67", "#463f3a", "#9c9188"],
+      enceladus: ["#f3f7fb", "#cfe3f2", "#ffffff"],
+      rhea:      ["#c7cbd2", "#8c919a", "#e3e6eb"],
+      dione:     ["#d3d7df", "#9097a3", "#f1f3f7"],
+      tethys:    ["#e3e8ef", "#aab1bd", "#ffffff"],
+      iapetus:   ["#cfc6b8", "#2d2621", "#f0eadf"], // two-tone-ish
+      miranda:   ["#a6a0a7", "#6f6a73", "#d6d0d9"],
+      ariel:     ["#c9d4df", "#8698ab", "#eef3f8"],
+      umbriel:   ["#3a3740", "#1f1d23", "#5b5663"],
+      titania:   ["#c1c6cf", "#7b8390", "#e7eaef"],
+      oberon:    ["#7d736c", "#3a3532", "#a59b92"],
+      moon:      ["#b9b9b9", "#6c6c6c", "#e5e5e5"],
+      default:   ["#9aa3ad", "#4f5964", "#cfd6df"],
+    };
+
+    return palettes[body] || palettes.default;
+  }
+
+  function generatePlaceholderTexture(bodyName) {
+    const seed = hashString(bodyName);
+    const rnd = makeRng(seed);
+
+    const w = 512, h = 256; // equirectangular-ish
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const ctx = c.getContext("2d", { willReadFrequently: false });
+
+    const body = bodyName.toLowerCase();
+    const palHex = pickPalette(body);
+    const p0 = hexToRgb(palHex[0]);
+    const p1 = hexToRgb(palHex[1]);
+    const p2 = hexToRgb(palHex[2] || palHex[0]);
+
+    // Base gradient
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, `rgb(${p2.r},${p2.g},${p2.b})`);
+    g.addColorStop(1, `rgb(${p1.r},${p1.g},${p1.b})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+
+    // Soft noise bands
+    for (let y = 0; y < h; y++) {
+      const t = y / (h - 1);
+      const band = (Math.sin(t * Math.PI * (2 + rnd() * 4) + rnd() * 10) * 0.5 + 0.5);
+      const m = mixRgb(p0, p2, band * 0.6);
+      ctx.fillStyle = `rgba(${m.r},${m.g},${m.b},0.18)`;
+      ctx.fillRect(0, y, w, 1);
+    }
+
+    // Craters / spots
+    const craterCount = 80 + Math.floor(rnd() * 120);
+    for (let i = 0; i < craterCount; i++) {
+      const x = rnd() * w;
+      const y = rnd() * h;
+      const r = 2 + rnd() * 18;
+
+      const shade = rnd();
+      const dark = mixRgb(p1, { r: 0, g: 0, b: 0 }, 0.7);
+      const light = mixRgb(p2, { r: 255, g: 255, b: 255 }, 0.25);
+
+      // crater shadow
+      ctx.beginPath();
+      ctx.arc(x + r * 0.18, y + r * 0.12, r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${dark.r},${dark.g},${dark.b},${0.18 + shade * 0.18})`;
+      ctx.fill();
+
+      // crater rim
+      ctx.beginPath();
+      ctx.arc(x, y, r * 0.9, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${light.r},${light.g},${light.b},0.25)`;
+      ctx.lineWidth = Math.max(1, r * 0.08);
+      ctx.stroke();
+
+      // crater core
+      ctx.beginPath();
+      ctx.arc(x, y, r * 0.75, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${p0.r},${p0.g},${p0.b},0.15)`;
+      ctx.fill();
+    }
+
+    // Iapetus: add a darker hemisphere for fun
+    if (body === "iapetus") {
+      ctx.fillStyle = "rgba(0,0,0,0.25)";
+      ctx.fillRect(0, 0, w * 0.48, h);
+    }
+
+    // Return canvas for texture patching
+    return c;
+  }
+
+  // Attempt to load file texture; if it fails, patch tex.image with generated canvas
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = () => {
+    tex.image = img;
+    tex.needsUpdate = true;
+  };
+  img.onerror = () => {
+    console.warn(`⚠️ Missing texture: /static/solar-system/textures/${key}.jpg — using generated placeholder`);
+    const canvas = generatePlaceholderTexture(key);
+    tex.image = canvas;
+    tex.needsUpdate = true;
+  };
+  img.src = `/static/solar-system/textures/${key}.jpg`;
+
+  return tex;
+}
+
+/* -----------------------------------------------------
+   Real-time orbit helpers (Kepler)
+----------------------------------------------------- */
+const DEG = Math.PI / 180;
+const AU_TO_UNITS = 200; // 1 AU => 200 units (scaled orbits)
+
+function daysSinceJ2000(msUtc) {
+  const J2000 = Date.UTC(2000, 0, 1, 12, 0, 0); // 2000-01-01 12:00 UTC
+  return (msUtc - J2000) / 86400000;
+}
+
+function normRad(a) {
+  a = a % (Math.PI * 2);
+  return a < 0 ? a + Math.PI * 2 : a;
+}
+
+// Kepler's equation: E - e*sin(E) = M
+function solveKepler(M, e) {
+  M = normRad(M);
+  let E = e < 0.8 ? M : Math.PI;
+  for (let k = 0; k < 8; k++) {
+    const f = E - e * Math.sin(E) - M;
+    const fp = 1 - e * Math.cos(E);
+    E -= f / fp;
+  }
+  return E;
+}
+
+// Orbital elements -> heliocentric position (scene coords)
+function orbitPositionScene(el, days) {
+  const n = (2 * Math.PI) / el.period_days; // rad/day
+  const M = (el.M0_deg * DEG) + n * days;
+  const E = solveKepler(M, el.e);
+
+  const cosE = Math.cos(E), sinE = Math.sin(E);
+  const r = el.a_AU * (1 - el.e * cosE);
+
+  const nu = Math.atan2(Math.sqrt(1 - el.e * el.e) * sinE, cosE - el.e);
+
+  // orbital plane (perifocal)
+  const xOrb = r * Math.cos(nu);
+  const yOrb = r * Math.sin(nu);
+
+  const Ω = el.Omega_deg * DEG;
+  const i = el.i_deg * DEG;
+  const ω = el.omega_deg * DEG;
+
+  const cosΩ = Math.cos(Ω), sinΩ = Math.sin(Ω);
+  const cosi = Math.cos(i), sini = Math.sin(i);
+  const cosω = Math.cos(ω), sinω = Math.sin(ω);
+
+  // rotate by ω
+  const x1 = xOrb * cosω - yOrb * sinω;
+  const y1 = xOrb * sinω + yOrb * cosω;
+
+  // rotate by i
+  const x2 = x1;
+  const y2 = y1 * cosi;
+  const z2 = y1 * sini;
+
+  // rotate by Ω
+  const x = x2 * cosΩ - y2 * sinΩ;
+  const y = x2 * sinΩ + y2 * cosΩ;
+  const z = z2;
+
+  // Map to scene axes: (x, z, y)
+  return new THREE.Vector3(x * AU_TO_UNITS, z * AU_TO_UNITS, y * AU_TO_UNITS);
+}
+
+/* -----------------------------------------------------
+   Moons (Keplerian, data-driven)
+----------------------------------------------------- */
+
+// Keep Moon @ ~16 units like before.
+// 384,400 km (Earth–Moon avg) => 16 units
+const MOON_KM_TO_UNITS = 16 / 384400;
+const MOON_PARENT_SCALE = new Map(); // parentNameLower -> scale multiplier
+
+// Local (planet-centered) Kepler position. Returns Vector3 in parent-local scene axes.
+function orbitPositionLocal(el, days, distScale = 1) {
+  const n = (2 * Math.PI) / el.period_days; // rad/day
+  const dir = (typeof el.orbit_dir === "number") ? el.orbit_dir : 1;
+  const M = (el.M0_deg * DEG) + (dir * n * days);
+  const E = solveKepler(M, el.e);
+
+  const cosE = Math.cos(E), sinE = Math.sin(E);
+  const r = (el.a * distScale) * (1 - el.e * cosE);
+
+  const nu = Math.atan2(
+    Math.sqrt(1 - el.e * el.e) * sinE,
+    cosE - el.e
+  );
+
+  // orbital plane (perifocal)
+  const xOrb = r * Math.cos(nu);
+  const yOrb = r * Math.sin(nu);
+
+  const Ω = (el.Omega_deg ?? 0) * DEG;
+  const i = (el.i_deg ?? 0) * DEG;
+  const ω = (el.omega_deg ?? 0) * DEG;
+
+  const cosΩ = Math.cos(Ω), sinΩ = Math.sin(Ω);
+  const cosi = Math.cos(i), sini = Math.sin(i);
+  const cosω = Math.cos(ω), sinω = Math.sin(ω);
+
+  // rotate by ω
+  const x1 = xOrb * cosω - yOrb * sinω;
+  const y1 = xOrb * sinω + yOrb * cosω;
+
+  // rotate by i
+  const x2 = x1;
+  const y2 = y1 * cosi;
+  const z2 = y1 * sini;
+
+  // rotate by Ω
+  const x = x2 * cosΩ - y2 * sinΩ;
+  const y = x2 * sinΩ + y2 * cosΩ;
+  const z = z2;
+
+  // SAME mapping as everything else: (x, z, y)
+  return new THREE.Vector3(x, z, y);
+}
+
+function makeMoonOrbitLine(el, distScale = 1, segments = 256) {
+  const pts = [];
+  for (let s = 0; s <= segments; s++) {
+    const nu = (s / segments) * Math.PI * 2;
+
+    const a = el.a * distScale;
+    const e = el.e;
+
+    const r = (a * (1 - e * e)) / (1 + e * Math.cos(nu));
+    const xOrb = r * Math.cos(nu);
+    const yOrb = r * Math.sin(nu);
+
+    const Ω = (el.Omega_deg ?? 0) * DEG;
+    const i = (el.i_deg ?? 0) * DEG;
+    const ω = (el.omega_deg ?? 0) * DEG;
+
+    const cosΩ = Math.cos(Ω), sinΩ = Math.sin(Ω);
+    const cosi = Math.cos(i), sini = Math.sin(i);
+    const cosω = Math.cos(ω), sinω = Math.sin(ω);
+
+    const x1 = xOrb * cosω - yOrb * sinω;
+    const y1 = xOrb * sinω + yOrb * cosω;
+
+    const x2 = x1;
+    const y2 = y1 * cosi;
+    const z2 = y1 * sini;
+
+    const x = x2 * cosΩ - y2 * sinΩ;
+    const y = x2 * sinΩ + y2 * cosΩ;
+    const z = z2;
+
+    pts.push(new THREE.Vector3(x, z, y));
+  }
+
+  const geom = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineBasicMaterial({
+    color: 0x6fa8ff,
+    transparent: true,
+    opacity: 0.18
+  });
+
+  const line = new THREE.LineLoop(geom, mat);
+  line.frustumCulled = false;
+  return line;
+}
+
+function makeMoonMesh(m) {
+  const texture = loadPlanetTexture(m.name);
+
+  const material = texture
+    ? new THREE.MeshStandardMaterial({ map: texture, roughness: 0.55, metalness: 0.0 })
+    : new THREE.MeshStandardMaterial({ color: m.color ?? 0xcfd6df, roughness: 0.55, metalness: 0.0 });
+
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(m.radius, 28, 28),
+    material
+  );
+
+  mesh.userData = {
+    name: m.name,
+    radius: m.radius,
+    moonEl: null,      // filled in setup
+    parentName: m.parent,
+    spin: 0.15         // fallback only
+  };
+
+  return mesh;
+}
+
+// Created moons live here (for clicking + labels + animation)
+let moons = [];      // { mesh, parentObj, orbitLine, el, meta }
+let moonMeshes = []; // for raycast + labels + animation
+
+function setupMoonsFromData(data) {
+  moons = [];
+  moonMeshes = [];
+
+  if (!data?.moons || !Array.isArray(data.moons)) return;
+
+  // --- Compute per-parent visual scaling so moons don't render inside their planet ---
+  // Goal: innermost moon orbit radius >= parentRadius * MIN_ORBIT_MULT
+  const MIN_ORBIT_MULT = 1.8;
+
+  // Gather moons by parent
+  const byParent = new Map(); // parentLower -> [moonMeta...]
+  for (const m of data.moons) {
+    const parentLower = String(m.parent || "").toLowerCase();
+    if (!parentLower) continue;
+    if (!byParent.has(parentLower)) byParent.set(parentLower, []);
+    byParent.get(parentLower).push(m);
+  }
+
+  MOON_PARENT_SCALE.clear();
+
+  for (const [parentLower, list] of byParent.entries()) {
+    // Find the planet object for this parent
+    const parentObj = planets.find(p => String(p.mesh.userData.name || "").toLowerCase() === parentLower);
+    if (!parentObj) continue;
+
+    const parentRadius = Number(parentObj.mesh.userData.radius) || 1;
+
+    // Innermost semi-major axis in km
+    const minAkm = Math.min(...list.map(x => Number(x.a_km)).filter(Number.isFinite));
+    if (!Number.isFinite(minAkm) || minAkm <= 0) continue;
+
+    // Current visual radius in units using the global km->units factor
+    const minUnits = minAkm * MOON_KM_TO_UNITS;
+
+    // If it's already outside, scale = 1, else boost it
+    const desiredMinUnits = parentRadius * MIN_ORBIT_MULT;
+    const scale = (minUnits > 0) ? Math.max(1, desiredMinUnits / minUnits) : 1;
+
+    MOON_PARENT_SCALE.set(parentLower, scale);
+  }
+
+  for (const m of data.moons) {
+    const parentObj = planets.find(p => p.mesh.userData.name === m.parent);
+    if (!parentObj) continue;
+
+    const mesh = makeMoonMesh(m);
+
+    const el = {
+      a: m.a_km,
+      e: m.e ?? 0,
+      i_deg: m.i_deg ?? 0,
+      Omega_deg: m.Omega_deg ?? 0,
+      omega_deg: m.omega_deg ?? 0,
+      M0_deg: m.M0_deg ?? 0,
+      period_days: m.period_days,
+      orbit_dir: m.orbit_dir ?? 1
+    };
+
+    mesh.userData.moonEl = el;
+
+    // Orbit line local to parent
+    const parentLower = String(m.parent || "").toLowerCase();
+    const parentScale = MOON_PARENT_SCALE.get(parentLower) || 1;
+
+    const orbitLine = makeMoonOrbitLine(el, MOON_KM_TO_UNITS * parentScale);
+
+    parentObj.group.add(orbitLine);
+
+    // Attach moon to parent group
+    parentObj.group.add(mesh);
+
+    moons.push({ mesh, parentObj, orbitLine, el, meta: m, parentScale });
+    moonMeshes.push(mesh);
+  }
+
+  // add moons into raycast list
+  for (const mm of moonMeshes) planetMeshes.push(mm);
 }
 
 /* -----------------------------------------------------
@@ -64,31 +490,30 @@ function loadPlanetTexture(name) {
 ----------------------------------------------------- */
 scene.add(new THREE.AmbientLight(0xffffff, 0.25));
 
-// Sun light (acts like the Sun)
 const sunLight = new THREE.PointLight(0xffffff, 4.0, 0, 2);
 sunLight.position.set(0, 0, 0);
 scene.add(sunLight);
 
-// Soft directional fill (so nightside isn’t pitch black)
 const fillLight = new THREE.DirectionalLight(0xffffff, 0.7);
 fillLight.position.set(300, 250, 200);
 scene.add(fillLight);
 
-// Subtle rim light for separation
 const rimLight = new THREE.DirectionalLight(0xffffff, 0.35);
 rimLight.position.set(-400, 100, -250);
 scene.add(rimLight);
-
 
 /* -----------------------------------------------------
    Starfield
 ----------------------------------------------------- */
 function makeStarfield() {
-  const count = 12000;
+  const count = 18000;
   const positions = new Float32Array(count * 3);
 
   for (let i = 0; i < count; i++) {
-    const r = 2200 + Math.random() * 1600;
+    // Neptune ~ 30 AU, so keep stars beyond that
+    const base = AU_TO_UNITS * 30;
+    const span = AU_TO_UNITS * 25;
+    const r = base + Math.random() * span;
     const t = Math.random() * Math.PI * 2;
     const p = Math.acos(2 * Math.random() - 1);
 
@@ -102,7 +527,7 @@ function makeStarfield() {
 
   const m = new THREE.PointsMaterial({
     color: 0xffffff,
-    size: 1.2,
+    size: 1.6,
     transparent: true,
     opacity: 0.85,
     depthWrite: false
@@ -163,203 +588,194 @@ makeSun();
 /* -----------------------------------------------------
    Helpers
 ----------------------------------------------------- */
-function makeOrbit(radius) {
-  const curve = new THREE.EllipseCurve(0, 0, radius, radius, 0, Math.PI * 2);
-  const points = curve.getPoints(160).map(p => new THREE.Vector3(p.x, 0, p.y));
+function makeOrbitFromElements(el, segments = 512) {
+  const points = [];
+  const a = el.a_AU;
+  const e = el.e;
+  const Ω = el.Omega_deg * DEG;
+  const i = el.i_deg * DEG;
+  const ω = el.omega_deg * DEG;
+
+  const cosΩ = Math.cos(Ω), sinΩ = Math.sin(Ω);
+  const cosi = Math.cos(i), sini = Math.sin(i);
+  const cosω = Math.cos(ω), sinω = Math.sin(ω);
+
+  for (let s = 0; s <= segments; s++) {
+    const nu = (s / segments) * Math.PI * 2;
+
+    const r = (a * (1 - e * e)) / (1 + e * Math.cos(nu));
+    const xOrb = r * Math.cos(nu);
+    const yOrb = r * Math.sin(nu);
+
+    const x1 = xOrb * cosω - yOrb * sinω;
+    const y1 = xOrb * sinω + yOrb * cosω;
+
+    const x2 = x1;
+    const y2 = y1 * cosi;
+    const z2 = y1 * sini;
+
+    const x = x2 * cosΩ - y2 * sinΩ;
+    const y = x2 * sinΩ + y2 * cosΩ;
+    const z = z2;
+
+    points.push(new THREE.Vector3(
+      x * AU_TO_UNITS,
+      z * AU_TO_UNITS,
+      y * AU_TO_UNITS
+    ));
+  }
+
   const geom = new THREE.BufferGeometry().setFromPoints(points);
-  const mat = new THREE.LineBasicMaterial({ color: 0x6fa8ff, opacity: 0.25, transparent: true });
-  const line = new THREE.LineLoop(geom, mat);
-  return line;
+  const mat = new THREE.LineBasicMaterial({
+    color: 0x6fa8ff,
+    opacity: 0.25,
+    transparent: true
+  });
+
+  return new THREE.LineLoop(geom, mat);
 }
 
-function makePlanet({ name, radius, distance, speed, color, axialTiltDeg = 0, orbitInclinationDeg = 0 }) {
-
+function makePlanet({ name, radius, distance, color, axialTiltDeg = 0, orbitInclinationDeg = 0, orbitEl = null }) {
   const texture = loadPlanetTexture(name);
 
   const material = texture
-    ? new THREE.MeshStandardMaterial({
-        map: texture,
-        roughness: 0.55,
-        metalness: 0.0
-      })
-    : new THREE.MeshStandardMaterial({
-        color,
-        roughness: 0.6,
-        metalness: 0.0
-      });
+    ? new THREE.MeshStandardMaterial({ map: texture, roughness: 0.55, metalness: 0.0 })
+    : new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.0 });
 
-  const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(radius, 48, 48),
-    material
-  );
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 48, 48), material);
 
   mesh.userData = {
     name,
     radius,
     distance,
-    speed,
-    angle: Math.random() * Math.PI * 2,
-    spin: 0.25 / Math.max(radius, 1),
+    spin: 0.25 / Math.max(radius, 1), // fallback only
     axialTiltDeg,
-    orbitInclinationDeg
+    orbitInclinationDeg,
+    orbitEl
   };
 
   // Planet tilt group (axial tilt)
   const group = new THREE.Object3D();
-  group.rotation.z = THREE.MathUtils.degToRad(axialTiltDeg); // axial tilt around Z
+  group.rotation.z = THREE.MathUtils.degToRad(axialTiltDeg);
   group.add(mesh);
 
-  // Orbit group (tilts the ORBIT PLANE once)
+  // Orbit group:
+  // If orbitEl exists, DO NOT tilt orbitGroup — Kepler math already includes inclination.
   const orbitGroup = new THREE.Object3D();
-  orbitGroup.rotation.x = THREE.MathUtils.degToRad(orbitInclinationDeg); // orbit inclination around X
+  orbitGroup.rotation.x = orbitEl ? 0 : THREE.MathUtils.degToRad(orbitInclinationDeg);
   orbitGroup.add(group);
-
   scene.add(orbitGroup);
 
-  const orbit = makeOrbit(distance);
+  // Orbit line:
+  const orbit = orbitEl
+    ? makeOrbitFromElements(orbitEl)
+    : (() => {
+        const curve = new THREE.EllipseCurve(0, 0, distance, distance, 0, Math.PI * 2);
+        const pts = curve.getPoints(220).map(p => new THREE.Vector3(p.x, 0, p.y));
+        const geom = new THREE.BufferGeometry().setFromPoints(pts);
+        const mat = new THREE.LineBasicMaterial({ color: 0x6fa8ff, opacity: 0.25, transparent: true });
+        return new THREE.LineLoop(geom, mat);
+      })();
 
-  // IMPORTANT: orbit line should live in the same orbitGroup plane
-  orbitGroup.add(orbit);
+  scene.add(orbit);
 
   return { mesh, group, orbitGroup, orbit };
-
-  }
-
-function addSpinMarker(mesh) {
-  // Tiny bright dot on the “surface” so rotation is obvious
-  const marker = new THREE.Mesh(
-    new THREE.SphereGeometry(Math.max(mesh.userData.radius * 0.12, 0.35), 12, 12),
-    new THREE.MeshBasicMaterial({ color: 0xffffff })
-  );
-
-  // Put it on the +X “equator” of the planet
-  marker.position.set(mesh.userData.radius * 1.05, 0, 0);
-  mesh.add(marker);
 }
 
-/* -----------------------------------------------------
-   Moons
------------------------------------------------------ */
-
-function makeMoon({ name, radius, parentMesh, distance, speed, color }) {
-  const texture = loadPlanetTexture(name); // optional: moon.jpg if you add it later
+function makeMoon({ name, radius, parentMesh, distance, color }) {
+  const texture = loadPlanetTexture(name);
 
   const material = texture
     ? new THREE.MeshStandardMaterial({ map: texture, roughness: 0.55, metalness: 0.0 })
     : new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.0 });
 
-  const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(radius, 32, 32),
-    material
-  );
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 32), material);
 
   mesh.userData = {
     name,
     radius,
     distance,
-    speed,
-    angle: Math.random() * Math.PI * 2,
     parent: parentMesh,
     spin: 0.3
   };
 
-  // ❌ IMPORTANT: do NOT scene.add(mesh) anymore
-  // We will attach it to a moon pivot group instead.
-
   return mesh;
 }
 
-
-
 /* -----------------------------------------------------
-   Planets
+   Planets + Moon (loaded from JSON)
 ----------------------------------------------------- */
-const planets = [
-  makePlanet({ name: "Mercury", radius: 2.2, distance: 55,  speed: 1.25, color: 0xb7b0a7, axialTiltDeg: 0.03,  orbitInclinationDeg: 7.005 }),
-  makePlanet({ name: "Venus",   radius: 5.2, distance: 85,  speed: 0.95, color: 0xd8c08a, axialTiltDeg: 177.4, orbitInclinationDeg: 3.394 }),
-  makePlanet({ name: "Earth",   radius: 5.6, distance: 120, speed: 0.80, color: 0x4b83ff, axialTiltDeg: 23.44, orbitInclinationDeg: 0.000 }),
-  makePlanet({ name: "Mars",    radius: 3.0, distance: 155, speed: 0.70, color: 0xc46a4a, axialTiltDeg: 25.19, orbitInclinationDeg: 1.850 }),
-  makePlanet({ name: "Jupiter", radius: 14,  distance: 230, speed: 0.35, color: 0xd2b08c, axialTiltDeg: 3.13,  orbitInclinationDeg: 1.305 }),
-  makePlanet({ name: "Saturn",  radius: 12,  distance: 300, speed: 0.28, color: 0xe0d2a4, axialTiltDeg: 26.73, orbitInclinationDeg: 2.485 }),
-  makePlanet({ name: "Uranus",  radius: 9,   distance: 360, speed: 0.20, color: 0x8bd7e5, axialTiltDeg: 97.77, orbitInclinationDeg: 0.773 }),
-  makePlanet({ name: "Neptune", radius: 9,   distance: 420, speed: 0.16, color: 0x4f6dff, axialTiltDeg: 28.32, orbitInclinationDeg: 1.770 })
-];
+let planets = [];
+let planetMeshes = [];
+let moon = null;
+let moonObj = null;
 
-// Moon orbital inclination relative to the ecliptic (degrees)
-const MOON_INCLINATION = THREE.MathUtils.degToRad(5.145);
+async function loadBodiesAndBuildPlanets() {
+  const res = await fetch("/static/solar-system/data/bodies.json", { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to load bodies.json (${res.status})`);
+  const data = await res.json();
 
-// ----- Create Moons -----
-const earthObj = planets.find(p => p.mesh.userData.name === "Earth");
+  planets = [];
 
-const moon = earthObj
-  ? (() => {
-      // 1) Group that carries the tilt (inclination)
-      moonGroup = new THREE.Object3D();
-      moonGroup.rotation.x = MOON_INCLINATION;
+  for (const b of data.bodies) {
+    const p = makePlanet({
+      name: b.name,
+      radius: b.radius,
+      distance: b.a_AU * AU_TO_UNITS, // used only for fallback circle
+      color: 0xffffff,
+      axialTiltDeg: b.axialTiltDeg ?? 0,
+      orbitInclinationDeg: 0,
+      orbitEl: b
+    });
 
-      // Attach moon system to Earth's *group* so it follows Earth properly
-      earthObj.group.add(moonGroup);
+    planets.push(p);
+  }
 
-      // 2) Pivot that rotates to create the orbit
-      moonPivot = new THREE.Object3D();
-      moonGroup.add(moonPivot);
+  planetMeshes = planets.map(p => p.mesh);
+  return data;
+}
 
-      // 3) Create the moon mesh (not added to scene anymore)
-      const m = makeMoon({
-        name: "Moon",
-        radius: 1.6,
-        parentMesh: earthObj.mesh, // just for metadata
-        distance: 16,
-        speed: 2.2,
-        color: 0xcfd6df
-      });
+function setupMoon() {
+  const earthObj = planets.find(p => p.mesh.userData.name === "Earth");
+  if (!earthObj) return;
 
-      // 4) Put the moon at a fixed distance from the pivot
-      m.position.set(m.userData.distance, 0, 0);
+  moon = makeMoon({
+    name: "Moon",
+    radius: 1.6,
+    parentMesh: earthObj.mesh,
+    distance: 16,
+    color: 0xcfd6df
+  });
 
-      // 5) Attach moon to the pivot
-      moonPivot.add(m);
+  earthObj.group.add(moon);
 
-      return m;
-    })()
-  : null;
-
-
-const moonObj = moon ? { mesh: moon, orbit: null } : null;
-const planetMeshes = planets.map(p => p.mesh);
-if (moon) planetMeshes.push(moon);
+  moonObj = { mesh: moon, orbit: null };
+  planetMeshes.push(moon);
+}
 
 /* -----------------------------------------------------
    Rings (Particle version)
 ----------------------------------------------------- */
-
 function addSaturnRingsParticles(saturnMesh) {
   const r = saturnMesh.userData.radius || 12;
 
-  // Real-ish ratios: outer radius ~2.3x planet radius
-  const inner = r * 1.25;   // ~D ring region (stylised)
-  const outer = r * 2.30;   // closer to real outer edge
+  const inner = r * 1.25;
+  const outer = r * 2.30;
 
-  // Cassini Division (gap between B and A rings)
   const cassiniInner = r * 1.72;
   const cassiniOuter = r * 1.87;
 
-  const count = 90000; // 60k–150k is a good range (perf dependent)
+  const count = 90000;
 
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
   const sizes = new Float32Array(count);
 
-  // Helper: weighted band sampling so we get visible "ring structure"
-  // We'll bias towards certain radial bands to look more realistic.
   function sampleRadius() {
     const u = Math.random();
-
-    // Band weights (tweak these if you want)
-    if (u < 0.18) return THREE.MathUtils.lerp(inner, r * 1.55, Math.random());     // C
-    if (u < 0.62) return THREE.MathUtils.lerp(r * 1.55, r * 1.72, Math.random()); // B
-    return THREE.MathUtils.lerp(r * 1.87, outer, Math.random());                  // A
-
+    if (u < 0.18) return THREE.MathUtils.lerp(inner, r * 1.55, Math.random());
+    if (u < 0.62) return THREE.MathUtils.lerp(r * 1.55, r * 1.72, Math.random());
+    return THREE.MathUtils.lerp(r * 1.87, outer, Math.random());
   }
 
   function smoothstep01(x, edge) {
@@ -370,13 +786,10 @@ function addSaturnRingsParticles(saturnMesh) {
   let i = 0;
   while (i < count) {
     const rad = sampleRadius();
-
-    // Enforce Cassini gap (extra safety in case sampling lands inside)
     if (rad > cassiniInner && rad < cassiniOuter) continue;
 
     const theta = Math.random() * Math.PI * 2;
 
-    // Small thickness: rings are extremely thin IRL, but we need a tiny visual thickness
     const thickness = r * 0.012;
     const y = (Math.random() - 0.5) * thickness;
 
@@ -388,28 +801,21 @@ function addSaturnRingsParticles(saturnMesh) {
     positions[p3 + 1] = y;
     positions[p3 + 2] = z;
 
-    // Color: mostly icy white with slight warm tint + radial variation
     const t = (rad - inner) / (outer - inner);
-    const base = 0.85 + 0.15 * Math.random(); // 0.85..1.0
-
-    // Softer "grain" so it isn't perfectly flat
+    const base = 0.85 + 0.15 * Math.random();
     const bandNoise = 0.92 + 0.08 * Math.sin(t * Math.PI * 10.0 + Math.random() * 0.3);
 
-    // Add a couple of ring bands (thin darker stripes)
     const band1 = smoothstep01(Math.abs(t - 0.18), 0.03);
     const band2 = smoothstep01(Math.abs(t - 0.55), 0.02);
     const bandBoost = 1.0 - 0.10 * band1 - 0.18 * band2;
 
     const c = base * bandNoise * bandBoost;
 
-    // Warm-ish tint (tiny)
-    colors[p3 + 0] = c * 1.00; // R
-    colors[p3 + 1] = c * 0.98; // G
-    colors[p3 + 2] = c * 0.92; // B
+    colors[p3 + 0] = c * 1.00;
+    colors[p3 + 1] = c * 0.98;
+    colors[p3 + 2] = c * 0.92;
 
-    // Size: mix of dust and chunks
-    // sizeAttenuation makes these shrink with distance (good)
-    const chunk = Math.random() < 0.12; // 12% bigger chunks
+    const chunk = Math.random() < 0.12;
     sizes[i] = chunk ? (1.8 + Math.random() * 1.4) : (0.6 + Math.random() * 0.9);
 
     i++;
@@ -420,15 +826,14 @@ function addSaturnRingsParticles(saturnMesh) {
   geom.setAttribute("color", new THREE.BufferAttribute(colors, 3));
   geom.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
 
-  // Shader so we can use per-particle size attribute
   const mat = new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
     vertexColors: true,
     blending: THREE.NormalBlending,
     uniforms: {
-      uOpacity: { value: 0.35 }, 
-      uScale: { value: 1.0 }    
+      uOpacity: { value: 0.35 },
+      uScale: { value: 1.0 }
     },
     vertexShader: `
       attribute float size;
@@ -438,23 +843,18 @@ function addSaturnRingsParticles(saturnMesh) {
 
       void main() {
         vColor = color;
-
         vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+        float dist = -mvPosition.z;
 
-        // Distance from camera (positive)
-         float dist = -mvPosition.z;
-
-        // Fade out when far away (tweak these numbers)
         float fadeStart = 700.0;
         float fadeEnd   = 1700.0;
         vFade = 1.0 - smoothstep(fadeStart, fadeEnd, dist);
 
-        // size attenuation
         float atten = clamp(1200.0 / dist, 0.0, 3.0);
 
         gl_PointSize = size * uScale * atten;
         gl_Position = projectionMatrix * mvPosition;
-       }
+      }
     `,
     fragmentShader: `
       varying vec3 vColor;
@@ -464,39 +864,23 @@ function addSaturnRingsParticles(saturnMesh) {
       void main() {
         vec2 uv = gl_PointCoord.xy - vec2(0.5);
         float d = dot(uv, uv);
-
-        // soft round particles
         float alpha = smoothstep(0.25, 0.0, d);
-
         gl_FragColor = vec4(vColor, alpha * uOpacity * vFade);
       }
-  `
+    `
   });
 
   const points = new THREE.Points(geom, mat);
 
-  // Group lets us tilt the rings to Saturn's equator AND rotate them slowly
   const group = new THREE.Object3D();
-
-  group.rotation.z = 0;
-
   group.add(points);
 
-  // Attach to Saturn so it follows Saturn around
   saturnMesh.add(group);
 
-  // Make raycasting ignore rings (so clicks still hit Saturn)
   points.raycast = () => {};
 
   return { group, points };
 }
-
-// ----- Saturn Rings (Particle) attach -----
-const saturnObj = planets.find(p => p.mesh.userData.name === "Saturn");
-if (saturnObj) {
-  saturnRings = addSaturnRingsParticles(saturnObj.mesh);
-}
-
 
 /* -----------------------------------------------------
    Labels (HTML overlay)
@@ -504,42 +888,36 @@ if (saturnObj) {
 const stage = document.querySelector(".solar-stage") || document.body;
 const labelEls = new Map(); // mesh.uuid -> div
 
-function createLabelForPlanet(p) {
-  const el = document.createElement("div");
-  el.className = "planet-label";
-  el.textContent = p.mesh.userData.name;
+function createLabelForPlanet(body) {
+  // body: { mesh, kind: "planet"|"moon", parentMesh?: THREE.Object3D }
+  const mesh = body.mesh;
+  const kind = body.kind || "planet";
+  const parentMesh = body.parentMesh || null;
 
-  // Make it focusable + clickable
+  const el = document.createElement("div");
+  el.className = `planet-label kind-${kind}`;
+  el.textContent = mesh.userData?.name || "Body";
+
   el.tabIndex = 0;
   el.setAttribute("role", "button");
-  el.setAttribute("aria-label", `Focus ${p.mesh.userData.name}`);
+  el.setAttribute("aria-label", `Focus ${el.textContent}`);
 
-  // Keep a reference to the planet object
-  el.__body = p;
+  // store refs for updateLabels()
+  el.__body = { mesh, kind, parentMesh };
 
   const activate = () => {
-    setSelected(p);
-    focusOn(p.mesh); // same focus behavior as clicking the planet
+    selectBodyByMesh(mesh);
+    focusOn(mesh);
   };
 
-  el.addEventListener("click", (e) => {
-    e.stopPropagation(); // don’t let it count as a canvas click
-    activate();
-  });
-
+  el.addEventListener("click", (e) => { e.stopPropagation(); activate(); });
   el.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      activate();
-    }
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); activate(); }
   });
 
   stage.appendChild(el);
-  labelEls.set(p.mesh.uuid, el);
+  labelEls.set(mesh.uuid, el);
 }
-
-for (const p of planets) createLabelForPlanet(p);
-if (moonObj) createLabelForPlanet(moonObj);
 
 const toggleLabels = document.getElementById("toggleLabels");
 let labelsOn = toggleLabels ? toggleLabels.checked : true;
@@ -551,11 +929,6 @@ toggleLabels?.addEventListener("change", (e) => {
   }
 });
 
-// set initial label visibility
-for (const el of labelEls.values()) {
-  el.style.display = labelsOn ? "" : "none";
-}
-
 function updateLabels() {
   if (!labelsOn) return;
 
@@ -563,16 +936,38 @@ function updateLabels() {
   const w = rect.width;
   const h = rect.height;
 
-  for (const p of planets) {
-    const el = labelEls.get(p.mesh.uuid);
-    if (!el) continue;
+  // Tuning knobs
+  const MOON_SHOW_MAX_CAM_DIST = 2200; // show moon labels when camera is reasonably close
+  const MIN_SCREEN_SEPARATION_PX = 26; // hide moon label if too close to parent label on-screen
 
-    // Get world position of planet, project to screen
-    p.mesh.getWorldPosition(_v3a);
+  // Precompute screen positions for planet meshes (for separation checks)
+  const planetScreen = new Map(); // mesh.uuid -> {x,y,visible}
+  for (const p of planets) {
+    const mesh = p.mesh;
+    mesh.getWorldPosition(_v3a);
     const v = _v3a.clone().project(camera);
 
+    const visible = !(v.z > 1);
+    if (!visible) {
+      planetScreen.set(mesh.uuid, { x: 0, y: 0, visible: false });
+      continue;
+    }
 
-    // If behind camera, hide
+    const x = (v.x * 0.5 + 0.5) * w;
+    const y = (-v.y * 0.5 + 0.5) * h;
+    planetScreen.set(mesh.uuid, { x, y, visible: true });
+  }
+
+  // Iterate all labels (planets + moons)
+  for (const el of labelEls.values()) {
+    const info = el.__body;
+    const mesh = info?.mesh;
+    if (!mesh) continue;
+
+    mesh.getWorldPosition(_v3a);
+    const v = _v3a.clone().project(camera);
+
+    // behind camera
     if (v.z > 1) {
       el.style.display = "none";
       continue;
@@ -581,71 +976,204 @@ function updateLabels() {
     const x = (v.x * 0.5 + 0.5) * w;
     const y = (-v.y * 0.5 + 0.5) * h;
 
-    // Hide if offscreen (with small padding)
+    // offscreen padding
     const pad = 20;
     if (x < -pad || x > w + pad || y < -pad || y > h + pad) {
       el.style.display = "none";
       continue;
     }
 
-    // Ensure visible (if toggled on)
-    if (el.style.display === "none") el.style.display = "";
+    // --- Moon label gating ---
+    if (info.kind === "moon") {
+      // hide if too far zoomed out
+      const camDist = camera.position.distanceTo(_v3a);
+      if (camDist > MOON_SHOW_MAX_CAM_DIST) {
+        el.style.display = "none";
+        continue;
+      }
 
-    // Place label over the canvas
-    // Because labels are in .solar-stage, we position relative to the canvas rect offset:
+      // hide if too close to its parent planet on screen
+      const parentMesh = info.parentMesh;
+      if (parentMesh) {
+        const parent = planetScreen.get(parentMesh.uuid);
+        if (parent?.visible) {
+          const dx = x - parent.x;
+          const dy = y - parent.y;
+          const sep = Math.hypot(dx, dy);
+          if (sep < MIN_SCREEN_SEPARATION_PX) {
+            el.style.display = "none";
+            continue;
+          }
+        }
+      }
+    }
+
+    // show + position
+    if (el.style.display === "none") el.style.display = "";
     el.style.left = `${rect.left + x}px`;
     el.style.top = `${rect.top + y}px`;
     el.style.transform = "translate(-50%, -140%)";
   }
-
-    if (moonObj) {
-    const el = labelEls.get(moonObj.mesh.uuid);
-    if (el) {
-      moonObj.mesh.getWorldPosition(_v3a);
-      const v = _v3a.clone().project(camera);
-
-      if (v.z > 1) {
-        el.style.display = "none";
-      } else {
-        const x = (v.x * 0.5 + 0.5) * w;
-        const y = (-v.y * 0.5 + 0.5) * h;
-
-        const pad = 20;
-        if (x < -pad || x > w + pad || y < -pad || y > h + pad) {
-          el.style.display = "none";
-        } else {
-          if (el.style.display === "none") el.style.display = "";
-          el.style.left = `${rect.left + x}px`;
-          el.style.top = `${rect.top + y}px`;
-        }
-      }
-    }
-  }
-
 }
 
+const toggleOrbits = document.getElementById("toggleOrbits");
+
+toggleOrbits?.addEventListener("change", (e) => {
+  const on = e.target.checked;
+  for (const p of planets) if (p.orbit) p.orbit.visible = on;
+  for (const m of moons) if (m.orbitLine) m.orbitLine.visible = on;
+});
 
 /* -----------------------------------------------------
-   UI
+   Sim Time UI (date + play/pause + speed)
 ----------------------------------------------------- */
-const toggleOrbits = document.getElementById("toggleOrbits");
-toggleOrbits?.addEventListener("change", e => {
-  for (const p of planets) p.orbit.visible = e.target.checked;
+const simDate = document.getElementById("simDate");
+const simSpeed = document.getElementById("simSpeed");
+const btnNow = document.getElementById("btnNow");
+const btnPlay = document.getElementById("btnPlay");
+
+const btnBackHour = document.getElementById("btnBackHour");
+const btnFwdHour  = document.getElementById("btnFwdHour");
+const btnBackDay  = document.getElementById("btnBackDay");
+const btnFwdDay   = document.getElementById("btnFwdDay");
+
+let simTimeMs = Date.now();
+let simRate = 1;     // seconds of sim time per real second (1 = realtime)
+let simPlaying = true;
+
+function toDatetimeLocalValue(d) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function syncInputsFromSimTime() {
+  if (simDate) simDate.value = toDatetimeLocalValue(new Date(simTimeMs));
+}
+
+function setSimTimeFromInput() {
+  if (!simDate || !simDate.value) return;
+  const t = new Date(simDate.value).getTime();
+  if (!Number.isFinite(t)) return;
+  simTimeMs = t;
+  syncInputsFromSimTime();
+}
+
+function stepSim(ms) {
+  simTimeMs += ms;
+  syncInputsFromSimTime();
+}
+
+btnNow?.addEventListener("click", () => {
+  simTimeMs = Date.now();
+  syncInputsFromSimTime();
 });
-if (toggleOrbits) {
-  for (const p of planets) p.orbit.visible = toggleOrbits.checked;
+
+btnPlay?.addEventListener("click", () => {
+  simPlaying = !simPlaying;
+  btnPlay.textContent = simPlaying ? "Pause" : "Play";
+});
+
+simDate?.addEventListener("change", () => {
+  setSimTimeFromInput();
+});
+
+simSpeed?.addEventListener("change", (e) => {
+  const v = Number(e.target.value);
+  simRate = Number.isFinite(v) ? v : 1;
+  if (simRate === 0) {
+    simPlaying = false;
+    if (btnPlay) btnPlay.textContent = "Play";
+  }
+});
+
+btnBackHour?.addEventListener("click", () => stepSim(-3600 * 1000));
+btnFwdHour?.addEventListener("click",  () => stepSim( 3600 * 1000));
+btnBackDay?.addEventListener("click",  () => stepSim(-86400 * 1000));
+btnFwdDay?.addEventListener("click",   () => stepSim( 86400 * 1000));
+
+syncInputsFromSimTime();
+if (btnPlay) btnPlay.textContent = simPlaying ? "Pause" : "Play";
+if (simSpeed) simSpeed.value = String(simRate);
+
+/* -----------------------------------------------------
+   Modals (generic) + Disclaimer modal
+----------------------------------------------------- */
+const _openModals = []; // stack of modal elements
+
+function isModalOpen(modal) {
+  return !!modal && modal.classList.contains("is-open");
 }
 
-const timeSpeed = document.getElementById("timeSpeed");
-let timeScale = timeSpeed ? Number(timeSpeed.value) : 1;
-timeSpeed?.addEventListener("input", e => (timeScale = Number(e.target.value)));
-
-if (timeSpeed) {
-  timeSpeed.value = timeScale;
+function openModal(modal) {
+  if (!modal) return;
+  if (!isModalOpen(modal)) {
+    modal.classList.add("is-open");
+    modal.setAttribute("aria-hidden", "false");
+    _openModals.push(modal);
+  }
 }
 
+function closeModal(modal) {
+  if (!modal) return;
+  modal.classList.remove("is-open");
+  modal.setAttribute("aria-hidden", "true");
+  // remove from stack (last match)
+  for (let i = _openModals.length - 1; i >= 0; i--) {
+    if (_openModals[i] === modal) {
+      _openModals.splice(i, 1);
+      break;
+    }
+  }
+}
+
+function closeTopModal() {
+  const top = _openModals[_openModals.length - 1];
+  if (top) closeModal(top);
+}
+
+function wireModal(modal) {
+  if (!modal) return;
+  modal.addEventListener("click", (e) => {
+    const close = e.target?.getAttribute?.("data-close");
+    if (close) closeModal(modal);
+  });
+  // prevent click inside panel closing
+  const panel = modal.querySelector(".modal__panel");
+  panel?.addEventListener("click", (e) => e.stopPropagation());
+  // close buttons inside modal
+  modal.querySelectorAll("[data-close='1']").forEach(btn => {
+    btn.addEventListener("click", () => closeModal(modal));
+  });
+}
+
+// --- Disclaimer modal wiring ---
+const btnDisclaimer = document.getElementById("btnDisclaimer");
+const disclaimerModal = document.getElementById("disclaimerModal");
+const btnDisclaimerClose = document.getElementById("btnDisclaimerClose");
+
+wireModal(disclaimerModal);
+
+btnDisclaimer?.addEventListener("click", () => openModal(disclaimerModal));
+btnDisclaimerClose?.addEventListener("click", () => closeModal(disclaimerModal));
+
+// ESC: close topmost modal if any, else reset view
+window.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (_openModals.length) {
+    closeTopModal();
+    return;
+  }
+  resetView();
+});
+
+/* -----------------------------------------------------
+   Selection + Focus
+----------------------------------------------------- */
 const selName = document.getElementById("selName");
 const selMeta = document.getElementById("selMeta");
+const journalTitle = document.getElementById("journalTitle");
+const journalStatus = document.getElementById("journalStatus");
+const journalList = document.getElementById("journalList");
 const btnFocus = document.getElementById("btnFocus");
 const btnReset = document.getElementById("btnReset");
 const btnClose = document.getElementById("btnClose");
@@ -657,51 +1185,615 @@ btnClose?.addEventListener("click", () => {
   panel.style.display = (panel.style.display === "none") ? "" : "none";
 });
 
-/* -----------------------------------------------------
-   Selection + Focus
------------------------------------------------------ */
 let selected = null;
 let focusTween = null;
 let followMode = false;
 let followOffset = new THREE.Vector3(0, 0, 0);
 let followAllowUserControl = true;
 
-function setSelected(planetObjOrNull) {
-  // remove highlight from previous
+function getPlanetByMesh(mesh) {
+  return planets.find(p => p.mesh === mesh) || null;
+}
+function getMoonByMesh(mesh) {
+  return moons.find(m => m.mesh === mesh) || null;
+}
+
+function selectBodyByMesh(mesh) {
+  const p = getPlanetByMesh(mesh);
+  if (p) {
+    setSelected({
+      kind: "planet",
+      mesh: p.mesh,
+      orbitEl: p.mesh.userData.orbitEl,
+      meta: null
+    });
+    return;
+  }
+
+  const m = getMoonByMesh(mesh);
+  if (m) {
+    setSelected({
+      kind: "moon",
+      mesh: m.mesh,
+      orbitEl: null,
+      moonEl: m.mesh.userData.moonEl,
+      meta: m.meta,
+      parent: m.parentObj?.mesh?.userData?.name || m.meta?.parent || null
+    });
+  }
+}
+
+function fmtDate(iso){
+  try{
+    const d = new Date(iso);
+    return d.toLocaleString();
+  }catch{
+    return iso || "";
+  }
+}
+
+function setJournalStatus(msg){
+  if (journalStatus) journalStatus.textContent = msg || "";
+}
+
+let _journalLastItems = []; // last rendered items for click-to-open
+
+function renderJournalItems(items, { targetEl = journalList } = {}) {
+  if (!targetEl) return;
+
+  _journalLastItems = Array.isArray(items) ? items : [];
+
+  if (!_journalLastItems.length) {
+    targetEl.innerHTML = `<div class="journal-empty">No entries yet.</div>`;
+    return;
+  }
+
+  targetEl.innerHTML = _journalLastItems.map((it, idx) => {
+    const title = it.title || "Untitled";
+    const body = it.body || "";
+    const when = fmtDate(it.created_at);
+    const tags = (it.tags && it.tags.length) ? ` • ${it.tags.join(", ")}` : "";
+    return `
+      <button class="journal-item journal-item--btn" data-jidx="${idx}" type="button">
+        <div class="journal-item__title">${escapeHtml(title)}</div>
+        <div class="journal-item__meta">${escapeHtml(when)}${escapeHtml(tags)}</div>
+        <div class="journal-item__body">${escapeHtml(body)}</div>
+      </button>
+    `;
+  }).join("");
+
+  // click -> open entry modal
+  targetEl.querySelectorAll("[data-jidx]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.getAttribute("data-jidx"));
+      const item = _journalLastItems[idx];
+      if (item) openJournalEntry(item);
+    });
+  });
+}
+
+// basic HTML escaping (safe rendering)
+function escapeHtml(s){
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+async function fetchJournalRecent(limit = 10){
+  setJournalStatus("Loading…");
+  try{
+    const res = await fetch(`/api/journal/recent?limit=${encodeURIComponent(limit)}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data?.ok) throw new Error("API returned ok=false");
+    renderJournalItems(data.items || []);
+    setJournalStatus(`${(data.items || []).length} recent`);
+  }catch(e){
+    console.warn("Journal recent failed:", e);
+    if (journalList) journalList.innerHTML = `<div class="journal-empty">Couldn’t load journal.</div>`;
+    setJournalStatus("Error");
+  }
+}
+
+async function fetchJournalForEntity(kind, name, limit = 25){
+  setJournalStatus("Loading…");
+  try{
+    const qs = new URLSearchParams({
+      kind: String(kind || ""),
+      name: String(name || ""),
+      limit: String(limit)
+    });
+    const res = await fetch(`/api/journal/entity?${qs.toString()}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data?.ok) throw new Error("API returned ok=false");
+    renderJournalItems(data.items || []);
+    setJournalStatus(`${(data.items || []).length} items`);
+  }catch(e){
+    console.warn("Journal entity failed:", e);
+    if (journalList) journalList.innerHTML = `<div class="journal-empty">Couldn’t load journal.</div>`;
+    setJournalStatus("Error");
+  }
+}
+
+/* -----------------------------------------------------
+   Human-readable formatting for Focus UI
+----------------------------------------------------- */
+const _nf0 = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
+const _nf1 = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
+const _nf2 = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
+const _nf3 = new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 });
+
+const KM_PER_AU = 149_597_870.7;
+
+function _fmtNum(x, nf = _nf2) {
+  if (x === null || x === undefined) return "—";
+  const n = Number(x);
+  if (!Number.isFinite(n)) return "—";
+  return nf.format(n);
+}
+
+function _fmtDeg(x, digits = 1) {
+  const nf = digits === 0 ? _nf0 : digits === 1 ? _nf1 : _nf2;
+  return `${_fmtNum(x, nf)}°`;
+}
+
+function _fmtKm(km, digits = 0) {
+  const nf = digits === 0 ? _nf0 : digits === 1 ? _nf1 : _nf2;
+  return `${_fmtNum(km, nf)} km`;
+}
+
+function _fmtAu(au, digits = 3) {
+  const nf = digits === 3 ? _nf3 : _nf2;
+  return `${_fmtNum(au, nf)} AU`;
+}
+
+function _fmtAuFromKm(km, digits = 3) {
+  const n = Number(km);
+  if (!Number.isFinite(n)) return "—";
+  return _fmtAu(n / KM_PER_AU, digits);
+}
+
+function _fmtDays(days) {
+  const d = Number(days);
+  if (!Number.isFinite(d)) return "—";
+  if (d >= 365) return `${_fmtNum(d / 365, _nf2)} years`;
+  if (d >= 2) return `${_fmtNum(d, _nf1)} days`;
+  return `${_fmtNum(d * 24, _nf1)} hours`;
+}
+
+function _fmtHours(hours) {
+  const h = Number(hours);
+  if (!Number.isFinite(h)) return "—";
+  if (h >= 48) return _fmtDays(h / 24);
+  return `${_fmtNum(h, _nf1)} hours`;
+}
+
+function _tip(name) {
+  return `\n\nTip: click Focus to follow ${name}.`;
+}
+
+function buildPlanetFocusText(name, ud, el) {
+  const lines = [];
+  lines.push(`Planet:`);
+
+  // Your "radius" is in scene units (not km), so label it clearly
+  if (Number.isFinite(ud?.radius)) lines.push(`• Radius (visual units): ${_fmtNum(ud.radius, _nf2)}`);
+
+  if (Number.isFinite(ud?.axialTiltDeg)) lines.push(`• Axial tilt: ${_fmtDeg(ud.axialTiltDeg)}`);
+
+  if (el) {
+    lines.push(``);
+    lines.push(`Orbit (Kepler):`);
+    if (Number.isFinite(el.a_AU)) lines.push(`• Semi-major axis: ${_fmtAu(el.a_AU)} (${_fmtKm(el.a_AU * KM_PER_AU, 0)})`);
+    if (Number.isFinite(el.e)) lines.push(`• Eccentricity: ${_fmtNum(el.e, _nf3)}`);
+    if (Number.isFinite(el.i_deg)) lines.push(`• Inclination: ${_fmtDeg(el.i_deg)}`);
+    if (Number.isFinite(el.period_days)) lines.push(`• Year length: ${_fmtDays(el.period_days)}`);
+
+    // Rotation
+    if (Number.isFinite(el.rot_hours) && el.rot_hours > 0) {
+      lines.push(`• Day length: ${_fmtHours(el.rot_hours)}`);
+    }
+  }
+
+  return lines.join("\n") + _tip(name);
+}
+
+function buildMoonFocusText(name, parent, ud, meta, moonEl) {
+  const lines = [];
+  lines.push(`Moon:`);
+  lines.push(`• Orbits: ${parent || "—"}`);
+
+  // Distance a_km
+  const aKm =
+    Number.isFinite(meta?.a_km) ? meta.a_km :
+    Number.isFinite(moonEl?.a) ? moonEl.a :
+    null;
+
+  // Orbit period
+  const periodDays =
+    Number.isFinite(meta?.period_days) ? meta.period_days :
+    Number.isFinite(moonEl?.period_days) ? moonEl.period_days :
+    null;
+
+  // ecc + inc
+  const e =
+    Number.isFinite(meta?.e) ? meta.e :
+    Number.isFinite(moonEl?.e) ? moonEl.e :
+    null;
+
+  const iDeg =
+    Number.isFinite(meta?.i_deg) ? meta.i_deg :
+    Number.isFinite(moonEl?.i_deg) ? moonEl.i_deg :
+    null;
+
+  // rotation
+  const rotHours =
+    Number.isFinite(meta?.rot_hours) ? meta.rot_hours :
+    Number.isFinite(ud?.rot_hours) ? ud.rot_hours :
+    null;
+
+  if (aKm !== null) lines.push(`• Orbit distance (a): ${_fmtKm(aKm, 0)} (${_fmtAuFromKm(aKm)})`);
+  if (periodDays !== null) lines.push(`• Orbital period: ${_fmtDays(periodDays)}`);
+  if (e !== null) lines.push(`• Eccentricity: ${_fmtNum(e, _nf3)}`);
+  if (iDeg !== null) lines.push(`• Inclination: ${_fmtDeg(iDeg)}`);
+  if (rotHours !== null) lines.push(`• Rotation: ${_fmtHours(rotHours)}`);
+
+  // Visual radius note
+  if (Number.isFinite(ud?.radius)) lines.push(`• Radius (visual units): ${_fmtNum(ud.radius, _nf2)}`);
+
+  return lines.join("\n") + _tip(name);
+}
+
+/* -----------------------------------------------------
+   Journal Modals (browser + entry view + editor)
+----------------------------------------------------- */
+const btnJournal = document.getElementById("btnJournal");
+const btnJournalAdd = document.getElementById("btnJournalAdd");
+
+const journalBrowserModal = document.getElementById("journalBrowserModal");
+const journalBrowserList = document.getElementById("journalBrowserList");
+const journalBrowserStatus = document.getElementById("journalBrowserStatus");
+const journalBrowserContext = document.getElementById("journalBrowserContext");
+const btnJournalBrowserAll = document.getElementById("btnJournalBrowserAll");
+const btnJournalBrowserThis = document.getElementById("btnJournalBrowserThis");
+const btnJournalBrowserGeneral = document.getElementById("btnJournalBrowserGeneral");
+
+const journalEntryModal = document.getElementById("journalEntryModal");
+const journalEntryModalTitle = document.getElementById("journalEntryModalTitle");
+const journalEntryMeta = document.getElementById("journalEntryMeta");
+const journalEntryBody = document.getElementById("journalEntryBody");
+const journalEntrySnap = document.getElementById("journalEntrySnap");
+const journalEntryImages = document.getElementById("journalEntryImages");
+const btnJournalEntryEdit = document.getElementById("btnJournalEntryEdit");
+
+const journalEditorModal = document.getElementById("journalEditorModal");
+const journalEditorTitle = document.getElementById("journalEditorTitle");
+const journalEditorForm = document.getElementById("journalEditorForm");
+const journalEditorStatus = document.getElementById("journalEditorStatus");
+
+const jf_id = document.getElementById("jf_id");
+const jf_kind = document.getElementById("jf_kind");
+const jf_name = document.getElementById("jf_name");
+const jf_parent = document.getElementById("jf_parent");
+const jf_snapshot = document.getElementById("jf_snapshot");
+const jf_title = document.getElementById("jf_title");
+const jf_body = document.getElementById("jf_body");
+const jf_tags = document.getElementById("jf_tags");
+const jf_images = document.getElementById("jf_images");
+const journalEditorContext = document.getElementById("journalEditorContext");
+
+wireModal(journalBrowserModal);
+wireModal(journalEntryModal);
+wireModal(journalEditorModal);
+
+let _entryCurrentlyOpen = null; // item currently displayed in entry modal
+
+function getSelectionContext() {
+  // General if no selection
+  if (!selected?.mesh) {
+    return { kind: "general", name: "General", parent: "" };
+  }
+  const ud = selected.mesh.userData || {};
+  const name = ud.name || selected.meta?.name || "Unknown";
+  const kind = selected.kind || "general";
+  const parent =
+    (kind === "moon") ? (selected.parent || selected.meta?.parent || ud.parentName || "") : "";
+  return { kind, name, parent };
+}
+
+function makeSnapshot() {
+  // Captures “current state” you’ll likely want later
+  const ctx = getSelectionContext();
+  return {
+    captured_at: new Date().toISOString(),
+    sim: {
+      simTimeMs,
+      simIso: new Date(simTimeMs).toISOString(),
+      simRate,
+      simPlaying
+    },
+    selection: ctx,
+    camera: {
+      position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+      target: { x: controls.target.x, y: controls.target.y, z: controls.target.z },
+      followMode
+    }
+  };
+}
+
+async function loadBrowserRecent(limit = 200) {
+  if (!journalBrowserList) return;
+  journalBrowserStatus.textContent = "Loading…";
+  journalBrowserList.innerHTML = `<div class="journal-empty">Loading…</div>`;
+  try {
+    const res = await fetch(`/api/journal/recent?limit=${encodeURIComponent(limit)}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data?.ok) throw new Error("API returned ok=false");
+
+    renderJournalItems(data.items || [], { targetEl: journalBrowserList });
+    journalBrowserStatus.textContent = `${(data.items || []).length} entries`;
+  } catch (e) {
+    console.warn("Journal browser recent failed:", e);
+    journalBrowserList.innerHTML = `<div class="journal-empty">Couldn’t load journal.</div>`;
+    journalBrowserStatus.textContent = "Error";
+  }
+}
+
+async function loadBrowserForSelection() {
+  const ctx = getSelectionContext();
+  if (ctx.kind === "general") {
+    journalBrowserContext.textContent = "General entries";
+    // If your backend doesn’t support “general” yet, this will return empty — fine for now.
+    await loadBrowserGeneral();
+    return;
+  }
+  journalBrowserContext.textContent = `${ctx.kind.toUpperCase()} • ${ctx.name}`;
+  await loadBrowserEntity(ctx.kind, ctx.name);
+}
+
+async function loadBrowserGeneral() {
+  // Uses entity endpoint with kind=general, name=General (simple convention)
+  await loadBrowserEntity("general", "General");
+}
+
+async function loadBrowserEntity(kind, name, limit = 500) {
+  if (!journalBrowserList) return;
+  journalBrowserStatus.textContent = "Loading…";
+  journalBrowserList.innerHTML = `<div class="journal-empty">Loading…</div>`;
+  try {
+    const qs = new URLSearchParams({ kind: String(kind || ""), name: String(name || ""), limit: String(limit) });
+    const res = await fetch(`/api/journal/entity?${qs.toString()}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data?.ok) throw new Error("API returned ok=false");
+
+    renderJournalItems(data.items || [], { targetEl: journalBrowserList });
+    journalBrowserStatus.textContent = `${(data.items || []).length} entries`;
+  } catch (e) {
+    console.warn("Journal browser entity failed:", e);
+    journalBrowserList.innerHTML = `<div class="journal-empty">Couldn’t load journal.</div>`;
+    journalBrowserStatus.textContent = "Error";
+  }
+}
+
+function openJournalBrowser(mode = "all") {
+  openModal(journalBrowserModal);
+
+  if (mode === "this") {
+    loadBrowserForSelection();
+    return;
+  }
+  if (mode === "general") {
+    journalBrowserContext.textContent = "General entries";
+    loadBrowserGeneral();
+    return;
+  }
+  journalBrowserContext.textContent = "All entries (recent)";
+  loadBrowserRecent(250);
+}
+
+btnJournal?.addEventListener("click", () => openJournalBrowser("all"));
+btnJournalBrowserAll?.addEventListener("click", () => openJournalBrowser("all"));
+btnJournalBrowserThis?.addEventListener("click", () => openJournalBrowser("this"));
+btnJournalBrowserGeneral?.addEventListener("click", () => openJournalBrowser("general"));
+
+function openJournalEntry(item) {
+  _entryCurrentlyOpen = item || null;
+
+  const title = item?.title || "Untitled";
+  const when = fmtDate(item?.created_at);
+  const tags = (item?.tags && item.tags.length) ? item.tags.join(", ") : "";
+  const kind = item?.kind || "";
+  const name = item?.name || "";
+
+  journalEntryModalTitle.textContent = `📌 ${title}`;
+  journalEntryMeta.textContent = `${when}${tags ? " • " + tags : ""}${(kind && name) ? ` • ${kind}:${name}` : ""}`;
+  journalEntryBody.textContent = item?.body || "";
+
+  // Snapshot (if backend returns it)
+  const snap = item?.snapshot;
+  if (snap) {
+    journalEntrySnap.style.display = "";
+    journalEntrySnap.textContent = `Snapshot:\n${JSON.stringify(snap, null, 2)}`;
+  } else {
+    journalEntrySnap.style.display = "none";
+    journalEntrySnap.textContent = "";
+  }
+
+  // Images (if backend returns URLs)
+  const imgs = item?.images;
+  if (Array.isArray(imgs) && imgs.length) {
+    journalEntryImages.style.display = "";
+    journalEntryImages.innerHTML = imgs.map(src => (
+      `<a class="journal-img" href="${escapeHtml(src)}" target="_blank" rel="noopener">
+        <img src="${escapeHtml(src)}" alt="journal image">
+      </a>`
+    )).join("");
+  } else {
+    journalEntryImages.style.display = "none";
+    journalEntryImages.innerHTML = "";
+  }
+
+  // Enable edit only if an id exists
+  const canEdit = !!(item && (item.id || item.entry_id));
+  btnJournalEntryEdit.disabled = !canEdit;
+
+  openModal(journalEntryModal);
+}
+
+btnJournalEntryEdit?.addEventListener("click", () => {
+  if (!_entryCurrentlyOpen) return;
+  openJournalEditor({ mode: "edit", item: _entryCurrentlyOpen });
+});
+
+function openJournalEditor({ mode = "create", item = null } = {}) {
+  const ctx = getSelectionContext();
+  const isEdit = mode === "edit";
+
+  journalEditorTitle.textContent = isEdit ? "✏️ Edit entry" : "➕ New entry";
+  journalEditorStatus.textContent = "";
+
+  // Fill hidden context
+  jf_kind.value = (item?.kind ?? ctx.kind ?? "general");
+  jf_name.value = (item?.name ?? ctx.name ?? "General");
+  jf_parent.value = (item?.parent ?? ctx.parent ?? "");
+  jf_snapshot.value = JSON.stringify(makeSnapshot());
+
+  // Fill fields
+  jf_id.value = isEdit ? String(item?.id ?? item?.entry_id ?? "") : "";
+  jf_title.value = String(item?.title ?? "");
+  jf_body.value = String(item?.body ?? "");
+  jf_tags.value = Array.isArray(item?.tags) ? item.tags.join(", ") : String(item?.tags ?? "");
+
+  // File input should be cleared on open
+  if (jf_images) jf_images.value = "";
+
+  // Context label
+  const ctxLabel =
+    (jf_kind.value === "general")
+      ? "General"
+      : `${jf_kind.value.toUpperCase()} • ${jf_name.value}${jf_parent.value ? ` (Parent: ${jf_parent.value})` : ""}`;
+  journalEditorContext.textContent = ctxLabel;
+
+  openModal(journalEditorModal);
+}
+
+btnJournalAdd?.addEventListener("click", () => openJournalEditor({ mode: "create" }));
+
+// Submit (create/update)
+journalEditorForm?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  journalEditorStatus.textContent = "Saving…";
+
+  const isEdit = !!jf_id.value;
+  const endpoint = isEdit ? "/api/journal/update" : "/api/journal/create";
+
+  try {
+    const fd = new FormData();
+    fd.set("id", jf_id.value);
+    fd.set("kind", jf_kind.value);
+    fd.set("name", jf_name.value);
+    fd.set("parent", jf_parent.value);
+    fd.set("title", jf_title.value);
+    fd.set("body", jf_body.value);
+    fd.set("tags", jf_tags.value);
+    fd.set("snapshot", jf_snapshot.value);
+
+    // images
+    const files = jf_images?.files ? Array.from(jf_images.files) : [];
+    for (const f of files) fd.append("images", f, f.name);
+
+    const res = await fetch(endpoint, { method: "POST", body: fd });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json().catch(() => null);
+    if (data && data.ok === false) throw new Error(data.error || "API returned ok=false");
+
+    journalEditorStatus.textContent = "Saved ✅";
+    closeModal(journalEditorModal);
+
+    // Refresh the side panel list for current selection
+    if (!selected) fetchJournalRecent(10);
+    else {
+      const ctx = getSelectionContext();
+      if (ctx.kind === "general") fetchJournalRecent(10);
+      else fetchJournalForEntity(ctx.kind, ctx.name, 25);
+    }
+
+    // Refresh browser modal if open
+    if (isModalOpen(journalBrowserModal)) {
+      // keep current mode simple: reload recent
+      loadBrowserRecent(250);
+    }
+
+  } catch (err) {
+    console.warn("Journal save failed:", err);
+    journalEditorStatus.textContent = `Error: ${err.message || err}`;
+  }
+});
+
+function setSelected(bodyOrNull) {
   if (selected?.mesh) selected.mesh.scale.setScalar(1);
 
-  selected = planetObjOrNull;
+  selected = bodyOrNull;
 
   followMode = false;
   focusTween = null;
+
+  // If you want selecting to always reveal the panel:
+  if (selected && panel) panel.style.display = "";
 
   if (!selected) {
     if (selName) selName.textContent = "Select a body";
     if (selMeta) {
       selMeta.textContent =
-        "Click a planet to focus the camera and show details here.\n\n" +
+        "Click a body to show details.\n\n" +
         "• Focus: follow this body\n" +
-        "• Reset: stop following";
+        "• Reset: stop following\n" +
+        "• Time: date + play/pause + rate";
     }
+    if (journalTitle) journalTitle.textContent = "Journal";
+    fetchJournalRecent(10);
     return;
   }
 
-
-  // highlight new
+  // Highlight selected
   selected.mesh.scale.setScalar(1.12);
 
-  if (selName) selName.textContent = selected.mesh.userData.name;
+  const ud = selected.mesh.userData || {};
+  const name = ud.name || selected.meta?.name || "Unknown";
+  if (journalTitle) journalTitle.textContent = `Journal • ${name}`;
+  fetchJournalForEntity(selected.kind, name, 25);
 
+  if (selName) selName.textContent = name;
+
+  // Planet branch (NOW human-readable)
+  if (selected.kind === "planet") {
+    const el = selected.orbitEl || ud.orbitEl;
+    if (selMeta) selMeta.textContent = buildPlanetFocusText(name, ud, el);
+    return;
+  }
+
+  // Moon branch (NOW human-readable)
+  if (selected.kind === "moon") {
+    const meta = selected.meta || {};
+    const moonEl = selected.moonEl || ud.moonEl || null;
+    const parent = selected.parent || meta.parent || ud.parentName || "Unknown";
+    if (selMeta) selMeta.textContent = buildMoonFocusText(name, parent, ud, meta, moonEl);
+    return;
+  }
+
+  // Fallback if kind isn't set (safe)
   if (selMeta) {
-    const d = selected.mesh.userData.distance;
-    const r = selected.mesh.userData.radius;
-    const sp = selected.mesh.userData.speed;
     selMeta.textContent =
-      `Stylised values (for visuals):\n` +
-      `• Radius: ${r}\n` +
-      `• Orbit distance: ${d}\n` +
-      `• Orbit speed: ${sp}\n\n` +
-      `Tip: click Focus to snap the camera to ${selected.mesh.userData.name}.`;
+      `Body:\n` +
+      `• Radius: ${ud.radius ?? "—"}\n\n` +
+      `Tip: click Focus to follow ${name}.`;
   }
 }
 
@@ -710,7 +1802,7 @@ function resetView() {
   focusTween = null;
   selected = null;
   controls.target.set(0, 0, 0);
-  camera.position.set(0, 180, 360);
+  camera.position.set(0, 500, 1200);
   controls.update();
   setSelected(null);
 }
@@ -724,22 +1816,18 @@ function focusOn(mesh) {
   const target = new THREE.Vector3();
   mesh.getWorldPosition(target);
 
-  // Direction from origin towards planet (fallback if too small)
   let dir = target.clone().normalize();
   if (dir.lengthSq() < 1e-6) dir = new THREE.Vector3(1, 0, 0);
 
   const planetRadius = mesh.userData.radius || 5;
   const camDist = Math.max(planetRadius * 10, 55);
 
-  // Desired camera position
   const desiredPos = target.clone()
     .add(dir.clone().multiplyScalar(camDist))
     .add(new THREE.Vector3(0, camDist * 0.35, 0));
 
-  // This is the key: offset from planet -> camera
   followOffset.copy(desiredPos).sub(target);
 
-  // Tween into position, then we’ll “lock” followMode on
   followMode = true;
   focusTween = {
     t: 0,
@@ -750,7 +1838,6 @@ function focusOn(mesh) {
     toTarget: target
   };
 }
-
 
 /* -----------------------------------------------------
    Raycasting (click to select)
@@ -767,23 +1854,16 @@ function updatePointerFromEvent(ev) {
 }
 
 renderer.domElement.addEventListener("pointerdown", (ev) => {
-  // Ignore if user is dragging a lot (OrbitControls)
-  // We'll still keep it simple: small movement threshold
   updatePointerFromEvent(ev);
   raycaster.setFromCamera(pointer, camera);
 
   const hits = raycaster.intersectObjects(planetMeshes, false);
+
+  // ✅ Don't clear selection/focus when clicking empty space
+  // This lets you keep "follow mode" and rotate the camera while attached.
   if (!hits.length) return;
 
-  const hitMesh = hits[0].object;
-  const hitPlanet = planets.find(p => p.mesh === hitMesh) || null;
-
-  if (hitPlanet) {
-    setSelected(hitPlanet);
-  } else if (moonObj && hitMesh === moonObj.mesh) {
-    setSelected(moonObj);
-  }
-
+  selectBodyByMesh(hits[0].object);
 });
 
 /* -----------------------------------------------------
@@ -801,6 +1881,7 @@ window.addEventListener("resize", () => {
    Animate
 ----------------------------------------------------- */
 const clock = new THREE.Clock();
+const rotAngle = new Map(); // name -> radians (planet spin accumulator)
 
 function animate() {
   const dt = clock.getDelta();
@@ -808,34 +1889,66 @@ function animate() {
   // subtle star drift
   stars.rotation.y += dt * 0.01;
 
+  // Advance sim clock
+  const dSimSeconds = (simPlaying ? simRate : 0) * dt;
+
+  if (dSimSeconds !== 0) {
+    simTimeMs += dSimSeconds * 1000;
+
+    // update UI ~4 times/sec, unless user is editing the input
+    if ((performance.now() | 0) % 250 < 16) {
+      const active = document.activeElement;
+      if (active !== simDate) syncInputsFromSimTime();
+    }
+  }
+
+  const simDays = daysSinceJ2000(simTimeMs);
+
+  // Planets (Kepler orbit + rotation from rot_hours)
   for (const p of planets) {
-    p.mesh.userData.angle += p.mesh.userData.speed * dt * timeScale;
+    const el = p.mesh.userData.orbitEl;
+    if (!el) continue;
 
-    // orbit position is now inside the orbitGroup plane (local space)
-    const x = Math.cos(p.mesh.userData.angle) * p.mesh.userData.distance;
-    const z = Math.sin(p.mesh.userData.angle) * p.mesh.userData.distance;
+    const pos = orbitPositionScene(el, simDays);
+    p.group.position.copy(pos);
 
-    // move the planet's tilt-group along the orbit (Y stays 0 in local orbit plane)
-    p.group.position.set(x, 0, z);
+    if (Number.isFinite(el.rot_hours) && el.rot_hours > 0) {
+      const dir = (el.rot_dir ?? 1);
+      const omega = dir * (2 * Math.PI) / (el.rot_hours * 3600); // rad/sec
 
-    // self-rotation (axial spin)
-    p.mesh.rotation.y += (p.mesh.userData.spin || 0.1) * dt * timeScale;
+      const name = p.mesh.userData.name;
+      const prev = rotAngle.get(name) ?? 0;
+      const next = prev + omega * dSimSeconds;
+      rotAngle.set(name, next);
+
+      p.mesh.rotation.y = next;
+    } else {
+      p.mesh.rotation.y += 0.1 * dt;
+    }
   }
 
-  // Moon motion (runs once per frame)
-  if (moon && moonPivot) {
-    // orbit by rotating the pivot
-    moonPivot.rotation.y += moon.userData.speed * dt * timeScale;
+  // Moons (Kepler local orbits)
+  for (const m of moons) {
+    const el = m.mesh.userData.moonEl;
+    if (!el) continue;
 
-    // self-rotation
-    moon.rotation.y += (moon.userData.spin || 0.15) * dt * timeScale;
+    const scale = m.parentScale || 1;
+    const localPos = orbitPositionLocal(el, simDays, MOON_KM_TO_UNITS * scale);
+
+    m.mesh.position.copy(localPos);
+
+    const mh = m.meta?.rot_hours;
+    if (Number.isFinite(mh) && mh > 0) {
+      const dir = (m.meta?.rot_dir ?? 1);
+      const omega = dir * (2 * Math.PI) / (mh * 3600);
+      m.mesh.rotation.y += omega * dSimSeconds;
+    }
   }
 
- // Saturn ring rotation (subtle)
- if (saturnRings?.group) {
-   saturnRings.group.rotation.y += dt * 0.15 * timeScale;
- }
-
+  // Saturn ring rotation (subtle)
+  if (saturnRings?.group) {
+    saturnRings.group.rotation.y += dt * 0.15;
+  }
 
   // camera focus tween
   if (focusTween) {
@@ -847,31 +1960,23 @@ function animate() {
     controls.target.lerpVectors(focusTween.fromTarget, focusTween.toTarget, e);
 
     if (t >= 1) {
-      // After tween, set initial offset from the final snapped view
       followOffset.copy(camera.position).sub(controls.target);
       focusTween = null;
     }
-
   }
 
-  // follow selected planet (locked target, BUT user can pan/zoom)
+  // follow selected body
   if (followMode && selected?.mesh && !focusTween) {
     selected.mesh.getWorldPosition(_v3b);
     const target = _v3b;
-  
-    // Track how the user has moved the camera relative to the current target
-    // (this changes when they zoom/pan/orbit)
+
     if (followAllowUserControl) {
       followOffset.copy(camera.position).sub(controls.target);
     }
-  
-    // Move the target with the planet...
+
     controls.target.copy(target);
-  
-    // ...and keep the same relative camera offset
     camera.position.copy(target).add(followOffset);
   }
-
 
   controls.update();
   updateLabels();
@@ -879,7 +1984,40 @@ function animate() {
   requestAnimationFrame(animate);
 }
 
+/* -----------------------------------------------------
+   Init (build everything in correct order)
+----------------------------------------------------- */
+const data = await loadBodiesAndBuildPlanets();
+
+// Add moons (ALL of them) after planets exist
+setupMoonsFromData(data);
+
+// Saturn rings attach AFTER planets exist
+const saturnObj = planets.find(p => p.mesh.userData.name === "Saturn");
+if (saturnObj) saturnRings = addSaturnRingsParticles(saturnObj.mesh);
+
+// Labels AFTER planets/moons exist
+for (const p of planets) createLabelForPlanet({ mesh: p.mesh, kind: "planet" });
+
+for (const m of moons) {
+  createLabelForPlanet({
+    mesh: m.mesh,
+    kind: "moon",
+    parentMesh: m.parentObj?.mesh || null
+  });
+}
+
+// Apply initial label visibility
+for (const el of labelEls.values()) el.style.display = labelsOn ? "" : "none";
+
+// Apply initial orbit visibility (planet orbits + moon orbits)
+if (toggleOrbits) {
+  const on = toggleOrbits.checked;
+  for (const p of planets) if (p.orbit) p.orbit.visible = on;
+  for (const m of moons) if (m.orbitLine) m.orbitLine.visible = on;
+}
+
 animate();
 setSelected(null);
 
-console.log("🌌 Solar System running (click planets to select)");
+console.log("🌌 Solar System running (real-time Kepler + moons)");
