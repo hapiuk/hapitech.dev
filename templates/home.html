@@ -1,0 +1,259 @@
+<!-- templates/home.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='media/favicon/favicon-96x96.png') }}" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='media/favicon/favicon.svg') }}" />
+  <link rel="shortcut icon" href="{{ url_for('static', filename='media/favicon/favicon.ico') }}" />
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='media/favicon/apple-touch-icon.png') }}" />
+  <meta name="apple-mobile-web-app-title" content="HapiTech" />
+  <link rel="manifest" href="/static/media/favicon/site.webmanifest" />
+  <title>HapiTech</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="bg"></div>
+
+<header class="site-header">
+    <nav class="site-nav neon-card">
+
+        <a href="/" class="brand">
+            <img src="{{ url_for('static', filename='media/logo.png') }}" alt="HapiTech Logo">
+            <span>HapiTech</span>
+        </a>
+
+        <div class="nav-links">
+            <a href="#services">Services</a>
+            <a href="#work">Projects</a>
+            <a href="#why">Why HapiTech</a>
+            <a href="/login">Client Login</a>
+        </div>
+
+        <button class="btn nav-contact" onclick="openContact()">
+            Get Started
+        </button>
+
+    </nav>
+</header>
+
+  <main class="page">
+
+    <!-- HERO -->
+    <section class="hero">
+      <h1>Big Websites, Small Businesses</h1>
+      <p>HapiTech designs, builds, and looks after business websites — from the first line of code through to ongoing support once you're live.</p>
+      <button class="btn" onclick="openContact()">Get in Touch</button>
+    </section>
+
+    <!-- SERVICES -->
+    <section id="services">
+      <div class="section-heading">
+        <h2>What I Do</h2>
+        <p>Two things, done properly.</p>
+      </div>
+
+      <div class="services-grid">
+
+        <div class="neon-card service-card">
+          <div class="icon">🛠️</div>
+          <h3>Website & Business Site Development</h3>
+          <p>Custom-built business websites, designed and developed around how you actually work — including enquiry and quote forms tailored to your business, not a generic template bolted on.</p>
+        </div>
+
+        <div class="neon-card service-card">
+          <div class="icon">🔧</div>
+          <h3>Ongoing Support & Maintenance</h3>
+          <p>Sites don't stop needing attention after launch. I keep things running, deployed, and up to date — fixes, changes, and hosting management, whenever you need it.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RECENT WORK -->
+    <section id="work">
+        <div class="section-heading">
+            <h2>Recent Work</h2>
+            <p>Businesses we've helped establish their online presence.</p>
+        </div>
+
+        <div class="work-grid">
+            <a class="neon-card work-card"
+               href="https://rolandshandyman.co.uk"
+               target="_blank"
+               rel="noopener">
+                <img src="{{ url_for('static', filename='media/clients/rolandshandyman.png') }}"
+                     alt="Roland's Handyman">
+                <h3>Roland's Handyman</h3>
+                <span class="project-link">
+                    Visit Website →
+                </span>
+            </a>
+            <a class="neon-card work-card"
+               href="https://rayghandymanservice.co.uk"
+               target="_blank"
+               rel="noopener">
+                <img src="{{ url_for('static', filename='media/clients/rayg.png') }}"
+                     alt="Ray G Handyman Services">
+                <h3>Ray G Handyman Services</h3>
+                <span class="project-link">
+                    Visit Website →
+                </span>
+            </a>
+        </div>
+    </section>
+
+    <!-- THE LAB -->
+    <section id="lab">
+        <div class="section-heading">
+            <h2>The Lab</h2>
+            <p>Projects, experiments and ideas currently being built at HapiTech.</p>
+        </div>
+        <div class="work-grid">
+            <a class="neon-card work-card"
+               href="/solar-system">
+                <div style="font-size:3rem;">🪐</div>
+                <h3>Solar Journal</h3>
+                <span class="project-link">
+                    Explore →
+                </span>
+            </a>
+            <div class="neon-card work-card">
+                <div style="font-size:3rem;">🧬</div>
+                <h3>WorldCore</h3>
+                <span class="project-status">
+                    In Development
+                </span>
+            </div>
+
+            <div class="neon-card work-card">
+                <div style="font-size:3rem;">🚀</div>
+                <h3>Pocket ATLAS</h3>
+                <span class="project-status">
+                    Coming Soon
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta">
+      <h2>Got a project in mind?</h2>
+      <p>Tell me what you need and I'll get back to you.</p>
+      <button class="btn" onclick="openContact()">Get in Touch</button>
+    </section>
+
+  </main>
+
+  <footer class="site">
+    &copy; HapiTech {{ current_year }} · <a href="/login">Client Login</a>
+  </footer>
+
+  <!-- Contact FAB -->
+  <button class="contact-fab" onclick="openContact()">💬 Contact</button>
+
+  <!-- Planet easter egg -->
+  <a class="planet-link" href="/solar-system" title="Solar System" aria-label="Solar System">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z" stroke="currentColor" stroke-width="2" opacity=".9"/>
+      <path d="M3 12c3.5-3 14.5-3 18 0" stroke="currentColor" stroke-width="2" opacity=".7"/>
+      <path d="M3 12c3.5 3 14.5 3 18 0" stroke="currentColor" stroke-width="2" opacity=".5"/>
+    </svg>
+  </a>
+
+  <!-- Contact modal -->
+  <div id="contactModal" class="modal-overlay" onclick="if(event.target===this) closeContact()">
+    <div class="neon-card modal-box">
+      <button class="modal-close" onclick="closeContact()">&times;</button>
+      <h2>Get in Touch</h2>
+      <p class="sub">Tell me a bit about what you need — I'll reply as soon as I can.</p>
+
+      <form id="contactForm" onsubmit="return false;">
+        <input id="contactName" placeholder="Your name" required>
+        <input id="contactEmail" type="email" placeholder="Email" required>
+        <textarea id="contactMessage" placeholder="What can I help with?" required></textarea>
+
+        <div class="contact-actions">
+          <button type="button" class="btn" onclick="closeContact()" style="opacity:.7;">Close</button>
+          <button id="sendContact" type="button" class="btn">Send</button>
+        </div>
+        <p id="contactStatus" class="message"></p>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openContact(){ document.getElementById('contactModal').classList.add('is-open'); }
+    function closeContact(){ document.getElementById('contactModal').classList.remove('is-open'); }
+
+    async function readJsonSafe(res){
+      const ct = (res.headers.get("content-type") || "").toLowerCase();
+      if(!ct.includes("application/json")){
+        return {__not_json:true, text: await res.text()};
+      }
+      try{ return await res.json(); }
+      catch(e){ return {__not_json:true, text: await res.text()}; }
+    }
+
+    const sendContact = document.getElementById('sendContact');
+    const contactForm = document.getElementById('contactForm');
+    const contactStatus = document.getElementById('contactStatus');
+
+    if(sendContact){
+      sendContact.addEventListener('click', async () => {
+        contactStatus.textContent = "";
+
+        const name = (document.getElementById('contactName')?.value || "").trim();
+        const email = (document.getElementById('contactEmail')?.value || "").trim();
+        const message = (document.getElementById('contactMessage')?.value || "").trim();
+
+        if(!name || !email || !message){
+          contactStatus.style.color = "#ffb7b7";
+          contactStatus.textContent = "Please fill all fields.";
+          return;
+        }
+
+        sendContact.disabled = true;
+        sendContact.textContent = "Sending...";
+
+        try{
+          const res = await fetch('/contact', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ name, email, message, client: "hapitech.dev homepage" }),
+            credentials: 'same-origin'
+          });
+
+          const data = await readJsonSafe(res);
+
+          if(data && data.__not_json){
+            contactStatus.style.color = res.ok ? "#bfffdc" : "#ffb7b7";
+            contactStatus.textContent = res.ok ? "Sent — thanks!" : "Failed to send";
+            if(res.ok){ setTimeout(closeContact, 1000); contactForm.reset(); }
+            return;
+          }
+
+          if(res.ok && data.success){
+            contactStatus.style.color = "#bfffdc";
+            contactStatus.textContent = data.message || "Sent — thanks!";
+            setTimeout(closeContact, 1000);
+            contactForm.reset();
+            return;
+          }
+
+          contactStatus.style.color = "#ffb7b7";
+          contactStatus.textContent = (data && data.message) ? data.message : "Failed to send";
+        }catch(err){
+          contactStatus.style.color = "#ffb7b7";
+          contactStatus.textContent = "Network error sending message";
+          console.error(err);
+        }finally{
+          sendContact.disabled = false;
+          sendContact.textContent = "Send";
+        }
+      });
+    }
+  </script>
+</body>
+</html>

@@ -4,7 +4,6 @@ import datetime
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
-from dotenv import load_dotenv
 from sqlalchemy import func
 
 from models import db
@@ -40,7 +39,6 @@ def create_app():
 	# --------------------------------------------------
 	# config
 	# --------------------------------------------------
-	load_dotenv()
 
 	app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-only-fallback-change-me")
 	app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///hapitech.db")
@@ -69,9 +67,9 @@ def create_app():
 	# --------------------------------------------------
 	@app.route("/")
 	def index():
-		if not current_user.is_authenticated:
-			return redirect(url_for("login"))
-		return redirect(url_for("admin_dashboard" if current_user.role == "admin" else "client_dashboard"))
+		if current_user.is_authenticated:
+			return redirect(url_for("admin_dashboard" if current_user.role == "admin" else "client_dashboard"))
+		return render_template("home.html", current_year=datetime.datetime.utcnow().year)
 
 	@app.route("/login", methods=["GET", "POST"])
 	def login():

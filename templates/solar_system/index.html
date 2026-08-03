@@ -1,71 +1,269 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Solar System</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
-  <link rel="stylesheet" href="{{ url_for('static', filename='solar-system/style.css') }}">
-  <script type="importmap">
-    {
-    "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
-    }
-  }
-  </script>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Solar System</title>
+
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+	<link rel="stylesheet" href="{{ url_for('static', filename='solar-system/style.css', v='20260103-1') }}">
+
+	<script type="importmap">
+		{
+			"imports": {
+				"three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+			}
+		}
+	</script>
 </head>
 <body>
-  <div class="bg"></div>
+	<div class="bg"></div>
 
-  <main class="solar-stage">
-    <div id="solar-canvas-wrap"></div>
+	<main class="solar-stage">
+		<div id="solar-canvas-wrap"></div>
 
-    <div class="solar-hud">
-      <div class="hud-card">
-        <div class="hud-inner">
-          <div class="hud-title">HapiTech • Solar System</div>
-          <div class="hud-spacer"></div>
+		<div class="solar-hud">
+			<div class="hud-card">
+				<div class="hud-inner">
+					<div class="hud-title">HapiTech • Solar System</div>
+					<div class="hud-spacer"></div>
 
-          <label class="hud-toggle">
-            <input id="toggleOrbits" type="checkbox"/>
-            Orbits
-          </label>
+					<label class="hud-toggle">
+						<input id="toggleOrbits" type="checkbox"/>
+						Orbits
+					</label>
 
-          <label class="hud-toggle">
-            <input id="toggleLabels" type="checkbox" checked/>
-            Labels
-          </label>
-        </div>
-      </div>
+					<label class="hud-toggle">
+						<input id="toggleLabels" type="checkbox" checked/>
+						Labels
+					</label>
+				</div>
+			</div>
 
-      <div class="hud-card">
-        <div class="hud-inner">
-          <div class="hud-title">Time</div>
-          <input id="timeSpeed" type="range" min="0" max="10" step="0.1" value="0.1" style="width:220px;">
-        </div>
-      </div>
-    </div>
+			<div class="hud-card">
+				<div class="hud-inner" style="gap:12px; flex-wrap:wrap;">
+					<div class="hud-title" style="min-width:64px;">Time</div>
 
-    <aside class="solar-panel hud-card">
-      <div class="panel-body">
-        <div class="panel-heading">
-          <h2 id="selName">Select a body</h2>
-          <button id="btnClose" class="btn neon" style="width:auto; padding:8px 10px;">Close</button>
-        </div>
+					<label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#cfe7ff; opacity:.9;">
+						<span style="white-space:nowrap;">Sim date</span>
+						<input id="simDate" type="datetime-local" style="width:220px;">
+					</label>
 
-        <div class="panel-meta" id="selMeta">
-          Click a planet to focus the camera and show details here.
-        </div>
+					<button id="btnNow" class="btn neon" style="width:auto; padding:8px 10px;">Now</button>
+					<button id="btnPlay" class="btn neon" style="width:auto; padding:8px 10px;">Play</button>
 
-        <div class="panel-actions">
-          <button id="btnFocus" class="btn neon">Focus</button>
-          <button id="btnReset" class="btn neon">Reset view</button>
-        </div>
-      </div>
-    </aside>
-  </main>
+					<label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#cfe7ff; opacity:.9;">
+						<span style="white-space:nowrap;">Speed</span>
+						<select id="simSpeed" style="width:120px;">
+							<option value="0">Paused</option>
+							<option value="1" selected>1×</option>
+							<option value="10">10×</option>
+							<option value="100">100×</option>
+							<option value="1000">1,000×</option>
+							<option value="10000">10,000×</option>
+							<option value="100000">100,000×</option>
+							<option value="1000000">1,000,000×</option>
+						</select>
+					</label>
 
-  <script type="module" src="{{ url_for('static', filename='solar-system/app.js') }}"></script>
+					<button id="btnBackHour" class="btn neon" style="width:auto; padding:8px 10px;">−1h</button>
+					<button id="btnFwdHour" class="btn neon" style="width:auto; padding:8px 10px;">+1h</button>
+					<button id="btnBackDay" class="btn neon" style="width:auto; padding:8px 10px;">−1d</button>
+					<button id="btnFwdDay" class="btn neon" style="width:auto; padding:8px 10px;">+1d</button>
+				</div>
+			</div>
+		</div>
 
+		<aside class="solar-panel hud-card">
+			<div class="panel-body">
+				<div class="panel-heading">
+					<h2 id="selName">Select a body</h2>
+					<button id="btnClose" class="btn neon" style="width:auto; padding:8px 10px;">Close</button>
+				</div>
+
+				<div class="panel-meta" id="selMeta">
+					Click a planet to focus the camera and show details here.
+				</div>
+				<div class="journal-block">
+					<div class="journal-head">
+						<div class="journal-title" id="journalTitle">Journal</div>
+						<div class="journal-status" id="journalStatus"></div>
+					</div>
+					<div class="journal-list" id="journalList">
+						<div class="journal-empty">Select a body to load its notes, or you’ll see recent entries here.</div>
+					</div>	
+				</div>
+				<div class="panel-actions">
+					<button id="btnFocus" class="btn neon">Focus</button>
+					<button id="btnReset" class="btn neon">Reset view</button>
+				</div>
+			</div>
+		</aside>
+
+		<!-- Floating Action Buttons (bottom-left) -->
+		<div class="fab-stack" aria-label="Quick actions">
+			<button id="btnDisclaimer" class="disclaimer-fab" title="Model disclaimer" aria-label="Model disclaimer">ℹ️</button>
+			<button id="btnJournal" class="disclaimer-fab" title="Journal" aria-label="Open journal">📓</button>
+			<button id="btnJournalAdd" class="disclaimer-fab" title="Add journal entry" aria-label="Add journal entry">➕</button>
+		</div>
+
+
+		<!-- Info / Help modal -->
+		<div id="disclaimerModal" class="modal" aria-hidden="true" role="dialog" aria-label="Model info and how to">
+			<div class="modal__backdrop" data-close="1"></div>
+			<div class="modal__panel">
+				<div class="modal__head">
+					<div class="modal__title">🌌 Welcome! Quick Guide</div>
+					<button id="btnDisclaimerClose" class="btn neon" style="width:auto; padding:8px 10px;">Close</button>
+				</div>
+
+				<div class="modal__body">
+					<p>
+						This is a real-time <strong>Solar System explorer</strong>. It’s built to be fun to use and grounded in real orbital data —
+						<strong>but not perfectly to-scale</strong> (space is huge 😅).
+					</p>
+
+					<p style="margin-top:12px;"><strong>🕹 How to use it:</strong></p>
+					<ul>
+						<li><strong>Click</strong> a planet or moon to see details.</li>
+						<li><strong>Focus</strong> to lock the camera onto it (then rotate freely).</li>
+						<li>Use <strong>Time</strong> controls to jump forward/back and watch orbits move.</li>
+						<li>Toggle <strong>Labels</strong> and <strong>Orbits</strong> for clarity.</li>
+					</ul>
+
+					<p style="margin-top:12px;"><strong>✅ What’s accurate (the science bit):</strong></p>
+					<ul>
+						<li>Planet paths are calculated using <strong>Kepler-style orbital elements</strong>.</li>
+						<li>Moon orbits use real data from <strong>NASA/JPL Horizons</strong> (J2000 epoch), orbiting their parent planet.</li>
+						<li>Rotation speeds follow the configured <strong>rotation hours</strong> (including retrograde spins).</li>
+					</ul>
+
+					<p style="margin-top:12px;"><strong>🎨 What’s visual-only (by design):</strong></p>
+					<ul>
+						<li>Planet sizes and moon distances are <strong>scaled for readability</strong>.</li>
+						<li>Some moons may look “too close” because a true scale would make them tiny dots.</li>
+						<li>Lighting, glow, and the starfield are <strong>stylised</strong>.</li>
+					</ul>
+
+					<p style="margin-top:12px;">
+						Coming soon: <strong>journals + telescope image uploads</strong> tied to planets, moons (and later satellites too).
+					</p>
+				</div>
+			</div>
+		</div>
+
+<!-- Journal Browser modal -->
+<div id="journalBrowserModal" class="modal" aria-hidden="true" role="dialog" aria-label="Journal browser">
+	<div class="modal__backdrop" data-close="1"></div>
+	<div class="modal__panel modal__panel--wide">
+		<div class="modal__head">
+			<div class="modal__title">📓 Journal</div>
+			<button data-close="1" class="btn neon" style="width:auto; padding:8px 10px;">Close</button>
+		</div>
+
+		<div class="modal__body">
+			<div class="journal-browser">
+				<div class="journal-browser__filters">
+					<div class="journal-browser__context" id="journalBrowserContext">All entries</div>
+					<div style="display:flex; gap:10px; flex-wrap:wrap;">
+						<button id="btnJournalBrowserAll" class="btn neon" style="width:auto; padding:8px 10px;">All</button>
+						<button id="btnJournalBrowserThis" class="btn neon" style="width:auto; padding:8px 10px;">This body</button>
+						<button id="btnJournalBrowserGeneral" class="btn neon" style="width:auto; padding:8px 10px;">General</button>
+					</div>
+				</div>
+
+				<div class="journal-status" id="journalBrowserStatus"></div>
+
+				<div class="journal-list journal-list--modal" id="journalBrowserList">
+					<div class="journal-empty">Loading…</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Journal Entry modal (view single entry) -->
+<div id="journalEntryModal" class="modal" aria-hidden="true" role="dialog" aria-label="Journal entry">
+	<div class="modal__backdrop" data-close="1"></div>
+	<div class="modal__panel modal__panel--wide">
+		<div class="modal__head">
+			<div class="modal__title" id="journalEntryModalTitle">📌 Entry</div>
+			<div style="display:flex; gap:10px;">
+				<button id="btnJournalEntryEdit" class="btn neon" style="width:auto; padding:8px 10px;">Edit</button>
+				<button data-close="1" class="btn neon" style="width:auto; padding:8px 10px;">Close</button>
+			</div>
+		</div>
+
+		<div class="modal__body">
+			<div class="journal-entry">
+				<div class="journal-entry__meta" id="journalEntryMeta"></div>
+				<div class="journal-entry__body" id="journalEntryBody"></div>
+				<div class="journal-entry__snap" id="journalEntrySnap" style="display:none;"></div>
+				<div class="journal-entry__images" id="journalEntryImages" style="display:none;"></div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Journal Editor modal (create/edit) -->
+<div id="journalEditorModal" class="modal" aria-hidden="true" role="dialog" aria-label="Journal editor">
+	<div class="modal__backdrop" data-close="1"></div>
+	<div class="modal__panel modal__panel--wide">
+		<div class="modal__head">
+			<div class="modal__title" id="journalEditorTitle">➕ New entry</div>
+			<button data-close="1" class="btn neon" style="width:auto; padding:8px 10px;">Close</button>
+		</div>
+
+		<div class="modal__body">
+			<form id="journalEditorForm" class="journal-form">
+				<input type="hidden" id="jf_id" name="id" value="">
+				<input type="hidden" id="jf_kind" name="kind" value="general">
+				<input type="hidden" id="jf_name" name="name" value="General">
+				<input type="hidden" id="jf_parent" name="parent" value="">
+				<input type="hidden" id="jf_snapshot" name="snapshot" value="">
+
+				<div class="journal-form__row">
+					<label class="journal-form__label">Linked to</label>
+					<div class="journal-form__context" id="journalEditorContext">General</div>
+				</div>
+
+				<div class="journal-form__row">
+					<label class="journal-form__label" for="jf_title">Title</label>
+					<input id="jf_title" name="title" class="journal-form__input" type="text" maxlength="140" placeholder="e.g. Great view tonight, clear sky…" required>
+				</div>
+
+				<div class="journal-form__row">
+					<label class="journal-form__label" for="jf_body">Body</label>
+					<textarea id="jf_body" name="body" class="journal-form__textarea" rows="7" placeholder="Write your notes…"></textarea>
+				</div>
+
+				<div class="journal-form__row">
+					<label class="journal-form__label" for="jf_tags">Tags</label>
+					<input id="jf_tags" name="tags" class="journal-form__input" type="text" placeholder="comma separated, e.g. observation, telescope, clouds">
+				</div>
+
+				<div class="journal-form__row">
+					<label class="journal-form__label" for="jf_images">Images</label>
+					<input id="jf_images" name="images" class="journal-form__input" type="file" accept="image/*" multiple>
+					<div class="journal-form__hint">Stored locally. Add a few photos/screenshots.</div>
+				</div>
+
+				<div class="journal-form__row">
+					<div class="journal-status" id="journalEditorStatus"></div>
+				</div>
+
+				<div class="journal-form__actions">
+					<button type="submit" class="btn neon" style="width:auto; padding:10px 14px;">Save entry</button>
+					<button type="button" data-close="1" class="btn neon" style="width:auto; padding:10px 14px;">Cancel</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+
+	</main>
+
+	<script type="module" src="{{ url_for('static', filename='solar-system/app.js') }}"></script>
 </body>
 </html>

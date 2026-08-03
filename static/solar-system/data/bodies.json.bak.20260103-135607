@@ -1,0 +1,46 @@
+{
+  "epoch": "J2000",
+  "bodies": [
+    { "name": "Mercury", "texture": "mercury.jpg", "radius": 2.2, "a_AU": 0.387098, "e": 0.205630, "i_deg": 7.00487, "Omega_deg": 48.33167, "omega_deg": 29.12478, "M0_deg": 174.79588, "period_days": 87.9691, "axialTiltDeg": 0.03, "rot_hours": 1407.6, "rot_dir": 1 },
+    { "name": "Venus",   "texture": "venus.jpg",   "radius": 5.2, "a_AU": 0.723332, "e": 0.006772, "i_deg": 3.39471, "Omega_deg": 76.68069, "omega_deg": 54.85229, "M0_deg": 50.41611,  "period_days": 224.701, "axialTiltDeg": 177.4, "rot_hours": 5832.5, "rot_dir": -1 },
+
+    { "name": "Earth",   "texture": "earth.jpg",   "radius": 5.6, "a_AU": 1.000000, "e": 0.0167086, "i_deg": 0.00005, "Omega_deg": -11.26064, "omega_deg": 114.20783, "M0_deg": 358.617, "period_days": 365.256363, "axialTiltDeg": 23.44, "rot_hours": 23.9345, "rot_dir": 1 },
+
+    { "name": "Mars",    "texture": "mars.jpg",    "radius": 3.0, "a_AU": 1.523679, "e": 0.0934, "i_deg": 1.85061, "Omega_deg": 49.57854, "omega_deg": 286.4623, "M0_deg": 19.412, "period_days": 686.98, "axialTiltDeg": 25.19, "rot_hours": 24.6229, "rot_dir": 1 },
+
+    { "name": "Jupiter", "texture": "jupiter.jpg", "radius": 14,  "a_AU": 5.2044, "e": 0.0489, "i_deg": 1.30327, "Omega_deg": 100.55615, "omega_deg": 273.867, "M0_deg": 20.020, "period_days": 4332.589, "axialTiltDeg": 3.13, "rot_hours": 9.925, "rot_dir": 1 },
+
+    { "name": "Saturn",  "texture": "saturn.jpg",  "radius": 12,  "a_AU": 9.5826, "e": 0.0565, "i_deg": 2.48888, "Omega_deg": 113.71504, "omega_deg": 339.392, "M0_deg": 317.020, "period_days": 10759.22, "axialTiltDeg": 26.73, "rot_hours": 10.7, "rot_dir": 1 },
+
+    { "name": "Uranus",  "texture": "uranus.jpg",  "radius": 9,   "a_AU": 19.2184, "e": 0.0463, "i_deg": 0.773, "Omega_deg": 74.22988, "omega_deg": 96.998857, "M0_deg": 142.2386, "period_days": 30685.4, "axialTiltDeg": 97.77, "rot_hours": 17.24, "rot_dir": -1 },
+
+    { "name": "Neptune", "texture": "neptune.jpg", "radius": 9,   "a_AU": 30.1104, "e": 0.009, "i_deg": 1.77, "Omega_deg": 131.72169, "omega_deg": 273.187, "M0_deg": 256.228, "period_days": 60189.0, "axialTiltDeg": 28.32, "rot_hours": 16.11, "rot_dir": 1 }
+  ],
+
+  "moons": [
+    { "name": "Moon", "parent": "Earth", "texture": "moon.jpg", "radius": 1.6, "a_km": 384400, "e": 0.0549, "i_deg": 5.145, "Omega_deg": 125.08, "omega_deg": 318.15, "M0_deg": 115.365, "period_days": 27.321661, "orbit_dir": 1, "rot_hours": 655.728, "rot_dir": 1 },
+
+    { "name": "Phobos", "parent": "Mars", "radius": 0.35, "a_km": 9376, "e": 0.0151, "i_deg": 1.08, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 0.31891, "orbit_dir": 1, "rot_hours": 7.65, "rot_dir": 1 },
+    { "name": "Deimos", "parent": "Mars", "radius": 0.25, "a_km": 23463, "e": 0.00033, "i_deg": 0.93, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 1.26244, "orbit_dir": 1, "rot_hours": 30.3, "rot_dir": 1 },
+
+    { "name": "Io", "parent": "Jupiter", "radius": 0.55, "a_km": 421700, "e": 0.0041, "i_deg": 0.04, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 1.769, "orbit_dir": 1, "rot_hours": 42.46, "rot_dir": 1 },
+    { "name": "Europa", "parent": "Jupiter", "radius": 0.50, "a_km": 671034, "e": 0.009, "i_deg": 0.47, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 3.551, "orbit_dir": 1, "rot_hours": 85.22, "rot_dir": 1 },
+    { "name": "Ganymede", "parent": "Jupiter", "radius": 0.75, "a_km": 1070412, "e": 0.0013, "i_deg": 0.20, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 7.155, "orbit_dir": 1, "rot_hours": 171.7, "rot_dir": 1 },
+    { "name": "Callisto", "parent": "Jupiter", "radius": 0.70, "a_km": 1882709, "e": 0.0074, "i_deg": 0.28, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 16.689, "orbit_dir": 1, "rot_hours": 400.5, "rot_dir": 1 },
+
+    { "name": "Enceladus", "parent": "Saturn", "radius": 0.28, "a_km": 237948, "e": 0.0047, "i_deg": 0.01, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 1.370, "orbit_dir": 1, "rot_hours": 32.88, "rot_dir": 1 },
+    { "name": "Tethys", "parent": "Saturn", "radius": 0.35, "a_km": 294672, "e": 0.0001, "i_deg": 1.09, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 1.888, "orbit_dir": 1, "rot_hours": 45.31, "rot_dir": 1 },
+    { "name": "Dione", "parent": "Saturn", "radius": 0.38, "a_km": 377415, "e": 0.0022, "i_deg": 0.02, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 2.737, "orbit_dir": 1, "rot_hours": 65.69, "rot_dir": 1 },
+    { "name": "Rhea", "parent": "Saturn", "radius": 0.42, "a_km": 527108, "e": 0.001, "i_deg": 0.35, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 4.518, "orbit_dir": 1, "rot_hours": 108.43, "rot_dir": 1 },
+    { "name": "Titan", "parent": "Saturn", "radius": 0.70, "a_km": 1221870, "e": 0.0288, "i_deg": 0.33, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 15.945, "orbit_dir": 1, "rot_hours": 382.68, "rot_dir": 1 },
+    { "name": "Iapetus", "parent": "Saturn", "radius": 0.45, "a_km": 3560820, "e": 0.0283, "i_deg": 15.47, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 79.321, "orbit_dir": 1, "rot_hours": 1903.7, "rot_dir": 1 },
+
+    { "name": "Miranda", "parent": "Uranus", "radius": 0.25, "a_km": 129390, "e": 0.0013, "i_deg": 4.34, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 1.413, "orbit_dir": 1, "rot_hours": 33.91, "rot_dir": 1 },
+    { "name": "Ariel", "parent": "Uranus", "radius": 0.35, "a_km": 191020, "e": 0.0012, "i_deg": 0.26, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 2.520, "orbit_dir": 1, "rot_hours": 60.48, "rot_dir": 1 },
+    { "name": "Umbriel", "parent": "Uranus", "radius": 0.35, "a_km": 266300, "e": 0.0039, "i_deg": 0.13, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 4.144, "orbit_dir": 1, "rot_hours": 99.46, "rot_dir": 1 },
+    { "name": "Titania", "parent": "Uranus", "radius": 0.45, "a_km": 435910, "e": 0.0011, "i_deg": 0.08, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 8.706, "orbit_dir": 1, "rot_hours": 208.94, "rot_dir": 1 },
+    { "name": "Oberon", "parent": "Uranus", "radius": 0.43, "a_km": 583520, "e": 0.0014, "i_deg": 0.07, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 13.463, "orbit_dir": 1, "rot_hours": 323.11, "rot_dir": 1 },
+
+    { "name": "Triton", "parent": "Neptune", "radius": 0.55, "a_km": 354759, "e": 0.000016, "i_deg": 156.865, "Omega_deg": 0, "omega_deg": 0, "M0_deg": 0, "period_days": 5.877, "orbit_dir": -1, "rot_hours": 141.0, "rot_dir": 1 }
+  ]
+}
