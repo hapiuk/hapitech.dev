@@ -63,3 +63,5 @@ The production application is served using **Gunicorn** behind **NGINX** with SS
 All rights reserved.
 
 This project is proprietary software and may not be copied, modified, redistributed or reused without the express written permission of HapiTech.
+
+[![Built by HapiTech](https://img.shields.io/badge/Built%20by-HapiTech-2563eb?style=for-the-badge)](https://hapitech.dev)
