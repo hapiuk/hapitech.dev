@@ -19,8 +19,44 @@
 <body>
 	<div class="bg"></div>
 
+	<nav class="solar-topnav">
+		<a href="{{ url_for('index') }}" class="solar-topnav__brand">← HapiTech</a>
+
+		<div class="solar-topnav__links">
+			{% if is_solar_user %}
+				<span class="solar-topnav__hello">Hi, {{ display_name }}</span>
+				<a href="{{ url_for('solar_system.journal') }}">My Journal</a>
+				<a href="{{ url_for('solar_system.profile') }}">Profile</a>
+				<button type="button" id="navLogoutBtn" class="btn neon" style="width:auto; padding:8px 14px;">Log out</button>
+			{% else %}
+				<a href="{{ url_for('solar_system.login') }}">Log in</a>
+				<a href="{{ url_for('solar_system.register') }}" class="btn neon" style="width:auto; padding:8px 14px;">Create free account</a>
+			{% endif %}
+		</div>
+	</nav>
+
 	<main class="solar-stage">
 		<div id="solar-canvas-wrap"></div>
+
+		<!-- First-visit welcome overlay -->
+		<div id="welcomeOverlay" class="welcome-overlay">
+			<div class="welcome-card hud-card">
+				<div class="welcome-title">🌌 Welcome to the Solar System</div>
+				<p class="welcome-sub">
+					A real-time, explorable model of the solar system — click planets and moons, jump through time, and (once you create a free account) keep your own observation journal.
+				</p>
+
+				<button id="btnLaunchExplorer" class="btn neon welcome-launch">Launch Explorer</button>
+
+				<div class="welcome-account-row">
+					{% if is_solar_user %}
+						<span>Signed in as {{ display_name }} — <a href="{{ url_for('solar_system.journal') }}">go to your journal</a></span>
+					{% else %}
+						<span><a href="{{ url_for('solar_system.register') }}">Create a free account</a> to start your own journal — first 100 free forever.</span>
+					{% endif %}
+				</div>
+			</div>
+		</div>
 
 		<div class="solar-hud">
 			<div class="hud-card">
@@ -263,6 +299,35 @@
 
 
 	</main>
+
+	<script>
+		(function () {
+			var overlay = document.getElementById("welcomeOverlay");
+			var launchBtn = document.getElementById("btnLaunchExplorer");
+
+			function dismissWelcome() {
+				overlay.classList.add("welcome-overlay--hidden");
+				try { localStorage.setItem("solarWelcomeSeen", "1"); } catch (e) {}
+			}
+
+			if (overlay) {
+				var alreadySeen = false;
+				try { alreadySeen = localStorage.getItem("solarWelcomeSeen") === "1"; } catch (e) {}
+
+				if (alreadySeen) {
+					overlay.classList.add("welcome-overlay--hidden");
+				}
+
+				launchBtn?.addEventListener("click", dismissWelcome);
+			}
+
+			var navLogoutBtn = document.getElementById("navLogoutBtn");
+			navLogoutBtn?.addEventListener("click", async function () {
+				await fetch("{{ url_for('solar_system.logout') }}", { method: "POST", credentials: "same-origin" });
+				window.location.href = "{{ url_for('solar_system.index') }}";
+			});
+		})();
+	</script>
 
 	<script type="module" src="{{ url_for('static', filename='solar-system/app.js') }}"></script>
 </body>

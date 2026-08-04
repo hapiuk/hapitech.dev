@@ -46,7 +46,7 @@
   pointer-events: auto;
   background: rgba(10, 14, 22, 0.40);
   border: 1px solid rgba(120,180,255,0.08);
-  border-radius: 14px;
+  border-radius:0;
   backdrop-filter: blur(8px) saturate(120%);
   box-shadow: 0 8px 40px rgba(3,6,12,0.55), inset 0 1px 0 rgba(255,255,255,0.02);
   overflow: hidden;
@@ -67,7 +67,7 @@
   mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  border-radius: 16px;
+  border-radius:0;
   padding: 2px;
   filter: blur(10px);
   mix-blend-mode: screen;
@@ -124,7 +124,7 @@
   );
 
   border: 1px solid rgba(120, 140, 255, 0.25);
-  border-radius: 10px;
+  border-radius:0;
 
   padding: 14px 16px;
   box-shadow:
@@ -190,7 +190,7 @@
   background: rgba(15, 20, 35, 0.7);
   backdrop-filter: blur(6px);
   border: 1px solid rgba(130, 160, 255, 0.25);
-  border-radius: 6px;
+  border-radius:0;
 
   color: #e9ecff;
   box-shadow:
@@ -260,7 +260,7 @@
   max-height: min(80vh, 760px);
   overflow:auto;
   margin: 10vh auto 0;
-  border-radius:16px;
+  border-radius:0;
   background:rgba(10,14,22,0.88);
   border:1px solid rgba(120,180,255,0.12);
   box-shadow:0 18px 60px rgba(0,0,0,0.55);
@@ -317,7 +317,7 @@
 .disclaimer-fab{
   width:44px;
   height:44px;
-  border-radius:14px;
+  border-radius:0;
   border:1px solid rgba(140,200,255,0.18);
   background:rgba(10,12,16,0.55);
   color:#eaf6ff;
@@ -375,7 +375,7 @@
 
 .journal-item{
   padding:10px 10px;
-  border-radius:10px;
+  border-radius:0;
   background:rgba(10,14,22,0.35);
   border:1px solid rgba(120,180,255,0.10);
 }
@@ -420,7 +420,7 @@
 .journal-item--btn:focus{
   outline:2px solid rgba(120,180,255,0.35);
   outline-offset:2px;
-  border-radius:12px;
+  border-radius:0;
 }
 
 /* Modal journal list tweaks */
@@ -442,7 +442,7 @@
 .journal-entry__snap{
   margin-top:14px;
   padding:12px;
-  border-radius:12px;
+  border-radius:0;
   background:rgba(10,16,24,0.55);
   border:1px solid rgba(120,180,255,0.10);
   font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -459,7 +459,7 @@
 }
 .journal-img{
   display:block;
-  border-radius:14px;
+  border-radius:0;
   overflow:hidden;
   border:1px solid rgba(120,180,255,0.10);
   background:rgba(0,0,0,0.18);
@@ -490,7 +490,7 @@
 .journal-form__input,
 .journal-form__textarea{
   width:100%;
-  border-radius:12px;
+  border-radius:0;
   border:1px solid rgba(120,180,255,0.14);
   background:rgba(10,16,24,0.45);
   color:#eaf4ff;
@@ -509,7 +509,7 @@
   font-size:12px;
   opacity:.9;
   padding:8px 10px;
-  border-radius:12px;
+  border-radius:0;
   border:1px solid rgba(120,180,255,0.12);
   background:rgba(10,16,24,0.35);
   display:inline-block;
@@ -562,7 +562,7 @@
       - (var(--pad) + var(--safe-b) + var(--fab-h) + var(--fab-gap))
     );
 
-    border-radius: 16px;
+    border-radius:0;
     padding: 0;
     overflow: hidden; /* inner scroll only */
   }
@@ -613,5 +613,138 @@
   .fab-stack > *{
     position: static;
     inset: auto;
+  }
+}
+
+/* =====================================================
+   TOP NAV
+===================================================== */
+
+.solar-topnav{
+  position: relative;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: rgba(10, 14, 22, 0.55);
+  border-bottom: 1px solid rgba(120,180,255,0.1);
+  backdrop-filter: blur(10px) saturate(120%);
+}
+
+.solar-topnav__brand{
+  font-weight: 800;
+  color: #eaf6ff;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.solar-topnav__links{
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.9rem;
+}
+
+.solar-topnav__links a{
+  color: #cfe7ff;
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+.solar-topnav__links a:hover{
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.solar-topnav__hello{
+  color: #cfe7ff;
+  opacity: 0.7;
+  font-size: 0.85rem;
+}
+
+/* =====================================================
+   WELCOME OVERLAY
+===================================================== */
+
+.welcome-overlay{
+  position: absolute;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(circle at center, rgba(5,8,14,0.55) 0%, rgba(5,8,14,0.85) 100%);
+  transition: opacity .3s ease, visibility .3s ease;
+}
+
+.welcome-overlay--hidden{
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.welcome-card{
+  max-width: 480px;
+  width: 100%;
+  padding: 36px;
+  text-align: center;
+  background: rgba(10, 14, 22, 0.75);
+  border: 1px solid rgba(120,180,255,0.15);
+  border-radius: 0;
+  backdrop-filter: blur(14px) saturate(130%);
+  box-shadow: 0 20px 60px rgba(3,6,12,0.6);
+}
+
+.welcome-title{
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #eaf6ff;
+  margin-bottom: 14px;
+}
+
+.welcome-sub{
+  color: #cfe7ff;
+  opacity: 0.8;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.welcome-launch{
+  width: 100%;
+  padding: 14px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+.welcome-account-row{
+  font-size: 0.85rem;
+  color: #cfe7ff;
+  opacity: 0.75;
+}
+
+.welcome-account-row a{
+  color: #8ec8ff;
+  text-decoration: underline;
+}
+
+@media (max-width: 600px){
+  .solar-topnav{
+    padding: 12px 14px;
+  }
+
+  .solar-topnav__links{
+    gap: 10px;
+    font-size: 0.82rem;
+  }
+
+  .solar-topnav__hello{
+    display: none;
+  }
+
+  .welcome-card{
+    padding: 26px;
   }
 }
