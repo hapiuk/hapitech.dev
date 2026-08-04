@@ -130,7 +130,7 @@
 	gap:10px;
 	width:100%;
 	padding:10px 12px;
-	border-radius:14px;
+	border-radius:0;
 	border:1px solid rgba(120,180,255,0.06);
 	background:rgba(10,12,16,0.35);
 	cursor:pointer;
@@ -153,7 +153,7 @@
 .dot{
 	width:8px;
 	height:8px;
-	border-radius:50%;
+	border-radius:0;
 	background:rgba(160,200,255,0.45);
 	box-shadow:0 0 16px rgba(160,90,255,0.2);
 	flex:0 0 auto;
@@ -162,7 +162,7 @@
 .admin-nav__link{
 	display:block;
 	padding:8px 6px;
-	border-radius:10px;
+	border-radius:0;
 	font-size:13px;
 	opacity:.8;
 }
@@ -254,7 +254,7 @@
 .admin-input{
 	width:100%;
 	padding:12px 14px;
-	border-radius:12px;
+	border-radius:0;
 	border:1px solid rgba(255,255,255,0.08);
 	background:rgba(10,12,16,0.65);
 	color:#eaf6ff;
@@ -284,7 +284,7 @@
 	justify-content:space-between;
 	gap:12px;
 	padding:12px;
-	border-radius:14px;
+	border-radius:0;
 	border:1px solid rgba(120,180,255,0.06);
 	background:rgba(10,12,16,0.35);
 }
@@ -305,7 +305,7 @@
 	gap:10px;
 	align-items:center;
 	padding:12px;
-	border-radius:14px;
+	border-radius:0;
 	border:1px solid rgba(120,180,255,0.06);
 	background:rgba(10,12,16,0.35);
 }
@@ -327,7 +327,7 @@
 .pill{
 	display:inline-flex;
 	padding:5px 10px;
-	border-radius:999px;
+	border-radius:0;
 	font-size:12px;
 	border:1px solid rgba(255,255,255,0.08);
 }
@@ -370,7 +370,7 @@
 	gap:12px;
 	align-items:center;
 	padding:12px;
-	border-radius:14px;
+	border-radius:0;
 	border:1px solid rgba(120,180,255,0.06);
 	background:rgba(10,12,16,0.35);
 }
@@ -408,7 +408,7 @@
 	overflow:auto;
 	z-index:61;
 	padding:14px;
-	border-radius:16px;
+	border-radius:0;
 }
 
 .modal__head{
@@ -425,7 +425,7 @@
 	font-size:12px;
 	line-height:1.45;
 	padding:12px;
-	border-radius:14px;
+	border-radius:0;
 	border:1px solid rgba(120,180,255,0.08);
 	background:rgba(10,12,16,0.45);
 }
@@ -593,7 +593,7 @@
 .light{
 	width:10px;
 	height:10px;
-	border-radius:50%;
+	border-radius:0;
 	flex:0 0 auto;
 	box-shadow:0 0 18px rgba(0,0,0,0.2);
 }

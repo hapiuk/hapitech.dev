@@ -62,7 +62,11 @@ def _issue_code(email: str, pending_display_name: str = None):
 
 @solar_system_bp.route("/")
 def index():
-    return render_template("solar_system/index.html")
+    return render_template(
+        "solar_system/index.html",
+        is_solar_user=_is_solar_user(),
+        display_name=current_user.display_name if _is_solar_user() else None
+    )
 
 
 @solar_system_bp.route("/api/objects")

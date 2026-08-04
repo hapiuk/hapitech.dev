@@ -29,9 +29,12 @@ def admin_required(fn):
 	def wrapper(*args, **kwargs):
 		if not current_user.is_authenticated:
 			return redirect(url_for("login"))
-		if current_user.role != "admin":
+		role = getattr(current_user, "role", None)
+		if role == "admin":
+			return fn(*args, **kwargs)
+		if role == "client":
 			return redirect(url_for("client_dashboard"))
-		return fn(*args, **kwargs)
+		return redirect(url_for("index"))
 
 	return wrapper
 
@@ -103,8 +106,9 @@ def create_app():
 	# --------------------------------------------------
 	@app.route("/")
 	def index():
-		if current_user.is_authenticated:
-			return redirect(url_for("admin_dashboard" if current_user.role == "admin" else "client_dashboard"))
+		role = getattr(current_user, "role", None)
+		if current_user.is_authenticated and role in ("admin", "client"):
+			return redirect(url_for("admin_dashboard" if role == "admin" else "client_dashboard"))
 		return render_template("home.html", current_year=datetime.datetime.utcnow().year)
 
 	@app.route("/login", methods=["GET", "POST"])
