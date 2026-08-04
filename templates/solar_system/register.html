@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Join Solar Journal</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .auth-wrap{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:40px 20px;
+      position:relative;
+      z-index:2;
+    }
+
+    .auth-card{
+      width:100%;
+      max-width:440px;
+      padding:40px;
+    }
+
+    .auth-card h1{
+      font-size:1.6rem;
+      margin-bottom:6px;
+    }
+
+    .auth-sub{
+      opacity:.75;
+      margin-bottom:28px;
+      font-size:.92rem;
+    }
+
+    .auth-badge{
+      display:inline-block;
+      padding:6px 14px;
+      font-size:.75rem;
+      font-weight:700;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      background:linear-gradient(90deg,rgba(80,160,255,0.18),rgba(180,100,255,0.18));
+      border:1px solid rgba(140,200,255,0.25);
+      margin-bottom:20px;
+    }
+
+    .auth-step{ display:grid; gap:14px; }
+    .auth-step.hidden{ display:none; }
+
+    .auth-step input{
+      width:100%;
+      padding:13px 14px;
+      border:1px solid rgba(255,255,255,0.1);
+      background:rgba(10,12,16,0.65);
+      color:#eaf6ff;
+      outline:none;
+      font-size:14px;
+      font-family:inherit;
+    }
+
+    .auth-step input:focus{ border-color:rgba(140,200,255,0.5); }
+
+    .code-input{
+      text-align:center;
+      font-size:1.4rem;
+      letter-spacing:.3em;
+    }
+
+    .auth-status{ min-height:18px; font-size:13px; }
+
+    .auth-footer{
+      margin-top:22px;
+      text-align:center;
+      font-size:.88rem;
+      opacity:.75;
+    }
+
+    .auth-footer a{ color:#8ec8ff; text-decoration:underline; }
+
+    .no-password-note{
+      font-size:.8rem;
+      opacity:.6;
+      margin-top:16px;
+      text-align:center;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg"></div>
+
+  <div class="auth-wrap">
+    <div class="neon-card auth-card">
+
+      <div class="auth-badge">First 100 accounts free forever</div>
+
+      <h1>Start your Solar Journal</h1>
+      <p class="auth-sub" id="stepIntro">No password needed — we'll email you a one-time code.</p>
+
+      <!-- STEP 1: email + display name -->
+      <div class="auth-step" id="stepDetails">
+        <input id="regDisplayName" placeholder="Display name" required>
+        <input id="regEmail" type="email" placeholder="Email" required>
+
+        <button type="button" class="btn" id="sendCodeBtn" style="width:100%;">Send me a code</button>
+        <p id="detailsStatus" class="auth-status"></p>
+      </div>
+
+      <!-- STEP 2: enter code -->
+      <div class="auth-step hidden" id="stepCode">
+        <input id="codeInput" class="code-input" maxlength="6" placeholder="000000" inputmode="numeric" autocomplete="one-time-code">
+
+        <button type="button" class="btn" id="verifyBtn" style="width:100%;">Verify &amp; create account</button>
+        <p id="codeStatus" class="auth-status"></p>
+        <button type="button" id="resendBtn" style="background:none;border:none;color:#8ec8ff;text-decoration:underline;cursor:pointer;font-size:.85rem;">Resend code</button>
+      </div>
+
+      <p class="no-password-note">No password is ever stored for your account.</p>
+
+      <div class="auth-footer">
+        Already have an account? <a href="{{ url_for('solar_system.login') }}">Log in</a>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let pendingEmail = "";
+    let pendingDisplayName = "";
+
+    const stepDetails = document.getElementById("stepDetails");
+    const stepCode = document.getElementById("stepCode");
+    const stepIntro = document.getElementById("stepIntro");
+
+    const sendCodeBtn = document.getElementById("sendCodeBtn");
+    const detailsStatus = document.getElementById("detailsStatus");
+
+    const verifyBtn = document.getElementById("verifyBtn");
+    const codeStatus = document.getElementById("codeStatus");
+    const resendBtn = document.getElementById("resendBtn");
+
+    sendCodeBtn.addEventListener("click", async () => {
+      detailsStatus.textContent = "";
+
+      const display_name = document.getElementById("regDisplayName").value.trim();
+      const email = document.getElementById("regEmail").value.trim();
+
+      if(!display_name || !email){
+        detailsStatus.style.color = "#ffb7b7";
+        detailsStatus.textContent = "Please fill in both fields.";
+        return;
+      }
+
+      sendCodeBtn.disabled = true;
+      sendCodeBtn.textContent = "Sending...";
+
+      try{
+        const res = await fetch("{{ url_for('solar_system.request_register_code') }}", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ display_name, email }),
+          credentials: "same-origin"
+        });
+        const data = await res.json();
+
+        if(res.ok && data.success){
+          pendingEmail = email;
+          pendingDisplayName = display_name;
+          stepDetails.classList.add("hidden");
+          stepCode.classList.remove("hidden");
+          stepIntro.textContent = `Code sent to ${email} — check your inbox.`;
+        } else {
+          detailsStatus.style.color = "#ffb7b7";
+          detailsStatus.textContent = data.message || "Something went wrong.";
+        }
+      }catch(err){
+        detailsStatus.style.color = "#ffb7b7";
+        detailsStatus.textContent = "Network error — please try again.";
+        console.error(err);
+      }finally{
+        sendCodeBtn.disabled = false;
+        sendCodeBtn.textContent = "Send me a code";
+      }
+    });
+
+    verifyBtn.addEventListener("click", async () => {
+      codeStatus.textContent = "";
+      const code = document.getElementById("codeInput").value.trim();
+
+      if(!code){
+        codeStatus.style.color = "#ffb7b7";
+        codeStatus.textContent = "Enter the code from your email.";
+        return;
+      }
+
+      verifyBtn.disabled = true;
+      verifyBtn.textContent = "Verifying...";
+
+      try{
+        const res = await fetch("{{ url_for('solar_system.verify_code') }}", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ email: pendingEmail, code }),
+          credentials: "same-origin"
+        });
+        const data = await res.json();
+
+        if(res.ok && data.success){
+          codeStatus.style.color = "#bfffdc";
+          codeStatus.textContent = data.is_early_supporter
+            ? "You're one of the first 100 — free forever! Redirecting..."
+            : "Account created — redirecting...";
+          setTimeout(() => { window.location.href = "{{ url_for('solar_system.journal') }}"; }, 900);
+          return;
+        }
+
+        codeStatus.style.color = "#ffb7b7";
+        codeStatus.textContent = data.message || "Incorrect code.";
+      }catch(err){
+        codeStatus.style.color = "#ffb7b7";
+        codeStatus.textContent = "Network error — please try again.";
+        console.error(err);
+      }finally{
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = "Verify & create account";
+      }
+    });
+
+    resendBtn.addEventListener("click", async () => {
+      codeStatus.style.color = "";
+      codeStatus.textContent = "Sending a new code...";
+      try{
+        const res = await fetch("{{ url_for('solar_system.request_register_code') }}", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ display_name: pendingDisplayName, email: pendingEmail }),
+          credentials: "same-origin"
+        });
+        const data = await res.json();
+        codeStatus.style.color = res.ok ? "#bfffdc" : "#ffb7b7";
+        codeStatus.textContent = data.message || "Done.";
+      }catch(err){
+        codeStatus.style.color = "#ffb7b7";
+        codeStatus.textContent = "Network error — please try again.";
+      }
+    });
+  </script>
+</body>
+</html>

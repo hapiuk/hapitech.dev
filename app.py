@@ -4,13 +4,16 @@ import datetime
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
+from flask_migrate import Migrate
 from sqlalchemy import func
 
 from models import db
 from models.user import User
 from models.client import Client
+from models.solar_user import SolarUser, SolarLoginCode
 
 from routes.solar_system import solar_system_bp
+from routes.journal_api import bp_journal
 from utils.mailer import send_contact_email
 from routes.admin_command_center import admin_command_center_bp
 from utils.command_center import get_service_state, SERVICES
@@ -42,26 +45,59 @@ def create_app():
 
 	app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-only-fallback-change-me")
 	app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///hapitech.db")
+	app.config["SQLALCHEMY_BINDS"] = {
+		"solar": os.getenv("SOLAR_DATABASE_URL", "sqlite:///solar_journal.db")
+	}
 	app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 	# --------------------------------------------------
 	# extensions
 	# --------------------------------------------------
 	db.init_app(app)
+	migrate = Migrate(app, db)
 
 	login_manager = LoginManager()
 	login_manager.login_view = "login"
+	login_manager.blueprint_login_views = {
+		"solar_system": "solar_system.login"
+	}
 	login_manager.init_app(app)
 
 	@login_manager.user_loader
 	def load_user(user_id):
+		if user_id.startswith("solar-"):
+			return SolarUser.query.get(int(user_id.split("-", 1)[1]))
 		return User.query.get(int(user_id))
 
 	# --------------------------------------------------
 	# blueprints
 	# --------------------------------------------------
 	app.register_blueprint(solar_system_bp, url_prefix="/solar-system")
+	app.register_blueprint(bp_journal)
 	app.register_blueprint(admin_command_center_bp)
+
+	# --------------------------------------------------
+	# error handling — API-style routes get JSON, not an HTML error page
+	# (otherwise a crash here breaks every fetch()'s res.json() on the frontend
+	# with a confusing "unexpected character" SyntaxError instead of a real message)
+	# --------------------------------------------------
+	API_PATH_PREFIXES = ("/solar-system/auth/", "/solar-system/profile", "/api/")
+
+	def _wants_json():
+		return request.path.startswith(API_PATH_PREFIXES)
+
+	@app.errorhandler(500)
+	def handle_500(e):
+		if _wants_json():
+			return jsonify({"success": False, "message": "Something went wrong on our end. Please try again shortly."}), 500
+		return e.get_response() if hasattr(e, "get_response") else (str(e), 500)
+
+	@app.errorhandler(404)
+	def handle_404(e):
+		if _wants_json():
+			return jsonify({"success": False, "message": "Not found."}), 404
+		return e.get_response()
+
 	# --------------------------------------------------
 	# routes
 	# --------------------------------------------------

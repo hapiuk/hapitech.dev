@@ -47,3 +47,31 @@ def send_contact_email(*, name: str, email: str, message: str, meta: dict) -> No
 		s.ehlo()
 		s.login(user, password)
 		s.send_message(msg)
+
+
+def send_login_code_email(*, email: str, code: str) -> None:
+	host = os.getenv("SMTP_HOST")
+	port = int(os.getenv("SMTP_PORT", "587"))
+	user = os.getenv("SMTP_USER")
+	password = os.getenv("SMTP_PASS")
+	mail_from = os.getenv("SMTP_FROM", user or "")
+
+	if not all([host, port, user, password, mail_from]):
+		raise RuntimeError("SMTP env vars missing (SMTP_HOST/PORT/USER/PASS/FROM)")
+
+	msg = EmailMessage()
+	msg["Subject"] = f"Your Solar Journal code: {code}"
+	msg["From"] = mail_from
+	msg["To"] = email
+	msg.set_content(
+		f"Your one-time Solar Journal login code is:\n\n"
+		f"    {code}\n\n"
+		f"This code expires in 10 minutes. If you didn't request this, you can ignore this email.\n"
+	)
+
+	with smtplib.SMTP(host, port, timeout=20) as s:
+		s.ehlo()
+		s.starttls()
+		s.ehlo()
+		s.login(user, password)
+		s.send_message(msg)

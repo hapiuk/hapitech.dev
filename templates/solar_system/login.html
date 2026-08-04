@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Log In — Solar Journal</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .auth-wrap{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:40px 20px;
+      position:relative;
+      z-index:2;
+    }
+
+    .auth-card{ width:100%; max-width:420px; padding:40px; }
+    .auth-card h1{ font-size:1.6rem; margin-bottom:6px; }
+    .auth-sub{ opacity:.75; margin-bottom:28px; font-size:.92rem; }
+
+    .auth-step{ display:grid; gap:14px; }
+    .auth-step.hidden{ display:none; }
+
+    .auth-step input{
+      width:100%;
+      padding:13px 14px;
+      border:1px solid rgba(255,255,255,0.1);
+      background:rgba(10,12,16,0.65);
+      color:#eaf6ff;
+      outline:none;
+      font-size:14px;
+      font-family:inherit;
+    }
+
+    .auth-step input:focus{ border-color:rgba(140,200,255,0.5); }
+
+    .code-input{ text-align:center; font-size:1.4rem; letter-spacing:.3em; }
+
+    .auth-status{ min-height:18px; font-size:13px; }
+
+    .auth-footer{ margin-top:22px; text-align:center; font-size:.88rem; opacity:.75; }
+    .auth-footer a{ color:#8ec8ff; text-decoration:underline; }
+  </style>
+</head>
+<body>
+  <div class="bg"></div>
+
+  <div class="auth-wrap">
+    <div class="neon-card auth-card">
+
+      <h1>Welcome back</h1>
+      <p class="auth-sub" id="stepIntro">Enter your email — we'll send you a one-time code, no password needed.</p>
+
+      <div class="auth-step" id="stepEmail">
+        <input id="loginEmail" type="email" placeholder="Email" required>
+        <button type="button" class="btn" id="sendCodeBtn" style="width:100%;">Send me a code</button>
+        <p id="emailStatus" class="auth-status"></p>
+      </div>
+
+      <div class="auth-step hidden" id="stepCode">
+        <input id="codeInput" class="code-input" maxlength="6" placeholder="000000" inputmode="numeric" autocomplete="one-time-code">
+        <button type="button" class="btn" id="verifyBtn" style="width:100%;">Verify &amp; log in</button>
+        <p id="codeStatus" class="auth-status"></p>
+        <button type="button" id="resendBtn" style="background:none;border:none;color:#8ec8ff;text-decoration:underline;cursor:pointer;font-size:.85rem;">Resend code</button>
+      </div>
+
+      <div class="auth-footer">
+        No account yet? <a href="{{ url_for('solar_system.register') }}">Create one — first 100 are free forever</a>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let pendingEmail = "";
+
+    const stepEmail = document.getElementById("stepEmail");
+    const stepCode = document.getElementById("stepCode");
+    const stepIntro = document.getElementById("stepIntro");
+
+    const sendCodeBtn = document.getElementById("sendCodeBtn");
+    const emailStatus = document.getElementById("emailStatus");
+
+    const verifyBtn = document.getElementById("verifyBtn");
+    const codeStatus = document.getElementById("codeStatus");
+    const resendBtn = document.getElementById("resendBtn");
+
+    sendCodeBtn.addEventListener("click", async () => {
+      emailStatus.textContent = "";
+      const email = document.getElementById("loginEmail").value.trim();
+
+      if(!email){
+        emailStatus.style.color = "#ffb7b7";
+        emailStatus.textContent = "Please enter your email.";
+        return;
+      }
+
+      sendCodeBtn.disabled = true;
+      sendCodeBtn.textContent = "Sending...";
+
+      try{
+        const res = await fetch("{{ url_for('solar_system.request_login_code') }}", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ email }),
+          credentials: "same-origin"
+        });
+        const data = await res.json();
+
+        if(res.ok && data.success){
+          pendingEmail = email;
+          stepEmail.classList.add("hidden");
+          stepCode.classList.remove("hidden");
+          stepIntro.textContent = `Code sent to ${email} — check your inbox.`;
+        } else {
+          emailStatus.style.color = "#ffb7b7";
+          emailStatus.textContent = data.message || "Something went wrong.";
+        }
+      }catch(err){
+        emailStatus.style.color = "#ffb7b7";
+        emailStatus.textContent = "Network error — please try again.";
+        console.error(err);
+      }finally{
+        sendCodeBtn.disabled = false;
+        sendCodeBtn.textContent = "Send me a code";
+      }
+    });
+
+    verifyBtn.addEventListener("click", async () => {
+      codeStatus.textContent = "";
+      const code = document.getElementById("codeInput").value.trim();
+
+      if(!code){
+        codeStatus.style.color = "#ffb7b7";
+        codeStatus.textContent = "Enter the code from your email.";
+        return;
+      }
+
+      verifyBtn.disabled = true;
+      verifyBtn.textContent = "Verifying...";
+
+      try{
+        const res = await fetch("{{ url_for('solar_system.verify_code') }}", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ email: pendingEmail, code }),
+          credentials: "same-origin"
+        });
+        const data = await res.json();
+
+        if(res.ok && data.success){
+          codeStatus.style.color = "#bfffdc";
+          codeStatus.textContent = "Logged in — redirecting...";
+          setTimeout(() => { window.location.href = "{{ url_for('solar_system.journal') }}"; }, 700);
+          return;
+        }
+
+        codeStatus.style.color = "#ffb7b7";
+        codeStatus.textContent = data.message || "Incorrect code.";
+      }catch(err){
+        codeStatus.style.color = "#ffb7b7";
+        codeStatus.textContent = "Network error — please try again.";
+        console.error(err);
+      }finally{
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = "Verify & log in";
+      }
+    });
+
+    resendBtn.addEventListener("click", async () => {
+      codeStatus.style.color = "";
+      codeStatus.textContent = "Sending a new code...";
+      try{
+        const res = await fetch("{{ url_for('solar_system.request_login_code') }}", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ email: pendingEmail }),
+          credentials: "same-origin"
+        });
+        const data = await res.json();
+        codeStatus.style.color = res.ok ? "#bfffdc" : "#ffb7b7";
+        codeStatus.textContent = data.message || "Done.";
+      }catch(err){
+        codeStatus.style.color = "#ffb7b7";
+        codeStatus.textContent = "Network error — please try again.";
+      }
+    });
+  </script>
+</body>
+</html>

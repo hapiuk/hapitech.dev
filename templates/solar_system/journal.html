@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>My Journal — Solar Journal</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    header.mini{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:20px clamp(20px,5vw,50px);
+      position:relative;
+      z-index:2;
+    }
+
+    main.journal-wrap{
+      max-width:800px;
+      margin:0 auto;
+      padding:20px clamp(20px,5vw,50px) 80px;
+      position:relative;
+      z-index:2;
+    }
+
+    .welcome-card{
+      padding:32px;
+      margin-bottom:24px;
+    }
+
+    .welcome-card h1{
+      font-size:1.5rem;
+      margin-bottom:8px;
+    }
+
+    .early-badge{
+      display:inline-block;
+      padding:5px 12px;
+      font-size:.72rem;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+      background:linear-gradient(90deg,rgba(80,160,255,0.2),rgba(180,100,255,0.2));
+      border:1px solid rgba(140,200,255,0.3);
+      margin-top:10px;
+    }
+
+    .coming-soon{
+      padding:40px;
+      text-align:center;
+      opacity:.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg"></div>
+
+  <header class="mini">
+    <a href="{{ url_for('solar_system.index') }}" style="font-weight:800;">← Solar System</a>
+    <nav style="display:flex; gap:16px; align-items:center;">
+      <a href="{{ url_for('solar_system.profile') }}">Profile</a>
+      <button class="btn" id="logoutBtn" style="padding:8px 16px;">Log out</button>
+    </nav>
+  </header>
+
+  <main class="journal-wrap">
+
+    <div class="neon-card welcome-card">
+      <h1>Welcome, {{ current_user.display_name }}</h1>
+      <p style="opacity:.75;">This is your personal journal home.</p>
+      {% if current_user.is_early_supporter %}
+      <div class="early-badge">First 100 — free forever</div>
+      {% endif %}
+    </div>
+
+    <div class="neon-card coming-soon">
+      <p>Personal journal entries are coming here next — linking your existing observations to your account.</p>
+    </div>
+
+  </main>
+
+  <script>
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await fetch("{{ url_for('solar_system.logout') }}", { method: "POST", credentials: "same-origin" });
+      window.location.href = "{{ url_for('solar_system.index') }}";
+    });
+  </script>
+</body>
+</html>
