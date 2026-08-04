@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Profile — Solar Journal</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    header.mini{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:20px clamp(20px,5vw,50px);
+      position:relative;
+      z-index:2;
+    }
+
+    main.profile-wrap{
+      max-width:520px;
+      margin:0 auto;
+      padding:20px clamp(20px,5vw,50px) 80px;
+      position:relative;
+      z-index:2;
+    }
+
+    .profile-card{ padding:36px; }
+
+    .profile-card h1{ font-size:1.5rem; margin-bottom:22px; }
+
+    #profileForm{ display:grid; gap:14px; }
+
+    #profileForm input{
+      width:100%;
+      padding:13px 14px;
+      border:1px solid rgba(255,255,255,0.1);
+      background:rgba(10,12,16,0.65);
+      color:#eaf6ff;
+      outline:none;
+      font-size:14px;
+      font-family:inherit;
+    }
+
+    .field-label{
+      font-size:.78rem;
+      opacity:.65;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+      margin-bottom:-6px;
+    }
+
+    .readonly-field{
+      padding:13px 14px;
+      border:1px solid rgba(255,255,255,0.06);
+      background:rgba(255,255,255,0.03);
+      color:#b8c0c8;
+      font-size:14px;
+    }
+
+    .profile-status{ min-height:18px; font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="bg"></div>
+
+  <header class="mini">
+    <a href="{{ url_for('solar_system.journal') }}" style="font-weight:800;">← My Journal</a>
+  </header>
+
+  <main class="profile-wrap">
+    <div class="neon-card profile-card">
+      <h1>Your Profile</h1>
+
+      <form id="profileForm" onsubmit="return false;">
+        <div class="field-label">Email</div>
+        <div class="readonly-field">{{ current_user.email }}</div>
+
+        <div class="field-label">Display name</div>
+        <input id="displayNameInput" value="{{ current_user.display_name }}">
+
+        <button type="button" class="btn" id="saveProfileBtn" style="width:100%; margin-top:8px;">Save changes</button>
+        <p id="profileStatus" class="profile-status"></p>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    const btn = document.getElementById("saveProfileBtn");
+    const status = document.getElementById("profileStatus");
+
+    btn.addEventListener("click", async () => {
+      const display_name = document.getElementById("displayNameInput").value.trim();
+      status.textContent = "";
+
+      if(!display_name){
+        status.style.color = "#ffb7b7";
+        status.textContent = "Display name cannot be empty.";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Saving...";
+
+      try{
+        const res = await fetch("{{ url_for('solar_system.profile') }}", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ display_name }),
+          credentials: "same-origin"
+        });
+
+        const data = await res.json();
+
+        if(res.ok && data.success){
+          status.style.color = "#bfffdc";
+          status.textContent = "Saved.";
+        } else {
+          status.style.color = "#ffb7b7";
+          status.textContent = data.message || "Could not save changes.";
+        }
+      }catch(err){
+        status.style.color = "#ffb7b7";
+        status.textContent = "Network error — please try again.";
+        console.error(err);
+      }finally{
+        btn.disabled = false;
+        btn.textContent = "Save changes";
+      }
+    });
+  </script>
+</body>
+</html>

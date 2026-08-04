@@ -5,6 +5,7 @@ import re
 import uuid
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, current_app
+from flask_login import login_required, current_user
 
 from utils.journal_db import get_db
 
@@ -22,6 +23,21 @@ UPLOAD_SUBDIR = os.path.join("uploads", "journal")  # under /static/
 
 def iso_now():
 	return datetime.now(timezone.utc).isoformat()
+
+
+def owner_required(fn):
+	"""This journal is Aaron's personal one — only the client-portal admin/client
+	login (not the public Solar Journal accounts) should be able to write to it.
+	"""
+	from functools import wraps
+
+	@wraps(fn)
+	def wrapper(*args, **kwargs):
+		if not current_user.is_authenticated or getattr(current_user, "role", None) not in ("admin", "client"):
+			return jsonify({"success": False, "message": "Login required."}), 401
+		return fn(*args, **kwargs)
+
+	return wrapper
 
 
 def safe_filename(name: str) -> str:
@@ -228,6 +244,7 @@ def journal_get_entry(entry_id):
 
 
 @bp_journal.post("/journal/create")
+@owner_required
 def journal_create():
 	data, mode = get_payload()
 
@@ -306,6 +323,7 @@ def journal_create():
 
 
 @bp_journal.post("/journal/update")
+@owner_required
 def journal_update():
 	data, mode = get_payload()
 
@@ -380,10 +398,12 @@ def journal_update():
 # -------------------------
 
 @bp_journal.post("/create")
+@owner_required
 def journal_create_alias():
         return journal_create()
 
 @bp_journal.post("/update")
+@owner_required
 def journal_update_alias():
         return journal_update()
 
@@ -405,6 +425,7 @@ def journal_entity_legacy():
 	return journal_entity()
 
 @bp_journal.post("/entry")
+@owner_required
 def journal_create_entry_legacy():
 	# Legacy JSON format: entity_kind/entity_name
 	data = request.get_json(silent=True) or {}
@@ -459,6 +480,7 @@ def goals_list():
 	return jsonify({"ok": True, "items": [row_to_goal(r) for r in rows]})
 
 @bp_journal.post("/goals")
+@owner_required
 def goals_create():
 	data = request.get_json(silent=True) or {}
 
@@ -498,6 +520,7 @@ def goals_create():
 	return jsonify({"ok": True, "item": row_to_goal(row)}), 201
 
 @bp_journal.patch("/goals/<goal_id>")
+@owner_required
 def goals_patch(goal_id):
 	data = request.get_json(silent=True) or {}
 
