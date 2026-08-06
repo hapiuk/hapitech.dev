@@ -53,11 +53,50 @@ def create_app():
 	}
 	app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+	# Hard ceiling on any request body at all — rejects oversized uploads before
+	# Flask even fully reads them into memory. A little headroom over the 15MB
+	# raw-image limit to allow for the other multipart form fields.
+	app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
+
 	# --------------------------------------------------
 	# extensions
 	# --------------------------------------------------
 	db.init_app(app)
 	migrate = Migrate(app, db)
+
+	# --------------------------------------------------
+	# make sure both non-migration-managed databases exist —
+	# both of these are safe to call every startup: SQLAlchemy's
+	# create_all only creates missing tables, and init_db uses
+	# CREATE TABLE IF NOT EXISTS. This is what closes the recurring
+	# "no such table" issue for good on any fresh environment.
+	# --------------------------------------------------
+	with app.app_context():
+		db.create_all(bind_key="solar")
+
+		# create_all only creates missing tables — it never alters existing
+		# ones. solar_journal_entries already existed before entity_kind/
+		# entity_name were added, so patch those in safely if missing.
+		from sqlalchemy import inspect, text
+		inspector = inspect(db.engines["solar"])
+		if "solar_journal_entries" in inspector.get_table_names():
+			existing_cols = {c["name"] for c in inspector.get_columns("solar_journal_entries")}
+			with db.engines["solar"].begin() as conn:
+				if "entity_kind" not in existing_cols:
+					conn.execute(text(
+						"ALTER TABLE solar_journal_entries ADD COLUMN entity_kind VARCHAR(20) NOT NULL DEFAULT 'general'"
+					))
+				if "entity_name" not in existing_cols:
+					conn.execute(text(
+						"ALTER TABLE solar_journal_entries ADD COLUMN entity_name VARCHAR(80) NOT NULL DEFAULT 'General'"
+					))
+				if "is_public" not in existing_cols:
+					conn.execute(text(
+						"ALTER TABLE solar_journal_entries ADD COLUMN is_public BOOLEAN NOT NULL DEFAULT 0"
+					))
+
+		from utils.journal_db import init_db as init_journal_db
+		init_journal_db()
 
 	login_manager = LoginManager()
 	login_manager.login_view = "login"

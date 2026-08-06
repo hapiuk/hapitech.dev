@@ -215,6 +215,35 @@ function loadPlanetTexture(name) {
 const DEG = Math.PI / 180;
 const AU_TO_UNITS = 200; // 1 AU => 200 units (scaled orbits)
 
+// "True Scale" mode — real relative sizes, using the SAME km-to-units
+// conversion as orbital distances (so this is genuinely physically
+// consistent, not just a nicer-looking fudge). Fair warning: this makes
+// Earth about the size of a large pixel next to its own 200-unit orbit —
+// that's not a bug, it's the actual, famously humbling scale of the solar
+// system. Scoped to Sun + planets + the Moon for now, not the other moons.
+const KM_PER_AU = 149597870.7;
+const KM_TO_UNITS = AU_TO_UNITS / KM_PER_AU;
+const TRUE_SCALE_RADII = {
+  Sun: 696340 * KM_TO_UNITS,
+  Mercury: 2439.7 * KM_TO_UNITS,
+  Venus: 6051.8 * KM_TO_UNITS,
+  Earth: 6371.0 * KM_TO_UNITS,
+  Mars: 3389.5 * KM_TO_UNITS,
+  Jupiter: 69911 * KM_TO_UNITS,
+  Saturn: 58232 * KM_TO_UNITS,
+  Uranus: 25362 * KM_TO_UNITS,
+  Neptune: 24622 * KM_TO_UNITS,
+  Moon: 1737.4 * KM_TO_UNITS
+};
+
+let trueScaleEnabled = false;
+
+function setBodyRadius(mesh, radius, segments = 48) {
+  if (!mesh || !Number.isFinite(radius) || radius <= 0) return;
+  mesh.geometry.dispose();
+  mesh.geometry = new THREE.SphereGeometry(radius, segments, segments);
+}
+
 function daysSinceJ2000(msUtc) {
   const J2000 = Date.UTC(2000, 0, 1, 12, 0, 0); // 2000-01-01 12:00 UTC
   return (msUtc - J2000) / 86400000;
@@ -289,9 +318,15 @@ const MOON_PARENT_SCALE = new Map(); // parentNameLower -> scale multiplier
 
 // Local (planet-centered) Kepler position. Returns Vector3 in parent-local scene axes.
 function orbitPositionLocal(el, days, distScale = 1) {
+  // Bodies whose orbital elements are epoched somewhere other than J2000
+  // (currently just the Moon, re-epoched to 2026-01-01 for accuracy around
+  // the present era) carry epoch_offset_days = days from J2000 to their
+  // own epoch. Everything below is then relative to THAT epoch.
+  const effectiveDays = days - (el.epoch_offset_days || 0);
+
   const n = (2 * Math.PI) / el.period_days; // rad/day
   const dir = (typeof el.orbit_dir === "number") ? el.orbit_dir : 1;
-  const M = (el.M0_deg * DEG) + (dir * n * days);
+  const M = (el.M0_deg * DEG) + (dir * n * effectiveDays);
   const E = solveKepler(M, el.e);
 
   const cosE = Math.cos(E), sinE = Math.sin(E);
@@ -306,9 +341,15 @@ function orbitPositionLocal(el, days, distScale = 1) {
   const xOrb = r * Math.cos(nu);
   const yOrb = r * Math.sin(nu);
 
-  const Ω = (el.Omega_deg ?? 0) * DEG;
+  // Secular precession — real moon nodes/apsides shift substantially over
+  // years (nodal regression ~18.6yr cycle, apsidal advance ~8.85yr cycle).
+  // Both default to 0 for bodies that don't need it (i.e. all the planets).
+  const OmegaDeg = el.Omega_deg + (el.Omega_dot_deg_per_day || 0) * effectiveDays;
+  const omegaDeg = el.omega_deg + (el.omega_dot_deg_per_day || 0) * effectiveDays;
+
+  const Ω = (OmegaDeg ?? 0) * DEG;
   const i = (el.i_deg ?? 0) * DEG;
-  const ω = (el.omega_deg ?? 0) * DEG;
+  const ω = (omegaDeg ?? 0) * DEG;
 
   const cosΩ = Math.cos(Ω), sinΩ = Math.sin(Ω);
   const cosi = Math.cos(i), sini = Math.sin(i);
@@ -330,6 +371,48 @@ function orbitPositionLocal(el, days, distScale = 1) {
 
   // SAME mapping as everything else: (x, z, y)
   return new THREE.Vector3(x, z, y);
+}
+
+function currentTrueAnomaly(el, days, dir = 1) {
+  const n = (2 * Math.PI) / el.period_days;
+  const M = (el.M0_deg * DEG) + (dir * n * days);
+  const E = solveKepler(M, el.e);
+  return Math.atan2(
+    Math.sqrt(1 - el.e * el.e) * Math.sin(E),
+    Math.cos(E) - el.e
+  );
+}
+
+// Glowing comet-tail trail for orbit lines — brightest right at the body's
+// current position, fading out going backward along its direction of
+// travel. Geometry is parameterized by true anomaly swept linearly across
+// segments, so "how far behind the current position" maps directly to
+// vertex index without needing to touch the actual position math at all.
+function updateOrbitTrailColors(line, currentNu, segments, baseColor, dir = 1) {
+  if (!line?.geometry?.attributes?.color) return;
+
+  const colors = line.geometry.attributes.color.array;
+  const twoPi = Math.PI * 2;
+  const currentFrac = (((currentNu % twoPi) + twoPi) % twoPi) / twoPi;
+  const trailFrac = 0.32; // fraction of the orbit the glow trail covers
+
+  for (let s = 0; s <= segments; s++) {
+    const pointFrac = s / segments;
+    // Distance behind the current position, going backward against travel direction.
+    let behind = dir >= 0 ? (currentFrac - pointFrac) : (pointFrac - currentFrac);
+    behind = ((behind % 1) + 1) % 1;
+
+    const brightness = behind <= trailFrac
+      ? Math.pow(1 - behind / trailFrac, 1.6)
+      : 0;
+
+    const idx = s * 3;
+    colors[idx] = baseColor.r * brightness;
+    colors[idx + 1] = baseColor.g * brightness;
+    colors[idx + 2] = baseColor.b * brightness;
+  }
+
+  line.geometry.attributes.color.needsUpdate = true;
 }
 
 function makeMoonOrbitLine(el, distScale = 1, segments = 256) {
@@ -367,14 +450,23 @@ function makeMoonOrbitLine(el, distScale = 1, segments = 256) {
   }
 
   const geom = new THREE.BufferGeometry().setFromPoints(pts);
+
+  const colors = new Float32Array((segments + 1) * 3);
+  geom.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
   const mat = new THREE.LineBasicMaterial({
-    color: 0x6fa8ff,
+    color: 0xffffff,
+    vertexColors: true,
     transparent: true,
-    opacity: 0.18
+    opacity: 1.0,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
   });
 
   const line = new THREE.LineLoop(geom, mat);
   line.frustumCulled = false;
+  line.userData.segments = segments;
+  line.userData.baseColor = new THREE.Color(0x6fa8ff);
   return line;
 }
 
@@ -393,6 +485,8 @@ function makeMoonMesh(m) {
   mesh.userData = {
     name: m.name,
     radius: m.radius,
+    visualRadius: m.radius,
+    trueRadius: TRUE_SCALE_RADII[m.name] ?? m.radius,
     moonEl: null,      // filled in setup
     parentName: m.parent,
     spin: 0.15         // fallback only
@@ -403,6 +497,52 @@ function makeMoonMesh(m) {
 
 // Created moons live here (for clicking + labels + animation)
 let moons = [];      // { mesh, parentObj, orbitLine, el, meta }
+
+function applyTrueScale(enabled) {
+  trueScaleEnabled = enabled;
+
+  if (sunMesh) {
+    const r = enabled ? sunMesh.userData.trueRadius : sunMesh.userData.visualRadius;
+    setBodyRadius(sunMesh, r, 48);
+    sunMesh.userData.radius = r;
+  }
+
+  for (const p of planets) {
+    const ud = p.mesh.userData;
+    const r = enabled ? ud.trueRadius : ud.visualRadius;
+    setBodyRadius(p.mesh, r, 48);
+    ud.radius = r;
+  }
+
+  for (const m of moons) {
+    if (m.mesh.userData.name !== "Moon") continue; // scoped to the Moon only for now
+    const ud = m.mesh.userData;
+    const r = enabled ? ud.trueRadius : ud.visualRadius;
+    setBodyRadius(m.mesh, r, 28);
+    ud.radius = r;
+
+    // The orbit line's shape is baked in at a fixed distance scale — an
+    // ellipse scales uniformly, so rather than rebuilding the geometry,
+    // just scale the whole line to match wherever the Moon's actual
+    // position currently is (visual vs true distance).
+    if (m.orbitLine) {
+      const baseDistScale = MOON_KM_TO_UNITS * (m.parentScale || 1);
+      m.orbitLine.scale.setScalar(enabled ? (KM_TO_UNITS / baseDistScale) : 1);
+    }
+  }
+
+  // The camera's minimum distance needs to track whatever's CURRENTLY
+  // focused, not a single blanket value — a blanket "true scale minDistance"
+  // would be wrong for, say, true-scale Jupiter vs true-scale Earth, and
+  // would go stale if the user toggles without re-focusing afterward.
+  if (selected?.mesh) {
+    const r = selected.mesh.userData.radius || 5;
+    controls.minDistance = Math.max(r * 1.05, 0.00005);
+  } else {
+    controls.minDistance = enabled ? 0.001 : 25;
+  }
+}
+window.applyTrueScale = applyTrueScale;
 let moonMeshes = []; // for raycast + labels + animation
 
 function setupMoonsFromData(data) {
@@ -413,7 +553,12 @@ function setupMoonsFromData(data) {
 
   // --- Compute per-parent visual scaling so moons don't render inside their planet ---
   // Goal: innermost moon orbit radius >= parentRadius * MIN_ORBIT_MULT
-  const MIN_ORBIT_MULT = 1.8;
+  // Was 1.8 — that's barely enough to avoid clipping into the parent, not
+  // enough to actually SEE a moon as a separate body (Earth's Moon ended up
+  // only ~2.86 Earth-radii out, versus the real ~60). Bumped to give a
+  // genuinely visible gap; harmless for any moon system already well
+  // separated, since scale only ever increases from the Math.max(1, ...) below.
+  const MIN_ORBIT_MULT = 6;
 
   // Gather moons by parent
   const byParent = new Map(); // parentLower -> [moonMeta...]
@@ -461,7 +606,10 @@ function setupMoonsFromData(data) {
       omega_deg: m.omega_deg ?? 0,
       M0_deg: m.M0_deg ?? 0,
       period_days: m.period_days,
-      orbit_dir: m.orbit_dir ?? 1
+      orbit_dir: m.orbit_dir ?? 1,
+      epoch_offset_days: m.epoch_offset_days ?? 0,
+      Omega_dot_deg_per_day: m.Omega_dot_deg_per_day ?? 0,
+      omega_dot_deg_per_day: m.omega_dot_deg_per_day ?? 0
     };
 
     mesh.userData.moonEl = el;
@@ -472,10 +620,11 @@ function setupMoonsFromData(data) {
 
     const orbitLine = makeMoonOrbitLine(el, MOON_KM_TO_UNITS * parentScale);
 
-    parentObj.group.add(orbitLine);
+    parentObj.orbitAnchor.add(orbitLine);
 
-    // Attach moon to parent group
-    parentObj.group.add(mesh);
+    // Attach moon to parent's orbital-position anchor — NOT the tilt group,
+    // so the moon's orbit doesn't inherit the parent's axial tilt rotation.
+    parentObj.orbitAnchor.add(mesh);
 
     moons.push({ mesh, parentObj, orbitLine, el, meta: m, parentScale });
     moonMeshes.push(mesh);
@@ -553,6 +702,8 @@ function makeSun() {
     })
   );
 
+  sun.userData = { name: "Sun", visualRadius: 28, trueRadius: TRUE_SCALE_RADII.Sun };
+
   // Simple glow sprite
   const c = document.createElement("canvas");
   c.width = c.height = 256;
@@ -583,7 +734,7 @@ function makeSun() {
   scene.add(sun);
   return sun;
 }
-makeSun();
+const sunMesh = makeSun();
 
 /* -----------------------------------------------------
    Helpers
@@ -626,13 +777,24 @@ function makeOrbitFromElements(el, segments = 512) {
   }
 
   const geom = new THREE.BufferGeometry().setFromPoints(points);
+
+  const colors = new Float32Array((segments + 1) * 3);
+  geom.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
   const mat = new THREE.LineBasicMaterial({
-    color: 0x6fa8ff,
-    opacity: 0.25,
-    transparent: true
+    color: 0xffffff,
+    vertexColors: true,
+    opacity: 1.0,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
   });
 
-  return new THREE.LineLoop(geom, mat);
+  const line = new THREE.LineLoop(geom, mat);
+  line.frustumCulled = false;
+  line.userData.segments = segments;
+  line.userData.baseColor = new THREE.Color(0x6fa8ff);
+  return line;
 }
 
 function makePlanet({ name, radius, distance, color, axialTiltDeg = 0, orbitInclinationDeg = 0, orbitEl = null }) {
@@ -647,6 +809,8 @@ function makePlanet({ name, radius, distance, color, axialTiltDeg = 0, orbitIncl
   mesh.userData = {
     name,
     radius,
+    visualRadius: radius,
+    trueRadius: TRUE_SCALE_RADII[name] ?? radius,
     distance,
     spin: 0.25 / Math.max(radius, 1), // fallback only
     axialTiltDeg,
@@ -654,16 +818,27 @@ function makePlanet({ name, radius, distance, color, axialTiltDeg = 0, orbitIncl
     orbitEl
   };
 
-  // Planet tilt group (axial tilt)
+  // Planet tilt group (axial tilt) — this rotation should apply to the
+  // planet's own mesh only, never to anything positioned relative to it.
   const group = new THREE.Object3D();
   group.rotation.z = THREE.MathUtils.degToRad(axialTiltDeg);
   group.add(mesh);
+
+  // Orbital-position anchor — carries ONLY the planet's orbital position,
+  // no rotation at all. Moons attach here (not to `group`), so a parent's
+  // axial tilt never gets spuriously applied to its moons' orbital
+  // positions. This was a real, pre-existing bug: Earth's 23.44° tilt was
+  // rotating the Moon's already-correct ecliptic-frame position before
+  // this fix, which is why the Moon wasn't lining up for the eclipse even
+  // though the underlying orbital elements were right.
+  const orbitAnchor = new THREE.Object3D();
+  orbitAnchor.add(group);
 
   // Orbit group:
   // If orbitEl exists, DO NOT tilt orbitGroup — Kepler math already includes inclination.
   const orbitGroup = new THREE.Object3D();
   orbitGroup.rotation.x = orbitEl ? 0 : THREE.MathUtils.degToRad(orbitInclinationDeg);
-  orbitGroup.add(group);
+  orbitGroup.add(orbitAnchor);
   scene.add(orbitGroup);
 
   // Orbit line:
@@ -679,7 +854,7 @@ function makePlanet({ name, radius, distance, color, axialTiltDeg = 0, orbitIncl
 
   scene.add(orbit);
 
-  return { mesh, group, orbitGroup, orbit };
+  return { mesh, group, orbitAnchor, orbitGroup, orbit };
 }
 
 function makeMoon({ name, radius, parentMesh, distance, color }) {
@@ -1327,8 +1502,6 @@ const _nf1 = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 const _nf2 = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
 const _nf3 = new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 });
 
-const KM_PER_AU = 149_597_870.7;
-
 function _fmtNum(x, nf = _nf2) {
   if (x === null || x === undefined) return "—";
   const n = Number(x);
@@ -1504,6 +1677,7 @@ function getSelectionContext() {
     (kind === "moon") ? (selected.parent || selected.meta?.parent || ud.parentName || "") : "";
   return { kind, name, parent };
 }
+window.getSelectionContext = getSelectionContext;
 
 function makeSnapshot() {
   // Captures “current state” you’ll likely want later
@@ -1759,6 +1933,7 @@ function setSelected(bodyOrNull) {
     }
     if (journalTitle) journalTitle.textContent = "Journal";
     fetchJournalRecent(10);
+    window.dispatchEvent(new CustomEvent("solarBodySelected", { detail: { kind: "general", name: "General" } }));
     return;
   }
 
@@ -1769,6 +1944,7 @@ function setSelected(bodyOrNull) {
   const name = ud.name || selected.meta?.name || "Unknown";
   if (journalTitle) journalTitle.textContent = `Journal • ${name}`;
   fetchJournalForEntity(selected.kind, name, 25);
+  window.dispatchEvent(new CustomEvent("solarBodySelected", { detail: { kind: selected.kind || "general", name } }));
 
   if (selName) selName.textContent = name;
 
@@ -1820,7 +1996,26 @@ function focusOn(mesh) {
   if (dir.lengthSq() < 1e-6) dir = new THREE.Vector3(1, 0, 0);
 
   const planetRadius = mesh.userData.radius || 5;
-  const camDist = Math.max(planetRadius * 10, 55);
+
+  // Camera minimum distance MUST track whichever body is actually focused —
+  // a single blanket value can't work across wildly different scales (a
+  // true-scale Earth's radius, ~0.0085 units, is literally smaller than the
+  // old flat minDistance floor, which is exactly what let the camera end up
+  // inside the sphere: OrbitControls only clamps distance-to-target, it has
+  // no collision detection with the mesh's actual surface). Small margin
+  // (1.05x) keeps the camera just outside the surface while still allowing
+  // a close, immersive zoom — this is also what future HD textures and an
+  // ISS-style close-up camera will need.
+  controls.minDistance = Math.max(planetRadius * 1.05, 0.00005);
+
+  // The 55-unit floor exists to keep the camera from sitting uncomfortably
+  // close to small visual-scale bodies — but it's a fixed absolute value,
+  // so in true-scale mode (where even Jupiter is ~0.09 units) it would
+  // dominate completely and place the camera nowhere near close enough to
+  // actually see anything.
+  const camDist = trueScaleEnabled
+    ? Math.max(planetRadius * 6, planetRadius + 0.002)
+    : Math.max(planetRadius * 10, 55);
 
   const desiredPos = target.clone()
     .add(dir.clone().multiplyScalar(camDist))
@@ -1883,6 +2078,25 @@ window.addEventListener("resize", () => {
 const clock = new THREE.Clock();
 const rotAngle = new Map(); // name -> radians (planet spin accumulator)
 
+// Earth's rotation, anchored to real UTC (GMST) rather than an accumulator —
+// this is what lets the Greenwich meridian (and so the UK) actually face the
+// correct real-world direction at any given date, including the 2026-08-12
+// eclipse, instead of drifting based on how long the sim has been running.
+const EARTH_GMST_AT_J2000_DEG = 280.46061837; // Greenwich Mean Sidereal Time at J2000.0
+const EARTH_SIDEREAL_RATE_DEG_PER_DAY = 360.98564736629;
+// Standard equirectangular Earth textures place Greenwich (0° longitude) at
+// the texture's horizontal center. This is the one constant worth nudging if,
+// once actually viewed live, the UK isn't quite facing where it should —
+// each 1 here shifts the visible prime meridian by 1° of longitude.
+const EARTH_TEXTURE_MERIDIAN_OFFSET_DEG = 0;
+
+function earthAbsoluteRotationRad(simDays) {
+  const deg = EARTH_GMST_AT_J2000_DEG
+    + EARTH_SIDEREAL_RATE_DEG_PER_DAY * simDays
+    + EARTH_TEXTURE_MERIDIAN_OFFSET_DEG;
+  return normRad(deg * DEG);
+}
+
 function animate() {
   const dt = clock.getDelta();
 
@@ -1910,9 +2124,16 @@ function animate() {
     if (!el) continue;
 
     const pos = orbitPositionScene(el, simDays);
-    p.group.position.copy(pos);
+    p.orbitAnchor.position.copy(pos);
 
-    if (Number.isFinite(el.rot_hours) && el.rot_hours > 0) {
+    if (p.orbit?.userData?.segments) {
+      const nu = currentTrueAnomaly(el, simDays, 1);
+      updateOrbitTrailColors(p.orbit, nu, p.orbit.userData.segments, p.orbit.userData.baseColor, 1);
+    }
+
+    if (p.mesh.userData.name === "Earth") {
+      p.mesh.rotation.y = earthAbsoluteRotationRad(simDays);
+    } else if (Number.isFinite(el.rot_hours) && el.rot_hours > 0) {
       const dir = (el.rot_dir ?? 1);
       const omega = dir * (2 * Math.PI) / (el.rot_hours * 3600); // rad/sec
 
@@ -1932,10 +2153,24 @@ function animate() {
     const el = m.mesh.userData.moonEl;
     if (!el) continue;
 
+    // In True Scale mode, distance needs the SAME consistent conversion as
+    // everything else, not the compressed visual-mode distance — otherwise
+    // a true-to-life-tiny Moon ends up at an inconsistent (relatively much
+    // closer) old visual distance, making it an invisible speck regardless
+    // of its now-correct size. Scoped to the Moon only, matching the radius
+    // scoping above.
+    const useTrueDistance = trueScaleEnabled && m.mesh.userData.name === "Moon";
     const scale = m.parentScale || 1;
-    const localPos = orbitPositionLocal(el, simDays, MOON_KM_TO_UNITS * scale);
+    const distScale = useTrueDistance ? KM_TO_UNITS : (MOON_KM_TO_UNITS * scale);
+    const localPos = orbitPositionLocal(el, simDays, distScale);
 
     m.mesh.position.copy(localPos);
+
+    if (m.orbitLine?.userData?.segments) {
+      const dir = el.orbit_dir ?? 1;
+      const nu = currentTrueAnomaly(el, simDays, dir);
+      updateOrbitTrailColors(m.orbitLine, nu, m.orbitLine.userData.segments, m.orbitLine.userData.baseColor, dir);
+    }
 
     const mh = m.meta?.rot_hours;
     if (Number.isFinite(mh) && mh > 0) {
@@ -2016,6 +2251,9 @@ if (toggleOrbits) {
   for (const p of planets) if (p.orbit) p.orbit.visible = on;
   for (const m of moons) if (m.orbitLine) m.orbitLine.visible = on;
 }
+
+// True Scale is now the default view.
+applyTrueScale(true);
 
 animate();
 setSelected(null);

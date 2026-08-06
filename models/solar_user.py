@@ -70,3 +70,30 @@ class SolarLoginCode(db.Model):
     @property
     def is_locked_out(self) -> bool:
         return self.attempts >= MAX_ATTEMPTS
+
+
+class SolarJournalEntry(db.Model):
+    __bind_key__ = "solar"
+    __tablename__ = "solar_journal_entries"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("solar_users.id"), nullable=False, index=True)
+
+    title = db.Column(db.String(140), nullable=False)
+    body = db.Column(db.Text, nullable=True)
+
+    # Which celestial body this entry is about — "general" if not tied to one.
+    entity_kind = db.Column(db.String(20), nullable=False, default="general")
+    entity_name = db.Column(db.String(80), nullable=False, default="General", index=True)
+
+    # Private by default — the poster opts in to sharing with the community.
+    is_public = db.Column(db.Boolean, nullable=False, default=False)
+
+    image_filename = db.Column(db.String(255), nullable=True)
+    # Stored so the global storage ceiling can be checked with SUM() instead
+    # of walking the filesystem on every upload.
+    image_size_bytes = db.Column(db.Integer, nullable=True)
+
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    user = db.relationship("SolarUser", backref=db.backref("journal_entries", lazy=True))
