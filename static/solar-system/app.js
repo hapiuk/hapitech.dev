@@ -391,7 +391,7 @@ function orbitPositionLocal(el, days, distScale = 1) {
 // segments, and (via currentTrueAnomaly below) the live body position
 // update — one implementation instead of the same formula duplicated
 // three separate times.
-function orbitPointAt(el, nu, distScale = 1) {
+function orbitPointAt(el, nu, distScale = 1, days = null) {
   const a = (el.a ?? el.a_AU) * distScale;
   const e = el.e;
 
@@ -399,9 +399,22 @@ function orbitPointAt(el, nu, distScale = 1) {
   const xOrb = r * Math.cos(nu);
   const yOrb = r * Math.sin(nu);
 
-  const Ω = (el.Omega_deg ?? 0) * DEG;
+  // Same secular precession as orbitPositionLocal — without this, a body
+  // with time-varying Omega/omega (currently just the Moon) draws its
+  // trail/orbit shape at the WRONG orientation relative to where it's
+  // actually rendered, since the body's real position precesses but a
+  // static Omega/omega here wouldn't.
+  let OmegaDeg = el.Omega_deg ?? 0;
+  let omegaDeg = el.omega_deg ?? 0;
+  if (days !== null) {
+    const effectiveDays = days - (el.epoch_offset_days || 0);
+    OmegaDeg += (el.Omega_dot_deg_per_day || 0) * effectiveDays;
+    omegaDeg += (el.omega_dot_deg_per_day || 0) * effectiveDays;
+  }
+
+  const Ω = OmegaDeg * DEG;
   const i = (el.i_deg ?? 0) * DEG;
-  const ω = (el.omega_deg ?? 0) * DEG;
+  const ω = omegaDeg * DEG;
 
   const cosΩ = Math.cos(Ω), sinΩ = Math.sin(Ω);
   const cosi = Math.cos(i), sini = Math.sin(i);
@@ -422,8 +435,9 @@ function orbitPointAt(el, nu, distScale = 1) {
 }
 
 function currentTrueAnomaly(el, days, dir = 1) {
+  const effectiveDays = days - (el.epoch_offset_days || 0);
   const n = (2 * Math.PI) / el.period_days;
-  const M = (el.M0_deg * DEG) + (dir * n * days);
+  const M = (el.M0_deg * DEG) + (dir * n * effectiveDays);
   const E = solveKepler(M, el.e);
   return Math.atan2(
     Math.sqrt(1 - el.e * el.e) * Math.sin(E),
@@ -435,10 +449,10 @@ function currentTrueAnomaly(el, days, dir = 1) {
 // constant, just for context. No vertex colors, no blending tricks —
 // deliberately as simple as Three.js gets, since that's the part that
 // needs to be rock solid.
-function makeStaticOrbitPath(el, distScale = 1, segments = 256, opacity = 0.14) {
+function makeStaticOrbitPath(el, distScale = 1, segments = 256, opacity = 0.14, days = null) {
   const pts = [];
   for (let s = 0; s <= segments; s++) {
-    pts.push(orbitPointAt(el, (s / segments) * Math.PI * 2, distScale));
+    pts.push(orbitPointAt(el, (s / segments) * Math.PI * 2, distScale, days));
   }
   const geom = new THREE.BufferGeometry().setFromPoints(pts);
   const mat = new THREE.LineBasicMaterial({
@@ -480,7 +494,7 @@ function makeOrbitTrail(segmentCount = 18, arcFraction = 0.34, color = 0x6fa8ff)
   return group;
 }
 
-function updateOrbitTrail(trailGroup, el, currentNu, distScale, dir = 1) {
+function updateOrbitTrail(trailGroup, el, currentNu, distScale, dir = 1, days = null) {
   const segments = trailGroup?.userData?.segments;
   if (!segments) return;
 
@@ -493,8 +507,8 @@ function updateOrbitTrail(trailGroup, el, currentNu, distScale, dir = 1) {
     const nuA = currentNu - dir * step * k;
     const nuB = currentNu - dir * step * (k + 1);
 
-    const pA = orbitPointAt(el, nuA, distScale);
-    const pB = orbitPointAt(el, nuB, distScale);
+    const pA = orbitPointAt(el, nuA, distScale, days);
+    const pB = orbitPointAt(el, nuB, distScale, days);
 
     const posAttr = segments[k].geometry.attributes.position;
     posAttr.setXYZ(0, pA.x, pA.y, pA.z);
@@ -569,14 +583,14 @@ function applyTrueScale(enabled) {
     }
   }
 
-  // The camera's minimum distance needs to track whatever's CURRENTLY
-  // focused, not a single blanket value — a blanket "true scale minDistance"
-  // would be wrong for, say, true-scale Jupiter vs true-scale Earth, and
-  // would go stale if the user toggles without re-focusing afterward.
+  // Toggling scale mode can move a body's actual position a LOT (the
+  // Moon's distance from Earth alone jumps between ~33.6 and ~0.52 units
+  // between visual and true scale) — re-focusing fully, not just adjusting
+  // minDistance/near, is what keeps the camera actually centered on
+  // whatever's selected, which is also what keeps its label tracking
+  // correctly rather than the body silently relocating out from under it.
   if (selected?.mesh) {
-    const r = selected.mesh.userData.radius || 5;
-    controls.minDistance = Math.max(r * 1.05, 0.00005);
-    setCameraNearFor(r);
+    focusOn(selected.mesh);
   } else {
     controls.minDistance = enabled ? 0.001 : 25;
   }
@@ -657,7 +671,7 @@ function setupMoonsFromData(data) {
     const parentLower = String(m.parent || "").toLowerCase();
     const parentScale = MOON_PARENT_SCALE.get(parentLower) || 1;
 
-    const orbitLine = makeStaticOrbitPath(el, MOON_KM_TO_UNITS * parentScale, 256, 0.12);
+    const orbitLine = makeStaticOrbitPath(el, MOON_KM_TO_UNITS * parentScale, 256, 0.12, daysSinceJ2000(simTimeMs));
     const trail = makeOrbitTrail();
 
     parentObj.orbitAnchor.add(orbitLine);
@@ -863,11 +877,12 @@ function makePlanet({ name, radius, distance, color, axialTiltDeg = 0, orbitIncl
   group.rotation.z = THREE.MathUtils.degToRad(axialTiltDeg);
   group.add(mesh);
 
+  // Atmospheres disabled for now — they ballooned badly in True Scale mode
+  // (an artifact of the since-removed minimum-visibility inflation, which
+  // scaled the atmosphere by the same large factor as the tiny planet
+  // mesh). makeAtmosphere() is left intact below for whenever this comes
+  // back — just not being called.
   let atmosphere = null;
-  if (ATMOSPHERE_COLORS[name]) {
-    atmosphere = makeAtmosphere(radius, ATMOSPHERE_COLORS[name]);
-    group.add(atmosphere);
-  }
 
   // Orbital-position anchor — carries ONLY the planet's orbital position,
   // no rotation at all. Moons attach here (not to `group`), so a parent's
@@ -1142,13 +1157,56 @@ function createLabelForPlanet(body) {
   labelEls.set(mesh.uuid, el);
 }
 
-const toggleLabels = document.getElementById("toggleLabels");
-let labelsOn = toggleLabels ? toggleLabels.checked : true;
+// Always-on floating labels felt cluttered — replaced with an on-demand
+// "Found Bodies" dropdown instead, which doubles as a lightweight discovery
+// mechanic. Body selection itself still works via direct clicks on meshes
+// (raycasting), completely independent of labels.
+let labelsOn = false;
 
-toggleLabels?.addEventListener("change", (e) => {
-  labelsOn = e.target.checked;
-  for (const el of labelEls.values()) {
-    el.style.display = labelsOn ? "" : "none";
+const discoveredBodies = new Map(); // name -> mesh
+const foundBodiesDropdown = document.getElementById("foundBodiesDropdown");
+
+function refreshFoundBodiesDropdown() {
+  if (!foundBodiesDropdown) return;
+  const currentValue = foundBodiesDropdown.value;
+
+  foundBodiesDropdown.innerHTML = "";
+  if (discoveredBodies.size === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "— none yet —";
+    foundBodiesDropdown.appendChild(opt);
+  } else {
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = `${discoveredBodies.size} found — jump to...`;
+    foundBodiesDropdown.appendChild(placeholder);
+
+    for (const name of [...discoveredBodies.keys()].sort()) {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      foundBodiesDropdown.appendChild(opt);
+    }
+  }
+
+  if ([...foundBodiesDropdown.options].some(o => o.value === currentValue)) {
+    foundBodiesDropdown.value = currentValue;
+  }
+}
+
+function markBodyDiscovered(mesh) {
+  const name = mesh?.userData?.name;
+  if (!name || discoveredBodies.has(name)) return;
+  discoveredBodies.set(name, mesh);
+  refreshFoundBodiesDropdown();
+}
+
+foundBodiesDropdown?.addEventListener("change", (e) => {
+  const mesh = discoveredBodies.get(e.target.value);
+  if (mesh) {
+    selectBodyByMesh(mesh);
+    focusOn(mesh);
   }
 });
 
@@ -1240,11 +1298,18 @@ function updateLabels() {
 }
 
 const toggleOrbits = document.getElementById("toggleOrbits");
+const toggleTrails = document.getElementById("toggleTrails");
 
 toggleOrbits?.addEventListener("change", (e) => {
   const on = e.target.checked;
   for (const p of planets) if (p.orbit) p.orbit.visible = on;
   for (const m of moons) if (m.orbitLine) m.orbitLine.visible = on;
+});
+
+toggleTrails?.addEventListener("change", (e) => {
+  const on = e.target.checked;
+  for (const p of planets) if (p.trail) p.trail.visible = on;
+  for (const m of moons) if (m.trail) m.trail.visible = on;
 });
 
 /* -----------------------------------------------------
@@ -1422,6 +1487,8 @@ function getMoonByMesh(mesh) {
 }
 
 function selectBodyByMesh(mesh) {
+  markBodyDiscovered(mesh);
+
   const p = getPlanetByMesh(mesh);
   if (p) {
     setSelected({
@@ -2222,7 +2289,7 @@ function animate() {
 
     if (p.trail) {
       const nu = currentTrueAnomaly(el, simDays, 1);
-      updateOrbitTrail(p.trail, el, nu, AU_TO_UNITS, 1);
+      updateOrbitTrail(p.trail, el, nu, AU_TO_UNITS, 1, simDays);
     }
 
     if (p.mesh.userData.name === "Earth") {
@@ -2263,7 +2330,7 @@ function animate() {
     if (m.trail) {
       const dir = el.orbit_dir ?? 1;
       const nu = currentTrueAnomaly(el, simDays, dir);
-      updateOrbitTrail(m.trail, el, nu, distScale, dir);
+      updateOrbitTrail(m.trail, el, nu, distScale, dir, simDays);
     }
 
     const mh = m.meta?.rot_hours;
@@ -2345,6 +2412,12 @@ if (toggleOrbits) {
   const on = toggleOrbits.checked;
   for (const p of planets) if (p.orbit) p.orbit.visible = on;
   for (const m of moons) if (m.orbitLine) m.orbitLine.visible = on;
+}
+
+if (toggleTrails) {
+  const on = toggleTrails.checked;
+  for (const p of planets) if (p.trail) p.trail.visible = on;
+  for (const m of moons) if (m.trail) m.trail.visible = on;
 }
 
 // True Scale is now the default view.
