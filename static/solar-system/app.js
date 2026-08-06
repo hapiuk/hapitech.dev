@@ -26,6 +26,20 @@ const _v3b = new THREE.Vector3();
 let saturnRings = null;
 
 const camera = new THREE.PerspectiveCamera(55, wrap.clientWidth / wrap.clientHeight, 0.1, 20000);
+
+// The near plane needs to track scale too — a fixed 0.1 sounds tiny, but
+// true-scale Earth (~0.0085 units) and Moon (~0.0023) are actually SMALLER
+// than that. Getting close to them (even after correctly stopping outside
+// their surface) puts the camera closer than the near plane itself, which
+// silently culls the geometry — a different bug from camera/body collision,
+// with the same "it disappeared" symptom.
+function setCameraNearFor(radius) {
+  const near = Math.max(radius * 0.05, 0.00001);
+  if (Math.abs(camera.near - near) > 1e-9) {
+    camera.near = near;
+    camera.updateProjectionMatrix();
+  }
+}
 camera.position.set(0, 500, 1200);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -373,6 +387,40 @@ function orbitPositionLocal(el, days, distScale = 1) {
   return new THREE.Vector3(x, z, y);
 }
 
+// Pure orbit-shape math, shared by the static orbit line, the trail
+// segments, and (via currentTrueAnomaly below) the live body position
+// update — one implementation instead of the same formula duplicated
+// three separate times.
+function orbitPointAt(el, nu, distScale = 1) {
+  const a = (el.a ?? el.a_AU) * distScale;
+  const e = el.e;
+
+  const r = (a * (1 - e * e)) / (1 + e * Math.cos(nu));
+  const xOrb = r * Math.cos(nu);
+  const yOrb = r * Math.sin(nu);
+
+  const Ω = (el.Omega_deg ?? 0) * DEG;
+  const i = (el.i_deg ?? 0) * DEG;
+  const ω = (el.omega_deg ?? 0) * DEG;
+
+  const cosΩ = Math.cos(Ω), sinΩ = Math.sin(Ω);
+  const cosi = Math.cos(i), sini = Math.sin(i);
+  const cosω = Math.cos(ω), sinω = Math.sin(ω);
+
+  const x1 = xOrb * cosω - yOrb * sinω;
+  const y1 = xOrb * sinω + yOrb * cosω;
+
+  const x2 = x1;
+  const y2 = y1 * cosi;
+  const z2 = y1 * sini;
+
+  const x = x2 * cosΩ - y2 * sinΩ;
+  const y = x2 * sinΩ + y2 * cosΩ;
+  const z = z2;
+
+  return new THREE.Vector3(x, z, y); // same axis mapping used everywhere else
+}
+
 function currentTrueAnomaly(el, days, dir = 1) {
   const n = (2 * Math.PI) / el.period_days;
   const M = (el.M0_deg * DEG) + (dir * n * days);
@@ -383,91 +431,76 @@ function currentTrueAnomaly(el, days, dir = 1) {
   );
 }
 
-// Glowing comet-tail trail for orbit lines — brightest right at the body's
-// current position, fading out going backward along its direction of
-// travel. Geometry is parameterized by true anomaly swept linearly across
-// segments, so "how far behind the current position" maps directly to
-// vertex index without needing to touch the actual position math at all.
-function updateOrbitTrailColors(line, currentNu, segments, baseColor, dir = 1) {
-  if (!line?.geometry?.attributes?.color) return;
-
-  const colors = line.geometry.attributes.color.array;
-  const twoPi = Math.PI * 2;
-  const currentFrac = (((currentNu % twoPi) + twoPi) % twoPi) / twoPi;
-  const trailFrac = 0.32; // fraction of the orbit the glow trail covers
-
-  for (let s = 0; s <= segments; s++) {
-    const pointFrac = s / segments;
-    // Distance behind the current position, going backward against travel direction.
-    let behind = dir >= 0 ? (currentFrac - pointFrac) : (pointFrac - currentFrac);
-    behind = ((behind % 1) + 1) % 1;
-
-    const brightness = behind <= trailFrac
-      ? Math.pow(1 - behind / trailFrac, 1.6)
-      : 0;
-
-    const idx = s * 3;
-    colors[idx] = baseColor.r * brightness;
-    colors[idx + 1] = baseColor.g * brightness;
-    colors[idx + 2] = baseColor.b * brightness;
-  }
-
-  line.geometry.attributes.color.needsUpdate = true;
-}
-
-function makeMoonOrbitLine(el, distScale = 1, segments = 256) {
+// The full, faint, always-visible orbit path — static shape, dim and
+// constant, just for context. No vertex colors, no blending tricks —
+// deliberately as simple as Three.js gets, since that's the part that
+// needs to be rock solid.
+function makeStaticOrbitPath(el, distScale = 1, segments = 256, opacity = 0.14) {
   const pts = [];
   for (let s = 0; s <= segments; s++) {
-    const nu = (s / segments) * Math.PI * 2;
-
-    const a = el.a * distScale;
-    const e = el.e;
-
-    const r = (a * (1 - e * e)) / (1 + e * Math.cos(nu));
-    const xOrb = r * Math.cos(nu);
-    const yOrb = r * Math.sin(nu);
-
-    const Ω = (el.Omega_deg ?? 0) * DEG;
-    const i = (el.i_deg ?? 0) * DEG;
-    const ω = (el.omega_deg ?? 0) * DEG;
-
-    const cosΩ = Math.cos(Ω), sinΩ = Math.sin(Ω);
-    const cosi = Math.cos(i), sini = Math.sin(i);
-    const cosω = Math.cos(ω), sinω = Math.sin(ω);
-
-    const x1 = xOrb * cosω - yOrb * sinω;
-    const y1 = xOrb * sinω + yOrb * cosω;
-
-    const x2 = x1;
-    const y2 = y1 * cosi;
-    const z2 = y1 * sini;
-
-    const x = x2 * cosΩ - y2 * sinΩ;
-    const y = x2 * sinΩ + y2 * cosΩ;
-    const z = z2;
-
-    pts.push(new THREE.Vector3(x, z, y));
+    pts.push(orbitPointAt(el, (s / segments) * Math.PI * 2, distScale));
   }
-
   const geom = new THREE.BufferGeometry().setFromPoints(pts);
-
-  const colors = new Float32Array((segments + 1) * 3);
-  geom.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-
   const mat = new THREE.LineBasicMaterial({
-    color: 0xffffff,
-    vertexColors: true,
+    color: 0x6fa8ff,
     transparent: true,
-    opacity: 1.0,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
+    opacity
   });
-
   const line = new THREE.LineLoop(geom, mat);
   line.frustumCulled = false;
-  line.userData.segments = segments;
-  line.userData.baseColor = new THREE.Color(0x6fa8ff);
   return line;
+}
+
+// The glowing comet-tail trail — built from discrete short segments, each
+// with its OWN plain material opacity (no vertex colors at all). Every
+// segment's opacity is fixed once at creation; only their POSITIONS get
+// updated each frame to sweep around the orbit with the body.
+function makeOrbitTrail(segmentCount = 18, arcFraction = 0.34, color = 0x6fa8ff) {
+  const group = new THREE.Group();
+  const segments = [];
+
+  for (let k = 0; k < segmentCount; k++) {
+    const t = k / (segmentCount - 1); // 0 = brightest (at the body), 1 = faded tail end
+    const opacity = Math.pow(1 - t, 1.6) * 0.95;
+
+    const geom = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 0, 0)
+    ]);
+    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+    const seg = new THREE.Line(geom, mat);
+    seg.frustumCulled = false;
+    group.add(seg);
+    segments.push(seg);
+  }
+
+  group.userData.segments = segments;
+  group.userData.segmentCount = segmentCount;
+  group.userData.arcFraction = arcFraction;
+  return group;
+}
+
+function updateOrbitTrail(trailGroup, el, currentNu, distScale, dir = 1) {
+  const segments = trailGroup?.userData?.segments;
+  if (!segments) return;
+
+  const count = trailGroup.userData.segmentCount;
+  const arcFraction = trailGroup.userData.arcFraction;
+  const twoPi = Math.PI * 2;
+  const step = (arcFraction * twoPi) / count;
+
+  for (let k = 0; k < count; k++) {
+    const nuA = currentNu - dir * step * k;
+    const nuB = currentNu - dir * step * (k + 1);
+
+    const pA = orbitPointAt(el, nuA, distScale);
+    const pB = orbitPointAt(el, nuB, distScale);
+
+    const posAttr = segments[k].geometry.attributes.position;
+    posAttr.setXYZ(0, pA.x, pA.y, pA.z);
+    posAttr.setXYZ(1, pB.x, pB.y, pB.z);
+    posAttr.needsUpdate = true;
+  }
 }
 
 function makeMoonMesh(m) {
@@ -512,6 +545,11 @@ function applyTrueScale(enabled) {
     const r = enabled ? ud.trueRadius : ud.visualRadius;
     setBodyRadius(p.mesh, r, 48);
     ud.radius = r;
+
+    if (p.atmosphere) {
+      const base = p.atmosphere.userData.baseRadius || 1;
+      p.atmosphere.scale.setScalar(r / base);
+    }
   }
 
   for (const m of moons) {
@@ -538,6 +576,7 @@ function applyTrueScale(enabled) {
   if (selected?.mesh) {
     const r = selected.mesh.userData.radius || 5;
     controls.minDistance = Math.max(r * 1.05, 0.00005);
+    setCameraNearFor(r);
   } else {
     controls.minDistance = enabled ? 0.001 : 25;
   }
@@ -618,15 +657,17 @@ function setupMoonsFromData(data) {
     const parentLower = String(m.parent || "").toLowerCase();
     const parentScale = MOON_PARENT_SCALE.get(parentLower) || 1;
 
-    const orbitLine = makeMoonOrbitLine(el, MOON_KM_TO_UNITS * parentScale);
+    const orbitLine = makeStaticOrbitPath(el, MOON_KM_TO_UNITS * parentScale, 256, 0.12);
+    const trail = makeOrbitTrail();
 
     parentObj.orbitAnchor.add(orbitLine);
+    parentObj.orbitAnchor.add(trail);
 
     // Attach moon to parent's orbital-position anchor — NOT the tilt group,
     // so the moon's orbit doesn't inherit the parent's axial tilt rotation.
     parentObj.orbitAnchor.add(mesh);
 
-    moons.push({ mesh, parentObj, orbitLine, el, meta: m, parentScale });
+    moons.push({ mesh, parentObj, orbitLine, trail, el, meta: m, parentScale });
     moonMeshes.push(mesh);
   }
 
@@ -740,61 +781,59 @@ const sunMesh = makeSun();
    Helpers
 ----------------------------------------------------- */
 function makeOrbitFromElements(el, segments = 512) {
-  const points = [];
-  const a = el.a_AU;
-  const e = el.e;
-  const Ω = el.Omega_deg * DEG;
-  const i = el.i_deg * DEG;
-  const ω = el.omega_deg * DEG;
+  return makeStaticOrbitPath(el, AU_TO_UNITS, segments, 0.18);
+}
 
-  const cosΩ = Math.cos(Ω), sinΩ = Math.sin(Ω);
-  const cosi = Math.cos(i), sini = Math.sin(i);
-  const cosω = Math.cos(ω), sinω = Math.sin(ω);
+// Simple, well-established Fresnel/rim-glow atmosphere effect — a slightly
+// larger sphere rendered from the inside (BackSide) with additive blending,
+// so it reads as a soft glow hugging the planet's limb rather than a flat
+// tinted ball. Deliberately not attempting real surface detail or
+// scattering physics — just a tasteful, lightweight visual layer.
+const ATMOSPHERE_COLORS = {
+  Earth: 0x6fb7ff,
+  Venus: 0xf5e3b8,
+  Mars: 0xd98f5c,
+  Jupiter: 0xe0c9a0,
+  Saturn: 0xf1e2b0,
+  Uranus: 0x9fe8e0,
+  Neptune: 0x5f8fef
+};
 
-  for (let s = 0; s <= segments; s++) {
-    const nu = (s / segments) * Math.PI * 2;
-
-    const r = (a * (1 - e * e)) / (1 + e * Math.cos(nu));
-    const xOrb = r * Math.cos(nu);
-    const yOrb = r * Math.sin(nu);
-
-    const x1 = xOrb * cosω - yOrb * sinω;
-    const y1 = xOrb * sinω + yOrb * cosω;
-
-    const x2 = x1;
-    const y2 = y1 * cosi;
-    const z2 = y1 * sini;
-
-    const x = x2 * cosΩ - y2 * sinΩ;
-    const y = x2 * sinΩ + y2 * cosΩ;
-    const z = z2;
-
-    points.push(new THREE.Vector3(
-      x * AU_TO_UNITS,
-      z * AU_TO_UNITS,
-      y * AU_TO_UNITS
-    ));
-  }
-
-  const geom = new THREE.BufferGeometry().setFromPoints(points);
-
-  const colors = new Float32Array((segments + 1) * 3);
-  geom.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-
-  const mat = new THREE.LineBasicMaterial({
-    color: 0xffffff,
-    vertexColors: true,
-    opacity: 1.0,
-    transparent: true,
+function makeAtmosphere(radius, color, opacityScale = 1.0) {
+  const geom = new THREE.SphereGeometry(radius * 1.06, 48, 48);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: {
+      glowColor: { value: new THREE.Color(color) },
+      intensity: { value: 1.1 * opacityScale }
+    },
+    vertexShader: `
+      varying vec3 vNormal;
+      varying vec3 vPositionNormal;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        vPositionNormal = normalize((modelViewMatrix * vec4(position, 1.0)).xyz);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vNormal;
+      varying vec3 vPositionNormal;
+      uniform vec3 glowColor;
+      uniform float intensity;
+      void main() {
+        float rim = pow(1.0 - abs(dot(vNormal, vPositionNormal)), 3.0);
+        gl_FragColor = vec4(glowColor, rim * intensity);
+      }
+    `,
+    side: THREE.BackSide,
     blending: THREE.AdditiveBlending,
+    transparent: true,
     depthWrite: false
   });
 
-  const line = new THREE.LineLoop(geom, mat);
-  line.frustumCulled = false;
-  line.userData.segments = segments;
-  line.userData.baseColor = new THREE.Color(0x6fa8ff);
-  return line;
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.userData.baseRadius = radius;
+  return mesh;
 }
 
 function makePlanet({ name, radius, distance, color, axialTiltDeg = 0, orbitInclinationDeg = 0, orbitEl = null }) {
@@ -823,6 +862,12 @@ function makePlanet({ name, radius, distance, color, axialTiltDeg = 0, orbitIncl
   const group = new THREE.Object3D();
   group.rotation.z = THREE.MathUtils.degToRad(axialTiltDeg);
   group.add(mesh);
+
+  let atmosphere = null;
+  if (ATMOSPHERE_COLORS[name]) {
+    atmosphere = makeAtmosphere(radius, ATMOSPHERE_COLORS[name]);
+    group.add(atmosphere);
+  }
 
   // Orbital-position anchor — carries ONLY the planet's orbital position,
   // no rotation at all. Moons attach here (not to `group`), so a parent's
@@ -854,7 +899,10 @@ function makePlanet({ name, radius, distance, color, axialTiltDeg = 0, orbitIncl
 
   scene.add(orbit);
 
-  return { mesh, group, orbitAnchor, orbitGroup, orbit };
+  const trail = orbitEl ? makeOrbitTrail() : null;
+  if (trail) scene.add(trail);
+
+  return { mesh, group, orbitAnchor, orbitGroup, orbit, trail, atmosphere };
 }
 
 function makeMoon({ name, radius, parentMesh, distance, color }) {
@@ -2007,6 +2055,7 @@ function focusOn(mesh) {
   // a close, immersive zoom — this is also what future HD textures and an
   // ISS-style close-up camera will need.
   controls.minDistance = Math.max(planetRadius * 1.05, 0.00005);
+  setCameraNearFor(planetRadius);
 
   // The 55-unit floor exists to keep the camera from sitting uncomfortably
   // close to small visual-scale bodies — but it's a fixed absolute value,
@@ -2097,6 +2146,51 @@ function earthAbsoluteRotationRad(simDays) {
   return normRad(deg * DEG);
 }
 
+// General camera-collision safeguard. `controls.minDistance` only protects
+// distance from the CURRENT orbit target — if the camera free-zooms toward
+// some other body entirely (never explicitly "Focus"-ed), minDistance does
+// nothing for it, and the camera can end up inside that body's sphere,
+// where backface culling makes it render as if it "disappeared". This
+// checks proximity to every real body each frame instead, regardless of
+// what's currently targeted.
+const _bodyWorldPos = new THREE.Vector3();
+function preventCameraClipping() {
+  const candidates = [];
+  if (sunMesh) candidates.push(sunMesh);
+  for (const p of planets) candidates.push(p.mesh);
+  for (const m of moons) candidates.push(m.mesh);
+
+  let nearestRadius = null;
+  let nearestDist = Infinity;
+
+  for (const mesh of candidates) {
+    const r = mesh.userData?.radius;
+    if (!Number.isFinite(r) || r <= 0) continue;
+
+    mesh.getWorldPosition(_bodyWorldPos);
+    const dist = camera.position.distanceTo(_bodyWorldPos);
+    const safeDist = r * 1.05;
+
+    if (dist < safeDist && dist > 1e-9) {
+      // Compute the push-out direction BEFORE touching camera.position —
+      // mutating it first and then reading it via .clone() in the same
+      // chained expression reads the already-overwritten value, which
+      // collapses everything to zero (found this exact bug via testing).
+      const pushDir = camera.position.clone().sub(_bodyWorldPos).normalize();
+      camera.position.copy(_bodyWorldPos).add(pushDir.multiplyScalar(safeDist));
+    }
+
+    if (dist < nearestDist) {
+      nearestDist = dist;
+      nearestRadius = r;
+    }
+  }
+
+  // Keep the near plane matched to whatever body is actually closest right
+  // now, not just whatever was last explicitly focused.
+  if (nearestRadius !== null) setCameraNearFor(nearestRadius);
+}
+
 function animate() {
   const dt = clock.getDelta();
 
@@ -2126,9 +2220,9 @@ function animate() {
     const pos = orbitPositionScene(el, simDays);
     p.orbitAnchor.position.copy(pos);
 
-    if (p.orbit?.userData?.segments) {
+    if (p.trail) {
       const nu = currentTrueAnomaly(el, simDays, 1);
-      updateOrbitTrailColors(p.orbit, nu, p.orbit.userData.segments, p.orbit.userData.baseColor, 1);
+      updateOrbitTrail(p.trail, el, nu, AU_TO_UNITS, 1);
     }
 
     if (p.mesh.userData.name === "Earth") {
@@ -2166,10 +2260,10 @@ function animate() {
 
     m.mesh.position.copy(localPos);
 
-    if (m.orbitLine?.userData?.segments) {
+    if (m.trail) {
       const dir = el.orbit_dir ?? 1;
       const nu = currentTrueAnomaly(el, simDays, dir);
-      updateOrbitTrailColors(m.orbitLine, nu, m.orbitLine.userData.segments, m.orbitLine.userData.baseColor, dir);
+      updateOrbitTrail(m.trail, el, nu, distScale, dir);
     }
 
     const mh = m.meta?.rot_hours;
@@ -2214,6 +2308,7 @@ function animate() {
   }
 
   controls.update();
+  preventCameraClipping();
   updateLabels();
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
