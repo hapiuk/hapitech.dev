@@ -48,7 +48,9 @@ controls.dampingFactor = 0.06;
 controls.minDistance = 25;
 controls.maxDistance = 12000;
 controls.target.set(0, 0, 0);
+controls.mouseButtons = { LEFT: null, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
 controls.update();
+renderer.domElement.addEventListener("contextmenu", e => e.preventDefault());
 
 /* -----------------------------------------------------
    Textures
@@ -247,7 +249,30 @@ const TRUE_SCALE_RADII = {
   Saturn: 58232 * KM_TO_UNITS,
   Uranus: 25362 * KM_TO_UNITS,
   Neptune: 24622 * KM_TO_UNITS,
-  Moon: 1737.4 * KM_TO_UNITS
+  Moon: 1737.4 * KM_TO_UNITS,
+  // Mars moons
+  Phobos: 11.267 * KM_TO_UNITS,
+  Deimos: 6.2 * KM_TO_UNITS,
+  // Jupiter moons
+  Io: 1821.6 * KM_TO_UNITS,
+  Europa: 1560.8 * KM_TO_UNITS,
+  Ganymede: 2634.1 * KM_TO_UNITS,
+  Callisto: 2410.3 * KM_TO_UNITS,
+  // Saturn moons
+  Enceladus: 252.1 * KM_TO_UNITS,
+  Tethys: 533.1 * KM_TO_UNITS,
+  Dione: 561.7 * KM_TO_UNITS,
+  Rhea: 764.5 * KM_TO_UNITS,
+  Titan: 2574.7 * KM_TO_UNITS,
+  Iapetus: 736.6 * KM_TO_UNITS,
+  // Uranus moons
+  Miranda: 235.8 * KM_TO_UNITS,
+  Ariel: 578.9 * KM_TO_UNITS,
+  Umbriel: 584.7 * KM_TO_UNITS,
+  Titania: 788.9 * KM_TO_UNITS,
+  Oberon: 761.4 * KM_TO_UNITS,
+  // Neptune moons
+  Triton: 1353.4 * KM_TO_UNITS,
 };
 
 let trueScaleEnabled = false;
@@ -567,19 +592,27 @@ function applyTrueScale(enabled) {
   }
 
   for (const m of moons) {
-    if (m.mesh.userData.name !== "Moon") continue; // scoped to the Moon only for now
     const ud = m.mesh.userData;
     const r = enabled ? ud.trueRadius : ud.visualRadius;
     setBodyRadius(m.mesh, r, 28);
     ud.radius = r;
 
-    // The orbit line's shape is baked in at a fixed distance scale — an
-    // ellipse scales uniformly, so rather than rebuilding the geometry,
-    // just scale the whole line to match wherever the Moon's actual
-    // position currently is (visual vs true distance).
+    // Orbit line geometry is baked in visual-scale units; rescale uniformly
+    // to match true-scale distances, same approach that was previously used
+    // only for the Moon but now applies to every moon system.
     if (m.orbitLine) {
       const baseDistScale = MOON_KM_TO_UNITS * (m.parentScale || 1);
       m.orbitLine.scale.setScalar(enabled ? (KM_TO_UNITS / baseDistScale) : 1);
+    }
+  }
+
+  // Saturn's ring particle positions are baked at the visual planet radius
+  // (r=12) — rescale the ring group so it stays proportional after the planet
+  // sphere changes size.
+  if (saturnRings?.group) {
+    const saturnP = planets.find(p => p.mesh.userData.name === "Saturn");
+    if (saturnP) {
+      saturnRings.group.scale.setScalar(saturnP.mesh.userData.radius / 12);
     }
   }
 
@@ -738,10 +771,10 @@ function makeStarfield() {
   });
 
   const stars = new THREE.Points(g, m);
-  scene.add(stars);
+  // Starfield removed — will be replaced with a proper skybox later
   return stars;
 }
-const stars = makeStarfield();
+makeStarfield(); // keep function alive; result discarded (not in scene)
 
 /* -----------------------------------------------------
    Sun
@@ -1489,6 +1522,12 @@ function getMoonByMesh(mesh) {
 function selectBodyByMesh(mesh) {
   markBodyDiscovered(mesh);
 
+  // Explorer Station
+  if (mesh.userData?.isStation) {
+    setSelected({ kind: "station", mesh, orbitEl: null, meta: null });
+    return;
+  }
+
   const p = getPlanetByMesh(mesh);
   if (p) {
     setSelected({
@@ -2041,13 +2080,16 @@ function setSelected(bodyOrNull) {
     if (selName) selName.textContent = "Select a body";
     if (selMeta) {
       selMeta.textContent =
-        "Click a body to show details.\n\n" +
-        "• Focus: follow this body\n" +
-        "• Reset: stop following\n" +
-        "• Time: date + play/pause + rate";
+        "Left-click a body to select it.\n\n" +
+        "• Right-drag: rotate view\n" +
+        "• W/A/S/D: fly camera\n" +
+        "• Scroll: zoom\n" +
+        "• Focus: follow selected body\n" +
+        "• Scan: collect data + earn EP";
     }
     if (journalTitle) journalTitle.textContent = "Journal";
     fetchJournalRecent(10);
+    updateScanButton();
     window.dispatchEvent(new CustomEvent("solarBodySelected", { detail: { kind: "general", name: "General" } }));
     return;
   }
@@ -2062,6 +2104,8 @@ function setSelected(bodyOrNull) {
   window.dispatchEvent(new CustomEvent("solarBodySelected", { detail: { kind: selected.kind || "general", name } }));
 
   if (selName) selName.textContent = name;
+
+  updateScanButton();
 
   // Planet branch (NOW human-readable)
   if (selected.kind === "planet") {
@@ -2079,12 +2123,22 @@ function setSelected(bodyOrNull) {
     return;
   }
 
-  // Fallback if kind isn't set (safe)
+  // Explorer Station branch
+  if (selected.kind === "station") {
+    if (selMeta) selMeta.textContent =
+      `Explorer Station\n\n` +
+      `• Orbiting Earth at ~420 km altitude\n` +
+      `• Orbital period: ~90 minutes\n\n` +
+      `Use SCAN to collect data on bodies\n` +
+      `and earn Exploration Points (EP).\n\n` +
+      `Tip: click Focus to follow it.`;
+    return;
+  }
+
+  // Fallback
   if (selMeta) {
     selMeta.textContent =
-      `Body:\n` +
-      `• Radius: ${ud.radius ?? "—"}\n\n` +
-      `Tip: click Focus to follow ${name}.`;
+      `Body:\n• Radius: ${ud.radius ?? "—"}\n\nTip: click Focus to follow ${name}.`;
   }
 }
 
@@ -2129,9 +2183,11 @@ function focusOn(mesh) {
   // so in true-scale mode (where even Jupiter is ~0.09 units) it would
   // dominate completely and place the camera nowhere near close enough to
   // actually see anything.
-  const camDist = trueScaleEnabled
-    ? Math.max(planetRadius * 6, planetRadius + 0.002)
-    : Math.max(planetRadius * 10, 55);
+  const camDist = mesh.userData?.isStation
+    ? Math.max(planetRadius * 6, 8)        // station: close enough to see the model
+    : trueScaleEnabled
+      ? Math.max(planetRadius * 6, planetRadius + 0.002)
+      : Math.max(planetRadius * 10, 55);
 
   const desiredPos = target.clone()
     .add(dir.clone().multiplyScalar(camDist))
@@ -2165,17 +2221,27 @@ function updatePointerFromEvent(ev) {
 }
 
 renderer.domElement.addEventListener("pointerdown", (ev) => {
+  if (ev.button !== 0) return; // right-click is for camera rotate — don't select
   updatePointerFromEvent(ev);
   raycaster.setFromCamera(pointer, camera);
 
+  // Primary: geometry raycast (works when near a large body)
   const hits = raycaster.intersectObjects(planetMeshes, false);
+  if (hits.length) { selectBodyByMesh(hits[0].object); return; }
 
-  // ✅ Don't clear selection/focus when clicking empty space
-  // This lets you keep "follow mode" and rotate the camera while attached.
-  if (!hits.length) return;
-
-  selectBodyByMesh(hits[0].object);
-});
+  // Fallback: screen-space proximity — planets can be sub-pixel at zoom-out
+  const THRESH_NDC = 0.05; // ~2.5% of screen half-width
+  let bestMesh = null, bestDist = Infinity;
+  const _proj = new THREE.Vector3();
+  for (const m of planetMeshes) {
+    m.getWorldPosition(_proj);
+    _proj.project(camera);
+    const dx = _proj.x - pointer.x, dy = _proj.y - pointer.y;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d < THRESH_NDC && d < bestDist) { bestDist = d; bestMesh = m; }
+  }
+  if (bestMesh) selectBodyByMesh(bestMesh);
+}, { capture: true });
 
 /* -----------------------------------------------------
    Resize
@@ -2187,6 +2253,138 @@ window.addEventListener("resize", () => {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
 });
+
+/* -----------------------------------------------------
+   Free-fly camera (WASD)
+----------------------------------------------------- */
+const keysDown = new Set();
+const _flyFwd   = new THREE.Vector3();
+const _flyRight = new THREE.Vector3();
+const _flyDelta = new THREE.Vector3();
+
+window.addEventListener("keydown", e => {
+  const tag = e.target?.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || e.target?.isContentEditable) return;
+  keysDown.add(e.key.toLowerCase());
+});
+window.addEventListener("keyup", e => keysDown.delete(e.key.toLowerCase()));
+
+/* -----------------------------------------------------
+   Explorer Station
+----------------------------------------------------- */
+let stationGroup = null;
+let stationHitMesh = null;
+const STATION_ORBIT_PERIOD_S   = 5400;               // 90-min ISS period
+const STATION_ORBIT_R_VISUAL   = 10.5;               // visual mode (scene units)
+const STATION_ORBIT_R_TRUE     = 6791 * KM_TO_UNITS; // ~420 km altitude
+
+function makeSpaceStation() {
+  const group = new THREE.Group();
+
+  const bodyMat  = new THREE.MeshStandardMaterial({ color: 0xc0c8d4, metalness: 0.6, roughness: 0.3 });
+  const panelMat = new THREE.MeshStandardMaterial({ color: 0x1a4499, metalness: 0.2, roughness: 0.4, emissive: 0x0a1a44, emissiveIntensity: 0.5 });
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0xddddee, metalness: 0.75, roughness: 0.25 });
+
+  // Main truss
+  group.add(new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.1, 0.1), frameMat));
+
+  // Habitation module
+  const hab = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.6, 10), bodyMat);
+  hab.rotation.z = Math.PI / 2;
+  group.add(hab);
+
+  // Four solar panels (two each side)
+  for (const [ox, oz] of [[-0.95, 0.28], [-0.95, -0.28], [0.95, 0.28], [0.95, -0.28]]) {
+    const p = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.025, 0.42), panelMat);
+    p.position.set(ox, 0, oz);
+    group.add(p);
+  }
+
+  // Invisible bounding sphere for raycasting
+  const hit = new THREE.Mesh(
+    new THREE.SphereGeometry(0.55, 8, 8),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  hit.userData = { name: "Explorer Station", radius: 0.55, visualRadius: 0.55, trueRadius: 0.55, isStation: true };
+  group.add(hit);
+  group.userData.name = "Explorer Station";
+
+  scene.add(group);
+  return { group, hitMesh: hit };
+}
+
+/* -----------------------------------------------------
+   Scan mechanic + Exploration Points
+----------------------------------------------------- */
+let explorationPoints = (parseInt(localStorage.getItem("solar_ep") || "0", 10) || 0);
+const scannedBodies   = new Set(JSON.parse(localStorage.getItem("solar_scanned") || "[]"));
+let   scanActive      = false;
+let   scanTimer       = null;
+
+const EP_TABLE = {
+  Sun: 1000, Mercury: 150, Venus: 150, Earth: 150, Mars: 150,
+  Jupiter: 250, Saturn: 250, Uranus: 200, Neptune: 200,
+  "Explorer Station": 500,
+};
+function bodyEP(name, kind) { return EP_TABLE[name] ?? (kind === "moon" ? 50 : 75); }
+
+function saveProgress() {
+  localStorage.setItem("solar_ep", String(explorationPoints));
+  localStorage.setItem("solar_scanned", JSON.stringify([...scannedBodies]));
+}
+
+function updateEPDisplay() {
+  const el = document.getElementById("epCounter");
+  if (el) el.textContent = `EP: ${explorationPoints.toLocaleString()}`;
+}
+
+function updateScanButton() {
+  const btn = document.getElementById("btnScan");
+  if (!btn) return;
+  const name = selected?.mesh?.userData?.name || "";
+  if (!name || !selected) { btn.disabled = true; btn.textContent = "Scan"; return; }
+  if (scannedBodies.has(name)) { btn.disabled = true; btn.textContent = "✓ Scanned"; return; }
+  btn.disabled = scanActive;
+  btn.textContent = scanActive ? "Scanning…" : "Scan";
+}
+window.updateScanButton = updateScanButton;
+
+function startScan() {
+  if (scanActive || !selected?.mesh) return;
+  const name = selected.mesh.userData?.name || "";
+  if (!name || scannedBodies.has(name)) return;
+
+  scanActive = true;
+  updateScanButton();
+
+  const overlay = document.getElementById("scanOverlay");
+  const label   = document.getElementById("scanLabel");
+  if (overlay) overlay.classList.add("scan-active");
+  if (label)   label.textContent = `Scanning ${name}…`;
+
+  scanTimer = setTimeout(() => {
+    scanActive = false;
+    scannedBodies.add(name);
+    const ep = bodyEP(name, selected.kind);
+    explorationPoints += ep;
+    saveProgress();
+    updateEPDisplay();
+    markBodyDiscovered(selected.mesh);
+
+    if (overlay) overlay.classList.remove("scan-active");
+    updateScanButton();
+
+    const toast = document.getElementById("scanToast");
+    if (toast) {
+      toast.textContent = `+${ep} EP — ${name} scanned!`;
+      toast.classList.add("scan-toast--show");
+      setTimeout(() => toast.classList.remove("scan-toast--show"), 2500);
+    }
+  }, 3000);
+}
+window.startScan = startScan;
+
+updateEPDisplay();
 
 /* -----------------------------------------------------
    Animate
@@ -2261,9 +2459,6 @@ function preventCameraClipping() {
 function animate() {
   const dt = clock.getDelta();
 
-  // subtle star drift
-  stars.rotation.y += dt * 0.01;
-
   // Advance sim clock
   const dSimSeconds = (simPlaying ? simRate : 0) * dt;
 
@@ -2314,13 +2509,11 @@ function animate() {
     const el = m.mesh.userData.moonEl;
     if (!el) continue;
 
-    // In True Scale mode, distance needs the SAME consistent conversion as
-    // everything else, not the compressed visual-mode distance — otherwise
-    // a true-to-life-tiny Moon ends up at an inconsistent (relatively much
-    // closer) old visual distance, making it an invisible speck regardless
-    // of its now-correct size. Scoped to the Moon only, matching the radius
-    // scoping above.
-    const useTrueDistance = trueScaleEnabled && m.mesh.userData.name === "Moon";
+    // Use true-scale km→unit conversion for ALL moons in true-scale mode, not
+    // just Earth's Moon. Without this, other moons kept their compressed visual
+    // distances while their parent planets shrank, making them appear enormous
+    // relative to their (now correctly tiny) parent bodies.
+    const useTrueDistance = trueScaleEnabled;
     const scale = m.parentScale || 1;
     const distScale = useTrueDistance ? KM_TO_UNITS : (MOON_KM_TO_UNITS * scale);
     const localPos = orbitPositionLocal(el, simDays, distScale);
@@ -2375,6 +2568,59 @@ function animate() {
   }
 
   controls.update();
+
+  // WASD free-fly — speed scales with camera distance so it feels natural
+  // whether you're zoomed out near Neptune or hovering over Earth
+  if (keysDown.size > 0) {
+    const camDist = camera.position.distanceTo(controls.target);
+    const speed   = Math.max(camDist * 0.4, trueScaleEnabled ? 0.00005 : 0.5) * dt;
+    camera.getWorldDirection(_flyFwd);
+    _flyRight.crossVectors(_flyFwd, camera.up).normalize();
+    _flyDelta.set(0, 0, 0);
+    if (keysDown.has("w")) _flyDelta.addScaledVector(_flyFwd,   speed);
+    if (keysDown.has("s")) _flyDelta.addScaledVector(_flyFwd,  -speed);
+    if (keysDown.has("a")) _flyDelta.addScaledVector(_flyRight, -speed);
+    if (keysDown.has("d")) _flyDelta.addScaledVector(_flyRight,  speed);
+    if (_flyDelta.lengthSq() > 1e-20) {
+      camera.position.add(_flyDelta);
+      controls.target.add(_flyDelta);
+      if (followMode) followOffset.copy(camera.position).sub(controls.target);
+    }
+  }
+
+  // Joystick (mobile) — same movement model as WASD
+  if (window._joystickDelta && (Math.abs(window._joystickDelta.x) > 0.05 || Math.abs(window._joystickDelta.y) > 0.05)) {
+    const camDist = camera.position.distanceTo(controls.target);
+    const speed   = Math.max(camDist * 0.4, trueScaleEnabled ? 0.00005 : 0.5) * dt;
+    camera.getWorldDirection(_flyFwd);
+    _flyRight.crossVectors(_flyFwd, camera.up).normalize();
+    _flyDelta.set(0, 0, 0)
+      .addScaledVector(_flyRight, window._joystickDelta.x * speed)
+      .addScaledVector(_flyFwd, -window._joystickDelta.y * speed);
+    if (_flyDelta.lengthSq() > 1e-20) {
+      camera.position.add(_flyDelta);
+      controls.target.add(_flyDelta);
+      if (followMode) followOffset.copy(camera.position).sub(controls.target);
+    }
+  }
+
+  // Explorer Station orbit around Earth
+  if (stationGroup) {
+    const earthP = planets.find(p => p.mesh.userData.name === "Earth");
+    if (earthP) {
+      earthP.mesh.getWorldPosition(_v3a);
+      const orbitR = trueScaleEnabled ? STATION_ORBIT_R_TRUE : STATION_ORBIT_R_VISUAL;
+      const angle  = (simTimeMs / 1000 / STATION_ORBIT_PERIOD_S) * Math.PI * 2;
+      const incl   = 0.9; // ~51.6° ISS inclination
+      stationGroup.position.set(
+        _v3a.x + Math.cos(angle) * orbitR,
+        _v3a.y + Math.sin(angle) * Math.sin(incl) * orbitR,
+        _v3a.z + Math.sin(angle) * Math.cos(incl) * orbitR
+      );
+      stationGroup.rotation.y = -angle + Math.PI * 0.5;
+    }
+  }
+
   preventCameraClipping();
   updateLabels();
   renderer.render(scene, camera);
@@ -2392,6 +2638,10 @@ setupMoonsFromData(data);
 // Saturn rings attach AFTER planets exist
 const saturnObj = planets.find(p => p.mesh.userData.name === "Saturn");
 if (saturnObj) saturnRings = addSaturnRingsParticles(saturnObj.mesh);
+
+// Explorer Station
+{ const s = makeSpaceStation(); stationGroup = s.group; stationHitMesh = s.hitMesh; }
+planetMeshes.push(stationHitMesh); // include in raycast list
 
 // Labels AFTER planets/moons exist
 for (const p of planets) createLabelForPlanet({ mesh: p.mesh, kind: "planet" });

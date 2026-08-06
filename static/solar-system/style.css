@@ -1155,3 +1155,144 @@ html, body{
   line-height: 1.7;
   white-space: pre-wrap;
 }
+
+/* =====================================================
+   Scan overlay
+===================================================== */
+.scan-overlay{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes scanPulse {
+  0%   { transform: translate(-50%,-50%) scale(0.3); opacity: 0.9; }
+  100% { transform: translate(-50%,-50%) scale(2.2); opacity: 0; }
+}
+
+.scan-ring{
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 110px; height: 110px;
+  border: 2px solid rgba(0, 230, 255, 0.85);
+  border-radius: 50%;
+  transform: translate(-50%,-50%) scale(0.3);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scan-active .scan-ring{
+  animation: scanPulse 1.6s ease-out infinite;
+}
+
+.scan-label{
+  position: absolute;
+  bottom: calc(50% - 90px);
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(0,230,255,0.9);
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.scan-active .scan-label{
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+/* =====================================================
+   Scan toast
+===================================================== */
+.scan-toast{
+  position: fixed;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(0,200,220,0.15);
+  border: 1px solid rgba(0,220,240,0.4);
+  color: #7ff0ff;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 1300;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+}
+
+.scan-toast--show{
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* =====================================================
+   Portrait orientation overlay (mobile)
+===================================================== */
+.portrait-overlay{
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.92);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #cfe7ff;
+  font-size: 1.2rem;
+  line-height: 1.8;
+  pointer-events: all;
+}
+
+@media (max-width: 768px) and (orientation: portrait){
+  .portrait-overlay{ display: flex; }
+}
+
+/* =====================================================
+   Virtual joystick (mobile)
+===================================================== */
+.joystick-zone{
+  display: none; /* shown only on touch devices */
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 160px;
+  height: 160px;
+  z-index: 1050;
+  pointer-events: auto;
+}
+
+@media (pointer: coarse){
+  .joystick-zone{ display: block; }
+}
+
+.joystick-base{
+  position: fixed;
+  width: 88px; height: 88px;
+  border: 2px solid rgba(0,200,255,0.35);
+  border-radius: 50%;
+  background: rgba(0,30,60,0.35);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+.joystick-thumb{
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: rgba(0,200,255,0.55);
+  border: 2px solid rgba(0,220,255,0.7);
+  pointer-events: none;
+}

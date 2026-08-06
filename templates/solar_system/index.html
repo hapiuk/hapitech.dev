@@ -85,6 +85,11 @@
 						<input id="toggleTrueScale" type="checkbox" checked/>
 						True Scale
 					</label>
+
+					<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+						<span id="epCounter" style="font-size:12px; color:#7fe8ff; font-weight:600; letter-spacing:0.04em;">EP: 0</span>
+						<button id="btnScan" class="btn neon" style="width:auto; padding:6px 12px; font-size:12px;" disabled>Scan</button>
+					</div>
 				</div>
 			</div>
 
@@ -197,10 +202,12 @@
 
 					<p style="margin-top:12px;"><strong>🕹 How to use it:</strong></p>
 					<ul>
-						<li><strong>Click</strong> a planet or moon to see details.</li>
-						<li><strong>Focus</strong> to lock the camera onto it (then rotate freely).</li>
+						<li><strong>Left-click</strong> a planet, moon, or the Explorer Station to select it.</li>
+						<li><strong>Right-drag</strong> to rotate/look around; <strong>Scroll</strong> to zoom.</li>
+						<li><strong>W / A / S / D</strong> to fly the camera freely.</li>
+						<li><strong>Focus</strong> to lock the camera onto the selected body.</li>
+						<li><strong>Scan</strong> a body to collect data and earn Exploration Points (EP).</li>
 						<li>Use <strong>Time</strong> controls to jump forward/back and watch orbits move.</li>
-						<li>Toggle <strong>Labels</strong> and <strong>Orbits</strong> for clarity.</li>
 					</ul>
 
 					<p style="margin-top:12px;"><strong>✅ What’s accurate (the science bit):</strong></p>
@@ -348,6 +355,29 @@
 				<span id="entryModalMeta"></span>
 			</div>
 			<p id="entryModalBody" class="entry-modal__body"></p>
+		</div>
+	</div>
+
+	<!-- Scan animation overlay -->
+	<div id="scanOverlay" class="scan-overlay">
+		<div class="scan-ring"></div>
+		<div class="scan-ring" style="animation-delay:0.5s"></div>
+		<div class="scan-ring" style="animation-delay:1.0s"></div>
+		<div id="scanLabel" class="scan-label"></div>
+	</div>
+
+	<!-- Scan completion toast -->
+	<div id="scanToast" class="scan-toast"></div>
+
+	<!-- Portrait orientation message (mobile only) -->
+	<div id="portraitOverlay" class="portrait-overlay">
+		<div class="portrait-overlay__msg">🔄 Rotate your device<br>for the best experience</div>
+	</div>
+
+	<!-- Virtual joystick (mobile) -->
+	<div id="joystickZone" class="joystick-zone">
+		<div id="joystickBase" class="joystick-base" style="display:none;">
+			<div id="joystickThumb" class="joystick-thumb"></div>
 		</div>
 	</div>
 
@@ -615,6 +645,51 @@
 
 			// Open by default, populated with whatever's currently selected (General on load)
 			refreshMyJournalPanel();
+
+			// =========================
+			// SCAN BUTTON
+			// =========================
+			var btnScan = document.getElementById("btnScan");
+			btnScan?.addEventListener("click", function () {
+				if (window.startScan) window.startScan();
+			});
+
+			// =========================
+			// VIRTUAL JOYSTICK (mobile)
+			// =========================
+			var joystickZone  = document.getElementById("joystickZone");
+			var joystickBase  = document.getElementById("joystickBase");
+			var joystickThumb = document.getElementById("joystickThumb");
+			var jCenter = { x: 0, y: 0 };
+			var JOY_MAX = 44;
+			window._joystickDelta = { x: 0, y: 0 };
+
+			joystickZone?.addEventListener("touchstart", function (e) {
+				e.preventDefault();
+				var t = e.changedTouches[0];
+				jCenter = { x: t.clientX, y: t.clientY };
+				joystickBase.style.left = (t.clientX - 44) + "px";
+				joystickBase.style.top  = (t.clientY - 44) + "px";
+				joystickBase.style.display = "block";
+			}, { passive: false });
+
+			joystickZone?.addEventListener("touchmove", function (e) {
+				e.preventDefault();
+				var t = e.changedTouches[0];
+				var dx = t.clientX - jCenter.x;
+				var dy = t.clientY - jCenter.y;
+				var dist = Math.hypot(dx, dy);
+				if (dist > JOY_MAX) { dx = dx / dist * JOY_MAX; dy = dy / dist * JOY_MAX; }
+				window._joystickDelta = { x: dx / JOY_MAX, y: dy / JOY_MAX };
+				if (joystickThumb) joystickThumb.style.transform = "translate(calc(-50% + " + dx + "px), calc(-50% + " + dy + "px))";
+			}, { passive: false });
+
+			joystickZone?.addEventListener("touchend", function () {
+				window._joystickDelta = { x: 0, y: 0 };
+				if (joystickBase) joystickBase.style.display = "none";
+				if (joystickThumb) joystickThumb.style.transform = "translate(-50%, -50%)";
+			});
+
 		})();
 	</script>
 
