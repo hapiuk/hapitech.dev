@@ -73,6 +73,11 @@
 						<input id="toggleLabels" type="checkbox" checked/>
 						Labels
 					</label>
+
+					<label class="hud-toggle" title="Real relative sizes — makes planets tiny next to their orbits, which is genuinely how big the gaps really are">
+						<input id="toggleTrueScale" type="checkbox" checked/>
+						True Scale
+					</label>
 				</div>
 			</div>
 
@@ -110,37 +115,61 @@
 			</div>
 		</div>
 
-		<aside class="solar-panel hud-card">
-			<div class="panel-body">
-				<div class="panel-heading">
-					<h2 id="selName">Select a body</h2>
-					<button id="btnClose" class="btn neon" style="width:auto; padding:8px 10px;">Close</button>
+		<!-- Bottom-center view controls -->
+		<div class="view-controls">
+			<button id="btnFocus" class="btn neon">Focus</button>
+			<button id="btnReset" class="btn neon">Reset view</button>
+		</div>
+
+		<!-- Body Info & Community — visible to everyone, updates with selection -->
+		<!-- Bottom-right stack: body info + community, then my journal above it,
+		     stacked naturally with flex so overlap is structurally impossible -->
+		<div class="bottom-right-stack">
+
+			<div id="bodyInfoPanel" class="body-info-panel">
+				<div class="body-info-panel__header">
+					<span id="bodyInfoTitle">General</span>
+					<span id="bodyInfoType" class="body-info-panel__type"></span>
 				</div>
 
-				<div class="panel-meta" id="selMeta">
-					Click a planet to focus the camera and show details here.
+				<div id="bodyScanMeters" class="body-scan"></div>
+
+				<ul id="bodyInfoFacts" class="body-info-panel__facts"></ul>
+
+				<div class="body-info-panel__community-header">Community Entries</div>
+				<div id="communityEntriesList" class="body-info-panel__community-list"></div>
+			</div>
+
+			{% if is_solar_user %}
+			<!-- My Journal (per-body) panel -->
+			<div id="myJournalPanel" class="my-journal-panel">
+				<div class="my-journal-panel__header">
+					<span id="myJournalPanelTitle">My Journal • General</span>
+					<button type="button" id="btnMyJournalClose" aria-label="Close">&times;</button>
 				</div>
-				<div class="journal-block">
-					<div class="journal-head">
-						<div class="journal-title" id="journalTitle">Journal</div>
-						<div class="journal-status" id="journalStatus"></div>
-					</div>
-					<div class="journal-list" id="journalList">
-						<div class="journal-empty">Select a body to load its notes, or you’ll see recent entries here.</div>
-					</div>	
-				</div>
-				<div class="panel-actions">
-					<button id="btnFocus" class="btn neon">Focus</button>
-					<button id="btnReset" class="btn neon">Reset view</button>
+
+				<div id="myJournalPanelList" class="my-journal-panel__list"></div>
+
+				<div class="my-journal-panel__footer">
+					<a id="myJournalAddLink" href="{{ url_for('solar_system.journal') }}" class="btn neon" style="width:100%; text-align:center; display:block; padding:10px;">
+						+ Add entry for this body
+					</a>
 				</div>
 			</div>
-		</aside>
+			{% endif %}
+
+		</div>
 
 		<!-- Floating Action Buttons (bottom-left) -->
 		<div class="fab-stack" aria-label="Quick actions">
 			<button id="btnDisclaimer" class="disclaimer-fab" title="Model disclaimer" aria-label="Model disclaimer">ℹ️</button>
+			{% if show_owner_journal %}
 			<button id="btnJournal" class="disclaimer-fab" title="Journal" aria-label="Open journal">📓</button>
 			<button id="btnJournalAdd" class="disclaimer-fab" title="Add journal entry" aria-label="Add journal entry">➕</button>
+			{% endif %}
+			{% if is_solar_user %}
+			<button id="btnMyJournal" class="disclaimer-fab" title="My Journal" aria-label="Open my journal">📓</button>
+			{% endif %}
 		</div>
 
 
@@ -300,6 +329,21 @@
 
 	</main>
 
+	<!-- Journal entry detail modal (personal + community) -->
+	<div id="entryModal" class="entry-modal">
+		<div class="entry-modal__backdrop" onclick="closeEntryModal()"></div>
+		<div class="entry-modal__box">
+			<button type="button" class="entry-modal__close" onclick="closeEntryModal()" aria-label="Close">&times;</button>
+			<img id="entryModalImage" class="entry-modal__image" src="" alt="">
+			<h2 id="entryModalTitle"></h2>
+			<div class="entry-modal__meta">
+				<span id="entryModalBadge"></span>
+				<span id="entryModalMeta"></span>
+			</div>
+			<p id="entryModalBody" class="entry-modal__body"></p>
+		</div>
+	</div>
+
 	<script>
 		(function () {
 			var overlay = document.getElementById("welcomeOverlay");
@@ -321,14 +365,252 @@
 				launchBtn?.addEventListener("click", dismissWelcome);
 			}
 
+			// =========================
+			// BODY INFO & COMMUNITY PANEL (always visible, no login required)
+			// =========================
+			var bodyInfoTitle = document.getElementById("bodyInfoTitle");
+			var bodyInfoType = document.getElementById("bodyInfoType");
+			var bodyScanMeters = document.getElementById("bodyScanMeters");
+			var bodyInfoFacts = document.getElementById("bodyInfoFacts");
+			var communityEntriesList = document.getElementById("communityEntriesList");
+
+			var METER_LABELS = {
+				size: "Size",
+				distance: "Orbital Distance",
+				day_length: "Day Length",
+				year_length: "Year Length"
+			};
+
+			function renderScanMeters(stats){
+				if(!stats){
+					bodyScanMeters.innerHTML = "";
+					bodyScanMeters.classList.remove("body-scan--active");
+					return;
+				}
+
+				bodyScanMeters.classList.add("body-scan--active");
+				bodyScanMeters.innerHTML = Object.keys(METER_LABELS).map(function(key){
+					var stat = stats[key];
+					if(!stat){ return ""; }
+					return (
+						'<div class="scan-meter">' +
+							'<div class="scan-meter__label">' +
+								'<span>' + METER_LABELS[key] + '</span>' +
+								'<span class="scan-meter__value">' + escapeHtmlLocal(stat.value) + '</span>' +
+							'</div>' +
+							'<div class="scan-meter__track">' +
+								'<div class="scan-meter__fill" style="width:' + stat.pct + '%;"></div>' +
+							'</div>' +
+						'</div>'
+					);
+				}).join("");
+			}
+
+			async function refreshBodyInfoPanel(selection) {
+				if (!bodyInfoTitle) { return; }
+
+				bodyInfoTitle.textContent = selection.name;
+
+				try {
+					var res = await fetch("{{ url_for('solar_system.body_info') }}?name=" + encodeURIComponent(selection.name));
+					var data = await res.json();
+					bodyInfoType.textContent = data.type || "";
+					bodyInfoFacts.innerHTML = (data.facts || []).map(function (f) {
+						return "<li>" + escapeHtmlLocal(f) + "</li>";
+					}).join("");
+					renderScanMeters(data.stats);
+				} catch (err) {
+					bodyInfoType.textContent = "";
+					bodyInfoFacts.innerHTML = "";
+					renderScanMeters(null);
+					console.error(err);
+				}
+
+				try {
+					var res2 = await fetch("{{ url_for('solar_system.community_entries') }}?entity_name=" + encodeURIComponent(selection.name));
+					var data2 = await res2.json();
+
+					if (!data2.success || !data2.entries.length) {
+						communityEntriesList.innerHTML = '<div class="my-journal-empty">No community entries yet for ' + escapeHtmlLocal(selection.name) + '.</div>';
+						return;
+					}
+
+					communityEntriesList.innerHTML = data2.entries.map(function (e) {
+						entryCache[e.id] = e;
+						return '<div class="my-journal-entry" data-entry-id="' + e.id + '" style="cursor:pointer;">' +
+							(e.image_url ? '<img src="' + e.image_url + '" alt="">' : '') +
+							'<div class="my-journal-entry__title">' + escapeHtmlLocal(e.title) + '</div>' +
+							(e.body ? '<div class="my-journal-entry__body">' + escapeHtmlLocal(truncate(e.body, 90)) + '</div>' : '') +
+							'<div class="community-entry__author">— ' + escapeHtmlLocal(e.author) + '</div>' +
+						'</div>';
+					}).join("");
+
+					communityEntriesList.querySelectorAll("[data-entry-id]").forEach(function (el) {
+						el.addEventListener("click", function () { openEntryModal(el.dataset.entryId); });
+					});
+				} catch (err) {
+					communityEntriesList.innerHTML = '<div class="my-journal-empty">Could not load community entries.</div>';
+					console.error(err);
+				}
+			}
+
+			window.addEventListener("solarBodySelected", function (e) {
+				refreshBodyInfoPanel(e.detail || { kind: "general", name: "General" });
+			});
+
+			refreshBodyInfoPanel({ kind: "general", name: "General" });
+
 			var navLogoutBtn = document.getElementById("navLogoutBtn");
 			navLogoutBtn?.addEventListener("click", async function () {
 				await fetch("{{ url_for('solar_system.logout') }}", { method: "POST", credentials: "same-origin" });
 				window.location.href = "{{ url_for('solar_system.index') }}";
 			});
+
+			// =========================
+			// MY JOURNAL (per-body) PANEL
+			// =========================
+			var myJournalPanel = document.getElementById("myJournalPanel");
+			var btnMyJournal = document.getElementById("btnMyJournal");
+			var btnMyJournalClose = document.getElementById("btnMyJournalClose");
+			var myJournalPanelTitle = document.getElementById("myJournalPanelTitle");
+			var myJournalPanelList = document.getElementById("myJournalPanelList");
+			var myJournalAddLink = document.getElementById("myJournalAddLink");
+
+			var currentSelection = { kind: "general", name: "General" };
+			var entryCache = {};
+
+			function escapeHtmlLocal(s) {
+				var d = document.createElement("div");
+				d.textContent = s == null ? "" : s;
+				return d.innerHTML;
+			}
+
+			function truncate(s, len) {
+				if (!s || s.length <= len) { return s; }
+				return s.slice(0, len).trim() + "…";
+			}
+
+			function openEntryModal(id) {
+				var e = entryCache[id];
+				if (!e) { return; }
+
+				document.getElementById("entryModalTitle").textContent = e.title;
+				document.getElementById("entryModalBadge").textContent = e.is_public ? "🌐 Public" : "🔒 Private";
+				document.getElementById("entryModalMeta").textContent =
+					(e.entity_name && e.entity_name !== "General" ? e.entity_name + " • " : "") +
+					new Date(e.created_at).toLocaleDateString() +
+					(e.author ? " • " + e.author : "");
+
+				var imgEl = document.getElementById("entryModalImage");
+				if (e.image_url) {
+					imgEl.src = e.image_url;
+					imgEl.style.display = "";
+				} else {
+					imgEl.style.display = "none";
+				}
+
+				document.getElementById("entryModalBody").textContent = e.body || "";
+				document.getElementById("entryModal").classList.add("entry-modal--open");
+			}
+
+			function closeEntryModal() {
+				document.getElementById("entryModal").classList.remove("entry-modal--open");
+			}
+
+			window.openEntryModal = openEntryModal;
+			window.closeEntryModal = closeEntryModal;
+
+			// =========================
+			// HUD HEIGHT MEASUREMENT
+			// The time/settings bar wraps to different heights depending on
+			// screen width and content — measuring it directly (rather than
+			// guessing a fixed pixel value) is what keeps the FAB row, view
+			// controls, and side panels from ever overlapping it.
+			// =========================
+			function updateHudHeightVar() {
+				var hud = document.querySelector(".solar-hud");
+				if (!hud) { return; }
+				var height = hud.getBoundingClientRect().height;
+				document.documentElement.style.setProperty("--hud-height", height + "px");
+			}
+
+			updateHudHeightVar();
+
+			var toggleTrueScale = document.getElementById("toggleTrueScale");
+			toggleTrueScale?.addEventListener("change", function () {
+				if (window.applyTrueScale) { window.applyTrueScale(toggleTrueScale.checked); }
+			});
+			window.addEventListener("resize", updateHudHeightVar);
+			window.addEventListener("orientationchange", updateHudHeightVar);
+			// Fonts/content can shift layout slightly after first paint.
+			setTimeout(updateHudHeightVar, 300);
+
+			async function refreshMyJournalPanel() {
+				if (!myJournalPanel) { return; }
+
+				myJournalPanelTitle.textContent = "My Journal • " + currentSelection.name;
+
+				var addUrl = "{{ url_for('solar_system.journal') }}";
+				if (currentSelection.name && currentSelection.name !== "General") {
+					addUrl += "?kind=" + encodeURIComponent(currentSelection.kind) + "&name=" + encodeURIComponent(currentSelection.name);
+				}
+				myJournalAddLink.href = addUrl;
+				myJournalAddLink.textContent = currentSelection.name === "General"
+					? "+ Add a general entry"
+					: "+ Add entry for " + currentSelection.name;
+
+				try {
+					var url = "{{ url_for('solar_system.journal_entries_list') }}?entity_name=" + encodeURIComponent(currentSelection.name);
+					var res = await fetch(url, { credentials: "same-origin" });
+					var data = await res.json();
+
+					if (!data.success || !data.entries.length) {
+						myJournalPanelList.innerHTML = '<div class="my-journal-empty">No entries yet for ' + escapeHtmlLocal(currentSelection.name) + '.</div>';
+						return;
+					}
+
+					myJournalPanelList.innerHTML = data.entries.map(function (e) {
+						entryCache[e.id] = e;
+						return '<div class="my-journal-entry" data-entry-id="' + e.id + '" style="cursor:pointer;">' +
+							(e.image_url ? '<img src="' + e.image_url + '" alt="">' : '') +
+							'<div class="my-journal-entry__title">' + escapeHtmlLocal(e.title) + (e.is_public ? ' 🌐' : ' 🔒') + '</div>' +
+							(e.body ? '<div class="my-journal-entry__body">' + escapeHtmlLocal(truncate(e.body, 90)) + '</div>' : '') +
+						'</div>';
+					}).join("");
+
+					myJournalPanelList.querySelectorAll("[data-entry-id]").forEach(function (el) {
+						el.addEventListener("click", function () { openEntryModal(el.dataset.entryId); });
+					});
+				} catch (err) {
+					myJournalPanelList.innerHTML = '<div class="my-journal-empty">Could not load entries.</div>';
+					console.error(err);
+				}
+			}
+
+			window.addEventListener("solarBodySelected", function (e) {
+				currentSelection = e.detail || { kind: "general", name: "General" };
+				if (myJournalPanel && !myJournalPanel.classList.contains("my-journal-panel--hidden")) {
+					refreshMyJournalPanel();
+				}
+			});
+
+			btnMyJournal?.addEventListener("click", function () {
+				if (window.getSelectionContext) { currentSelection = window.getSelectionContext(); }
+				myJournalPanel.classList.toggle("my-journal-panel--hidden");
+				if (!myJournalPanel.classList.contains("my-journal-panel--hidden")) {
+					refreshMyJournalPanel();
+				}
+			});
+
+			btnMyJournalClose?.addEventListener("click", function () {
+				myJournalPanel.classList.add("my-journal-panel--hidden");
+			});
+
+			// Open by default, populated with whatever's currently selected (General on load)
+			refreshMyJournalPanel();
 		})();
 	</script>
 
-	<script type="module" src="{{ url_for('static', filename='solar-system/app.js') }}"></script>
+	<script type="module" src="{{ url_for('static', filename='solar-system/app.js', v=app_js_version) }}"></script>
 </body>
 </html>

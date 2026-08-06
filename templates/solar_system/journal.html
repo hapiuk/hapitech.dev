@@ -26,6 +26,11 @@
     .welcome-card{
       padding:32px;
       margin-bottom:24px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:20px;
+      flex-wrap:wrap;
     }
 
     .welcome-card h1{
@@ -45,10 +50,124 @@
       margin-top:10px;
     }
 
-    .coming-soon{
+    .entry-count{
+      opacity:.7;
+      font-size:.85rem;
+      white-space:nowrap;
+    }
+
+    .new-entry-card{
+      padding:28px;
+      margin-bottom:28px;
+    }
+
+    #entryForm{ display:grid; gap:12px; }
+
+    #entryForm input[type="text"],
+    #entryForm select,
+    #entryForm textarea{
+      width:100%;
+      padding:12px 14px;
+      border:1px solid rgba(255,255,255,0.1);
+      background:rgba(10,12,16,0.65);
+      color:#eaf6ff;
+      outline:none;
+      font-size:14px;
+      font-family:inherit;
+    }
+
+    #entryForm textarea{ min-height:90px; resize:vertical; }
+
+    .file-row{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      font-size:.85rem;
+      opacity:.85;
+    }
+
+    .public-toggle{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-size:.85rem;
+      opacity:.85;
+      cursor:pointer;
+    }
+
+    .public-toggle input{
+      width:auto;
+      margin:0;
+      accent-color:#8ec8ff;
+    }
+
+    .entry-status{ min-height:18px; font-size:13px; }
+
+    .entries-grid{
+      display:grid;
+      gap:20px;
+    }
+
+    .entry-card{
+      padding:24px;
+    }
+
+    .entry-card img{
+      width:100%;
+      max-height:420px;
+      object-fit:contain;
+      background:#000;
+      margin-bottom:14px;
+      display:block;
+    }
+
+    .entry-tag{
+      display:inline-block;
+      padding:3px 10px;
+      font-size:.72rem;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.03em;
+      background:rgba(140,200,255,0.12);
+      border:1px solid rgba(140,200,255,0.25);
+      margin-bottom:8px;
+    }
+
+    .entry-card h3{
+      font-size:1.1rem;
+      margin-bottom:6px;
+    }
+
+    .entry-card .entry-body{
+      opacity:.85;
+      font-size:.92rem;
+      line-height:1.6;
+      margin-bottom:10px;
+      white-space:pre-wrap;
+    }
+
+    .entry-card .entry-meta{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      font-size:.78rem;
+      opacity:.6;
+    }
+
+    .entry-delete{
+      background:none;
+      border:none;
+      color:#ff9a9a;
+      cursor:pointer;
+      text-decoration:underline;
+      font-size:.78rem;
+      padding:0;
+    }
+
+    .empty-state{
       padding:40px;
       text-align:center;
-      opacity:.8;
+      opacity:.7;
     }
   </style>
 </head>
@@ -66,24 +185,177 @@
   <main class="journal-wrap">
 
     <div class="neon-card welcome-card">
-      <h1>Welcome, {{ current_user.display_name }}</h1>
-      <p style="opacity:.75;">This is your personal journal home.</p>
-      {% if current_user.is_early_supporter %}
-      <div class="early-badge">First 100 — free forever</div>
-      {% endif %}
+      <div>
+        <h1>Welcome, {{ current_user.display_name }}</h1>
+        {% if current_user.is_early_supporter %}
+        <div class="early-badge">First 100 — free forever</div>
+        {% endif %}
+      </div>
+      <div class="entry-count" id="entryCount"></div>
     </div>
 
-    <div class="neon-card coming-soon">
-      <p>Personal journal entries are coming here next — linking your existing observations to your account.</p>
+    <div class="neon-card new-entry-card">
+      <form id="entryForm">
+        <select id="entryBodySelect">
+          <option value="general::General">General (not tied to a body)</option>
+          {% for choice in body_choices %}
+          <option value="{{ choice.kind }}::{{ choice.name }}">{{ choice.label }}</option>
+          {% endfor %}
+        </select>
+        <input type="text" id="entryTitle" placeholder="Title (e.g. First quarter moon)" required>
+        <textarea id="entryBody" placeholder="Notes — what did you see, when, with what?"></textarea>
+        <div class="file-row">
+          <input type="file" id="entryImage" accept="image/*">
+          <span>Optional photo — resized automatically, max 15MB</span>
+        </div>
+        <label class="public-toggle">
+          <input type="checkbox" id="entryIsPublic">
+          <span>Share with the community (others can see this entry for this body)</span>
+        </label>
+        <button type="button" class="btn" id="entrySubmit" style="width:100%;">Add entry</button>
+        <p id="entryStatus" class="entry-status"></p>
+      </form>
     </div>
+
+    <div class="entries-grid" id="entriesGrid"></div>
 
   </main>
 
   <script>
+    const grid = document.getElementById("entriesGrid");
+    const countEl = document.getElementById("entryCount");
+
+    function escapeHtml(s){
+      const d = document.createElement("div");
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function renderEntries(entries){
+      countEl.textContent = entries.length + " entr" + (entries.length === 1 ? "y" : "ies") + " total (2 per body max)";
+
+      if(!entries.length){
+        grid.innerHTML = '<div class="neon-card empty-state">No entries yet — add your first observation above.</div>';
+        return;
+      }
+
+      grid.innerHTML = entries.map(e => `
+        <div class="neon-card entry-card" data-id="${e.id}">
+          ${e.image_url ? `<img src="${e.image_url}" alt="${escapeHtml(e.title)}">` : ""}
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            ${e.entity_name && e.entity_name !== "General" ? `<div class="entry-tag">${escapeHtml(e.entity_name)}</div>` : ""}
+            <div class="entry-tag" style="opacity:.6;">${e.is_public ? "🌐 Public" : "🔒 Private"}</div>
+          </div>
+          <h3>${escapeHtml(e.title)}</h3>
+          ${e.body ? `<div class="entry-body">${escapeHtml(e.body)}</div>` : ""}
+          <div class="entry-meta">
+            <span>${new Date(e.created_at).toLocaleDateString()}</span>
+            <button class="entry-delete" data-id="${e.id}">Delete</button>
+          </div>
+        </div>
+      `).join("");
+
+      grid.querySelectorAll(".entry-delete").forEach(btn => {
+        btn.addEventListener("click", () => deleteEntry(btn.dataset.id));
+      });
+    }
+
+    async function loadEntries(){
+      const res = await fetch("{{ url_for('solar_system.journal_entries_list') }}", { credentials: "same-origin" });
+      const data = await res.json();
+      if(data.success){ renderEntries(data.entries); }
+    }
+
+    async function deleteEntry(id){
+      if(!confirm("Delete this entry?")){ return; }
+      const res = await fetch(`{{ url_for('solar_system.journal_entries_list') }}/${id}`, {
+        method: "DELETE",
+        credentials: "same-origin"
+      });
+      const data = await res.json();
+      if(data.success){ loadEntries(); }
+      else{ alert(data.message || "Could not delete entry."); }
+    }
+
+    const submitBtn = document.getElementById("entrySubmit");
+    const statusEl = document.getElementById("entryStatus");
+
+    submitBtn.addEventListener("click", async () => {
+      statusEl.textContent = "";
+
+      const title = document.getElementById("entryTitle").value.trim();
+      const body = document.getElementById("entryBody").value.trim();
+      const imageInput = document.getElementById("entryImage");
+      const bodySelect = document.getElementById("entryBodySelect");
+      const [entityKind, entityName] = bodySelect.value.split("::");
+
+      if(!title){
+        statusEl.style.color = "#ffb7b7";
+        statusEl.textContent = "Please give your entry a title.";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("body", body);
+      formData.append("entity_kind", entityKind);
+      formData.append("entity_name", entityName);
+      formData.append("is_public", document.getElementById("entryIsPublic").checked ? "true" : "false");
+      if(imageInput.files[0]){ formData.append("image", imageInput.files[0]); }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Saving...";
+
+      try{
+        const res = await fetch("{{ url_for('solar_system.journal_entries_list') }}", {
+          method: "POST",
+          body: formData,
+          credentials: "same-origin"
+        });
+        const data = await res.json();
+
+        if(res.ok && data.success){
+          document.getElementById("entryTitle").value = "";
+          document.getElementById("entryBody").value = "";
+          imageInput.value = "";
+          document.getElementById("entryIsPublic").checked = false;
+          statusEl.style.color = "#bfffdc";
+          statusEl.textContent = "Entry added.";
+          loadEntries();
+        } else {
+          statusEl.style.color = "#ffb7b7";
+          statusEl.textContent = data.message || "Could not add entry.";
+        }
+      }catch(err){
+        statusEl.style.color = "#ffb7b7";
+        statusEl.textContent = "Network error — please try again.";
+        console.error(err);
+      }finally{
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Add entry";
+      }
+    });
+
     document.getElementById("logoutBtn").addEventListener("click", async () => {
       await fetch("{{ url_for('solar_system.logout') }}", { method: "POST", credentials: "same-origin" });
       window.location.href = "{{ url_for('solar_system.index') }}";
     });
+
+    (function prefillFromQuery(){
+      const params = new URLSearchParams(window.location.search);
+      const kind = params.get("kind");
+      const name = params.get("name");
+      if(kind && name){
+        const select = document.getElementById("entryBodySelect");
+        const value = kind + "::" + name;
+        if([...select.options].some(o => o.value === value)){
+          select.value = value;
+        }
+        document.getElementById("entryTitle").focus();
+      }
+    })();
+
+    loadEntries();
   </script>
 </body>
 </html>
