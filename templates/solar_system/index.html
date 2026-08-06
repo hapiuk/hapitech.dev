@@ -66,12 +66,19 @@
 
 					<label class="hud-toggle">
 						<input id="toggleOrbits" type="checkbox"/>
-						Orbits
+						Orbit Lines
 					</label>
 
-					<label class="hud-toggle">
-						<input id="toggleLabels" type="checkbox" checked/>
-						Labels
+					<label class="hud-toggle" title="A glowing trail that follows each body around its orbit">
+						<input id="toggleTrails" type="checkbox" checked/>
+						Trails
+					</label>
+
+					<label class="hud-toggle" style="gap:8px;">
+						Found Bodies
+						<select id="foundBodiesDropdown" style="background:rgba(10,12,16,0.65); color:#eaf6ff; border:1px solid rgba(255,255,255,0.15); padding:4px 8px; font-family:inherit; font-size:0.85em;">
+							<option value="">— none yet —</option>
+						</select>
 					</label>
 
 					<label class="hud-toggle" title="Real relative sizes — makes planets tiny next to their orbits, which is genuinely how big the gaps really are">
