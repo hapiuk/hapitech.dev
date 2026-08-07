@@ -48,7 +48,6 @@ controls.dampingFactor = 0.06;
 controls.minDistance = 25;
 controls.maxDistance = 12000;
 controls.target.set(0, 0, 0);
-controls.mouseButtons = { LEFT: null, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
 controls.update();
 renderer.domElement.addEventListener("contextmenu", e => e.preventDefault());
 
@@ -277,10 +276,9 @@ const TRUE_SCALE_RADII = {
 
 let trueScaleEnabled = false;
 
-function setBodyRadius(mesh, radius, segments = 48) {
+function setBodyRadius(mesh, radius) {
   if (!mesh || !Number.isFinite(radius) || radius <= 0) return;
-  mesh.geometry.dispose();
-  mesh.geometry = new THREE.SphereGeometry(radius, segments, segments);
+  mesh.scale.setScalar(radius);
 }
 
 function daysSinceJ2000(msUtc) {
@@ -550,9 +548,10 @@ function makeMoonMesh(m) {
     : new THREE.MeshStandardMaterial({ color: m.color ?? 0xcfd6df, roughness: 0.55, metalness: 0.0 });
 
   const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(m.radius, 28, 28),
+    new THREE.SphereGeometry(1, 28, 28),
     material
   );
+  mesh.scale.setScalar(m.radius);
 
   mesh.userData = {
     name: m.name,
@@ -575,14 +574,14 @@ function applyTrueScale(enabled) {
 
   if (sunMesh) {
     const r = enabled ? sunMesh.userData.trueRadius : sunMesh.userData.visualRadius;
-    setBodyRadius(sunMesh, r, 48);
+    setBodyRadius(sunMesh, r);
     sunMesh.userData.radius = r;
   }
 
   for (const p of planets) {
     const ud = p.mesh.userData;
     const r = enabled ? ud.trueRadius : ud.visualRadius;
-    setBodyRadius(p.mesh, r, 48);
+    setBodyRadius(p.mesh, r);
     ud.radius = r;
 
     if (p.atmosphere) {
@@ -594,7 +593,7 @@ function applyTrueScale(enabled) {
   for (const m of moons) {
     const ud = m.mesh.userData;
     const r = enabled ? ud.trueRadius : ud.visualRadius;
-    setBodyRadius(m.mesh, r, 28);
+    setBodyRadius(m.mesh, r);
     ud.radius = r;
 
     // Orbit line geometry is baked in visual-scale units; rescale uniformly
@@ -604,6 +603,16 @@ function applyTrueScale(enabled) {
       const baseDistScale = MOON_KM_TO_UNITS * (m.parentScale || 1);
       m.orbitLine.scale.setScalar(enabled ? (KM_TO_UNITS / baseDistScale) : 1);
     }
+  }
+
+  // Station's model has fixed absolute dimensions (truss/panels/etc. never
+  // rebuild), so scaling the whole group uniformly — proportional to how
+  // much Earth itself just shrank or grew — is what keeps it sensibly
+  // sized next to Earth in both modes instead of swallowing it whole.
+  if (stationGroup && stationHitMesh) {
+    const r = enabled ? stationHitMesh.userData.trueRadius : stationHitMesh.userData.visualRadius;
+    stationGroup.scale.setScalar(r / 0.7);
+    stationHitMesh.userData.radius = r;
   }
 
   // Saturn's ring particle positions are baked at the visual planet radius
@@ -781,7 +790,7 @@ makeStarfield(); // keep function alive; result discarded (not in scene)
 ----------------------------------------------------- */
 function makeSun() {
   const sun = new THREE.Mesh(
-    new THREE.SphereGeometry(28, 48, 48),
+    new THREE.SphereGeometry(1, 48, 48),
     new THREE.MeshStandardMaterial({
       emissive: 0xffffff,
       emissiveIntensity: 2.2,
@@ -789,8 +798,9 @@ function makeSun() {
       metalness: 0.0
     })
   );
+  sun.scale.setScalar(28);
 
-  sun.userData = { name: "Sun", visualRadius: 28, trueRadius: TRUE_SCALE_RADII.Sun };
+  sun.userData = { name: "Sun", radius: 28, visualRadius: 28, trueRadius: TRUE_SCALE_RADII.Sun };
 
   // Simple glow sprite
   const c = document.createElement("canvas");
@@ -890,7 +900,8 @@ function makePlanet({ name, radius, distance, color, axialTiltDeg = 0, orbitIncl
     ? new THREE.MeshStandardMaterial({ map: texture, roughness: 0.55, metalness: 0.0 })
     : new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.0 });
 
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 48, 48), material);
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 48), material);
+  mesh.scale.setScalar(radius);
 
   mesh.userData = {
     name,
@@ -2184,7 +2195,7 @@ function focusOn(mesh) {
   // dominate completely and place the camera nowhere near close enough to
   // actually see anything.
   const camDist = mesh.userData?.isStation
-    ? Math.max(planetRadius * 6, 8)        // station: close enough to see the model
+    ? planetRadius * 11   // pure multiplier, not a fixed floor — scales down correctly with the station's own radius in True Scale, instead of ignoring it
     : trueScaleEnabled
       ? Math.max(planetRadius * 6, planetRadius + 0.002)
       : Math.max(planetRadius * 10, 55);
@@ -2255,26 +2266,11 @@ window.addEventListener("resize", () => {
 });
 
 /* -----------------------------------------------------
-   Free-fly camera (WASD)
------------------------------------------------------ */
-const keysDown = new Set();
-const _flyFwd   = new THREE.Vector3();
-const _flyRight = new THREE.Vector3();
-const _flyDelta = new THREE.Vector3();
-
-window.addEventListener("keydown", e => {
-  const tag = e.target?.tagName;
-  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || e.target?.isContentEditable) return;
-  keysDown.add(e.key.toLowerCase());
-});
-window.addEventListener("keyup", e => keysDown.delete(e.key.toLowerCase()));
-
-/* -----------------------------------------------------
    Explorer Station
 ----------------------------------------------------- */
 let stationGroup = null;
 let stationHitMesh = null;
-const STATION_ORBIT_PERIOD_S   = 5400;               // 90-min ISS period
+const STATION_ORBIT_PERIOD_S   = 4200;               // slightly faster than the real ~90-min ISS period
 const STATION_ORBIT_R_VISUAL   = 10.5;               // visual mode (scene units)
 const STATION_ORBIT_R_TRUE     = 6791 * KM_TO_UNITS; // ~420 km altitude
 
@@ -2285,27 +2281,42 @@ function makeSpaceStation() {
   const panelMat = new THREE.MeshStandardMaterial({ color: 0x1a4499, metalness: 0.2, roughness: 0.4, emissive: 0x0a1a44, emissiveIntensity: 0.5 });
   const frameMat = new THREE.MeshStandardMaterial({ color: 0xddddee, metalness: 0.75, roughness: 0.25 });
 
-  // Main truss
+  // Main truss (along X)
   group.add(new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.1, 0.1), frameMat));
 
-  // Habitation module
-  const hab = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.6, 10), bodyMat);
-  hab.rotation.z = Math.PI / 2;
+  // Habitation module — deliberately PERPENDICULAR to the truss (along Z,
+  // not X) so the silhouette reads as a cross/T shape from most angles,
+  // instead of a single elongated rod with a bulge in the middle (which is
+  // exactly what a torpedo looks like, and exactly what this looked like
+  // before — same-axis truss + hab cylinder).
+  const hab = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.9, 12), bodyMat);
+  hab.rotation.x = Math.PI / 2;
   group.add(hab);
 
-  // Four solar panels (two each side)
-  for (const [ox, oz] of [[-0.95, 0.28], [-0.95, -0.28], [0.95, 0.28], [0.95, -0.28]]) {
-    const p = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.025, 0.42), panelMat);
+  // Four solar panels — significantly larger than before (were nearly
+  // invisible edge-on at their old size) and given a slight tilt so at
+  // least one pair catches the silhouette from almost any viewing angle
+  // rather than only when viewed face-on.
+  for (const [ox, oz, tilt] of [[-1.3, 0.5, 0.15], [-1.3, -0.5, -0.15], [1.3, 0.5, -0.15], [1.3, -0.5, 0.15]]) {
+    const p = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.04, 0.65), panelMat);
     p.position.set(ox, 0, oz);
+    p.rotation.x = tilt;
     group.add(p);
   }
 
   // Invisible bounding sphere for raycasting
   const hit = new THREE.Mesh(
-    new THREE.SphereGeometry(0.55, 8, 8),
+    new THREE.SphereGeometry(0.7, 8, 8),
     new THREE.MeshBasicMaterial({ visible: false })
   );
-  hit.userData = { name: "Explorer Station", radius: 0.55, visualRadius: 0.55, trueRadius: 0.55, isStation: true };
+  // True radius is proportional to how much Earth itself shrinks between
+  // modes — the station was designed to look right next to Earth's VISUAL
+  // radius (5.6), so keeping that same size-ratio in True Scale mode is
+  // what keeps it looking sensible next to true-scale Earth instead of
+  // swallowing it whole. Previously this was the same fixed value in both
+  // modes, which is exactly why it never actually shrank.
+  const stationTrueRadius = 0.7 * (TRUE_SCALE_RADII.Earth / 5.6);
+  hit.userData = { name: "Explorer Station", radius: 0.7, visualRadius: 0.7, trueRadius: stationTrueRadius, isStation: true };
   group.add(hit);
   group.userData.name = "Explorer Station";
 
@@ -2569,41 +2580,6 @@ function animate() {
 
   controls.update();
 
-  // WASD free-fly — speed scales with camera distance so it feels natural
-  // whether you're zoomed out near Neptune or hovering over Earth
-  if (keysDown.size > 0) {
-    const camDist = camera.position.distanceTo(controls.target);
-    const speed   = Math.max(camDist * 0.4, trueScaleEnabled ? 0.00005 : 0.5) * dt;
-    camera.getWorldDirection(_flyFwd);
-    _flyRight.crossVectors(_flyFwd, camera.up).normalize();
-    _flyDelta.set(0, 0, 0);
-    if (keysDown.has("w")) _flyDelta.addScaledVector(_flyFwd,   speed);
-    if (keysDown.has("s")) _flyDelta.addScaledVector(_flyFwd,  -speed);
-    if (keysDown.has("a")) _flyDelta.addScaledVector(_flyRight, -speed);
-    if (keysDown.has("d")) _flyDelta.addScaledVector(_flyRight,  speed);
-    if (_flyDelta.lengthSq() > 1e-20) {
-      camera.position.add(_flyDelta);
-      controls.target.add(_flyDelta);
-      if (followMode) followOffset.copy(camera.position).sub(controls.target);
-    }
-  }
-
-  // Joystick (mobile) — same movement model as WASD
-  if (window._joystickDelta && (Math.abs(window._joystickDelta.x) > 0.05 || Math.abs(window._joystickDelta.y) > 0.05)) {
-    const camDist = camera.position.distanceTo(controls.target);
-    const speed   = Math.max(camDist * 0.4, trueScaleEnabled ? 0.00005 : 0.5) * dt;
-    camera.getWorldDirection(_flyFwd);
-    _flyRight.crossVectors(_flyFwd, camera.up).normalize();
-    _flyDelta.set(0, 0, 0)
-      .addScaledVector(_flyRight, window._joystickDelta.x * speed)
-      .addScaledVector(_flyFwd, -window._joystickDelta.y * speed);
-    if (_flyDelta.lengthSq() > 1e-20) {
-      camera.position.add(_flyDelta);
-      controls.target.add(_flyDelta);
-      if (followMode) followOffset.copy(camera.position).sub(controls.target);
-    }
-  }
-
   // Explorer Station orbit around Earth
   if (stationGroup) {
     const earthP = planets.find(p => p.mesh.userData.name === "Earth");
@@ -2674,6 +2650,27 @@ if (toggleTrails) {
 applyTrueScale(true);
 
 animate();
-setSelected(null);
+
+// Start near Earth, with the Station selected — focusing the CAMERA on the
+// station specifically was the bug: its distance formula is calibrated for
+// its own fixed ~2.8-unit model, which in default True Scale mode is
+// nowhere near true-scale Earth's real size (~0.0085 units). At that
+// distance Earth's actual angular size works out to about 0.12 degrees —
+// genuinely invisible — so the view showed the station alone with nothing
+// recognizable nearby. Focusing on Earth uses its own already-correct
+// scale-aware framing, so Earth is guaranteed visible; the station orbits
+// close enough to still be nearby in view.
+const earthForInitialFocus = planets.find(p => p.mesh.userData.name === "Earth")?.mesh;
+
+if (stationHitMesh) {
+  selectBodyByMesh(stationHitMesh);
+}
+if (earthForInitialFocus) {
+  focusOn(earthForInitialFocus);
+} else if (stationHitMesh) {
+  focusOn(stationHitMesh);
+} else {
+  setSelected(null);
+}
 
 console.log("🌌 Solar System running (real-time Kepler + moons)");
