@@ -274,13 +274,6 @@ const TRUE_SCALE_RADII = {
   Triton: 1353.4 * KM_TO_UNITS,
 };
 
-let trueScaleEnabled = false;
-
-function setBodyRadius(mesh, radius) {
-  if (!mesh || !Number.isFinite(radius) || radius <= 0) return;
-  mesh.scale.setScalar(radius);
-}
-
 function daysSinceJ2000(msUtc) {
   const J2000 = Date.UTC(2000, 0, 1, 12, 0, 0); // 2000-01-01 12:00 UTC
   return (msUtc - J2000) / 86400000;
@@ -347,11 +340,6 @@ function orbitPositionScene(el, days) {
 /* -----------------------------------------------------
    Moons (Keplerian, data-driven)
 ----------------------------------------------------- */
-
-// Keep Moon @ ~16 units like before.
-// 384,400 km (Earth–Moon avg) => 16 units
-const MOON_KM_TO_UNITS = 16 / 384400;
-const MOON_PARENT_SCALE = new Map(); // parentNameLower -> scale multiplier
 
 // Local (planet-centered) Kepler position. Returns Vector3 in parent-local scene axes.
 function orbitPositionLocal(el, days, distScale = 1) {
@@ -547,17 +535,17 @@ function makeMoonMesh(m) {
     ? new THREE.MeshStandardMaterial({ map: texture, roughness: 0.55, metalness: 0.0 })
     : new THREE.MeshStandardMaterial({ color: m.color ?? 0xcfd6df, roughness: 0.55, metalness: 0.0 });
 
+  const trueRadius = TRUE_SCALE_RADII[m.name] ?? m.radius;
+
   const mesh = new THREE.Mesh(
     new THREE.SphereGeometry(1, 28, 28),
     material
   );
-  mesh.scale.setScalar(m.radius);
+  mesh.scale.setScalar(trueRadius);
 
   mesh.userData = {
     name: m.name,
-    radius: m.radius,
-    visualRadius: m.radius,
-    trueRadius: TRUE_SCALE_RADII[m.name] ?? m.radius,
+    radius: trueRadius,
     moonEl: null,      // filled in setup
     parentName: m.parent,
     spin: 0.15         // fallback only
@@ -569,75 +557,23 @@ function makeMoonMesh(m) {
 // Created moons live here (for clicking + labels + animation)
 let moons = [];      // { mesh, parentObj, orbitLine, el, meta }
 
-function applyTrueScale(enabled) {
-  trueScaleEnabled = enabled;
-
-  if (sunMesh) {
-    const r = enabled ? sunMesh.userData.trueRadius : sunMesh.userData.visualRadius;
-    setBodyRadius(sunMesh, r);
-    sunMesh.userData.radius = r;
-  }
-
-  for (const p of planets) {
-    const ud = p.mesh.userData;
-    const r = enabled ? ud.trueRadius : ud.visualRadius;
-    setBodyRadius(p.mesh, r);
-    ud.radius = r;
-
-    if (p.atmosphere) {
-      const base = p.atmosphere.userData.baseRadius || 1;
-      p.atmosphere.scale.setScalar(r / base);
-    }
-  }
-
-  for (const m of moons) {
-    const ud = m.mesh.userData;
-    const r = enabled ? ud.trueRadius : ud.visualRadius;
-    setBodyRadius(m.mesh, r);
-    ud.radius = r;
-
-    // Orbit line geometry is baked in visual-scale units; rescale uniformly
-    // to match true-scale distances, same approach that was previously used
-    // only for the Moon but now applies to every moon system.
-    if (m.orbitLine) {
-      const baseDistScale = MOON_KM_TO_UNITS * (m.parentScale || 1);
-      m.orbitLine.scale.setScalar(enabled ? (KM_TO_UNITS / baseDistScale) : 1);
-    }
-  }
-
-  // Station's model has fixed absolute dimensions (truss/panels/etc. never
-  // rebuild), so scaling the whole group uniformly — proportional to how
-  // much Earth itself just shrank or grew — is what keeps it sensibly
-  // sized next to Earth in both modes instead of swallowing it whole.
+// Station and Saturn's rings are built with fixed absolute dimensions —
+// unlike planets/moons/sun (which get their true-scale radius set directly
+// at creation now), these need an explicit proportional correction to stay
+// sensibly sized next to their real-scale parent. Called once at startup;
+// there's no toggle anymore, so this never needs to run twice.
+function applyRealScaleCorrections() {
   if (stationGroup && stationHitMesh) {
-    const r = enabled ? stationHitMesh.userData.trueRadius : stationHitMesh.userData.visualRadius;
-    stationGroup.scale.setScalar(r / 0.7);
-    stationHitMesh.userData.radius = r;
+    stationGroup.scale.setScalar(stationHitMesh.userData.radius / 0.7);
   }
 
-  // Saturn's ring particle positions are baked at the visual planet radius
-  // (r=12) — rescale the ring group so it stays proportional after the planet
-  // sphere changes size.
   if (saturnRings?.group) {
     const saturnP = planets.find(p => p.mesh.userData.name === "Saturn");
     if (saturnP) {
       saturnRings.group.scale.setScalar(saturnP.mesh.userData.radius / 12);
     }
   }
-
-  // Toggling scale mode can move a body's actual position a LOT (the
-  // Moon's distance from Earth alone jumps between ~33.6 and ~0.52 units
-  // between visual and true scale) — re-focusing fully, not just adjusting
-  // minDistance/near, is what keeps the camera actually centered on
-  // whatever's selected, which is also what keeps its label tracking
-  // correctly rather than the body silently relocating out from under it.
-  if (selected?.mesh) {
-    focusOn(selected.mesh);
-  } else {
-    controls.minDistance = enabled ? 0.001 : 25;
-  }
 }
-window.applyTrueScale = applyTrueScale;
 let moonMeshes = []; // for raycast + labels + animation
 
 function setupMoonsFromData(data) {
@@ -645,47 +581,6 @@ function setupMoonsFromData(data) {
   moonMeshes = [];
 
   if (!data?.moons || !Array.isArray(data.moons)) return;
-
-  // --- Compute per-parent visual scaling so moons don't render inside their planet ---
-  // Goal: innermost moon orbit radius >= parentRadius * MIN_ORBIT_MULT
-  // Was 1.8 — that's barely enough to avoid clipping into the parent, not
-  // enough to actually SEE a moon as a separate body (Earth's Moon ended up
-  // only ~2.86 Earth-radii out, versus the real ~60). Bumped to give a
-  // genuinely visible gap; harmless for any moon system already well
-  // separated, since scale only ever increases from the Math.max(1, ...) below.
-  const MIN_ORBIT_MULT = 6;
-
-  // Gather moons by parent
-  const byParent = new Map(); // parentLower -> [moonMeta...]
-  for (const m of data.moons) {
-    const parentLower = String(m.parent || "").toLowerCase();
-    if (!parentLower) continue;
-    if (!byParent.has(parentLower)) byParent.set(parentLower, []);
-    byParent.get(parentLower).push(m);
-  }
-
-  MOON_PARENT_SCALE.clear();
-
-  for (const [parentLower, list] of byParent.entries()) {
-    // Find the planet object for this parent
-    const parentObj = planets.find(p => String(p.mesh.userData.name || "").toLowerCase() === parentLower);
-    if (!parentObj) continue;
-
-    const parentRadius = Number(parentObj.mesh.userData.radius) || 1;
-
-    // Innermost semi-major axis in km
-    const minAkm = Math.min(...list.map(x => Number(x.a_km)).filter(Number.isFinite));
-    if (!Number.isFinite(minAkm) || minAkm <= 0) continue;
-
-    // Current visual radius in units using the global km->units factor
-    const minUnits = minAkm * MOON_KM_TO_UNITS;
-
-    // If it's already outside, scale = 1, else boost it
-    const desiredMinUnits = parentRadius * MIN_ORBIT_MULT;
-    const scale = (minUnits > 0) ? Math.max(1, desiredMinUnits / minUnits) : 1;
-
-    MOON_PARENT_SCALE.set(parentLower, scale);
-  }
 
   for (const m of data.moons) {
     const parentObj = planets.find(p => p.mesh.userData.name === m.parent);
@@ -709,11 +604,11 @@ function setupMoonsFromData(data) {
 
     mesh.userData.moonEl = el;
 
-    // Orbit line local to parent
-    const parentLower = String(m.parent || "").toLowerCase();
-    const parentScale = MOON_PARENT_SCALE.get(parentLower) || 1;
-
-    const orbitLine = makeStaticOrbitPath(el, MOON_KM_TO_UNITS * parentScale, 256, 0.12, daysSinceJ2000(simTimeMs));
+    // Real true-scale distance, always — no more visual-mode boosting to
+    // keep moons visually separated from their parent. At real scale
+    // they're already far enough out to need no help (e.g. the Moon sits
+    // at about 61 Earth-radii, same as reality).
+    const orbitLine = makeStaticOrbitPath(el, KM_TO_UNITS, 256, 0.12, daysSinceJ2000(simTimeMs));
     const trail = makeOrbitTrail();
 
     parentObj.orbitAnchor.add(orbitLine);
@@ -723,7 +618,7 @@ function setupMoonsFromData(data) {
     // so the moon's orbit doesn't inherit the parent's axial tilt rotation.
     parentObj.orbitAnchor.add(mesh);
 
-    moons.push({ mesh, parentObj, orbitLine, trail, el, meta: m, parentScale });
+    moons.push({ mesh, parentObj, orbitLine, trail, el, meta: m });
     moonMeshes.push(mesh);
   }
 
@@ -798,9 +693,9 @@ function makeSun() {
       metalness: 0.0
     })
   );
-  sun.scale.setScalar(28);
+  sun.scale.setScalar(TRUE_SCALE_RADII.Sun);
 
-  sun.userData = { name: "Sun", radius: 28, visualRadius: 28, trueRadius: TRUE_SCALE_RADII.Sun };
+  sun.userData = { name: "Sun", radius: TRUE_SCALE_RADII.Sun };
 
   // Simple glow sprite
   const c = document.createElement("canvas");
@@ -906,8 +801,6 @@ function makePlanet({ name, radius, distance, color, axialTiltDeg = 0, orbitIncl
   mesh.userData = {
     name,
     radius,
-    visualRadius: radius,
-    trueRadius: TRUE_SCALE_RADII[name] ?? radius,
     distance,
     spin: 0.25 / Math.max(radius, 1), // fallback only
     axialTiltDeg,
@@ -1002,7 +895,7 @@ async function loadBodiesAndBuildPlanets() {
   for (const b of data.bodies) {
     const p = makePlanet({
       name: b.name,
-      radius: b.radius,
+      radius: TRUE_SCALE_RADII[b.name] ?? b.radius,
       distance: b.a_AU * AU_TO_UNITS, // used only for fallback circle
       color: 0xffffff,
       axialTiltDeg: b.axialTiltDeg ?? 0,
@@ -1374,8 +1267,16 @@ let simRate = 1;     // seconds of sim time per real second (1 = realtime)
 let simPlaying = true;
 
 function toDatetimeLocalValue(d) {
+  // Explicitly UTC — using local getters here means what you see in the
+  // box (and what typing "00:00" means) depends entirely on the browser's
+  // own timezone setting, which is exactly the bug: the same sim time
+  // would show completely different clock values (and mean something
+  // different) for testers in different timezones. Labeled "(UTC)" in the
+  // UI so it's clear what's being shown; per-location timezone display is
+  // a good candidate for a future setting, but the underlying clock needs
+  // to be unambiguous first.
   const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
 }
 
 function syncInputsFromSimTime() {
@@ -1384,7 +1285,13 @@ function syncInputsFromSimTime() {
 
 function setSimTimeFromInput() {
   if (!simDate || !simDate.value) return;
-  const t = new Date(simDate.value).getTime();
+  // Appending "Z" forces UTC interpretation — without it, new Date() on a
+  // bare "YYYY-MM-DDTHH:mm" string (no timezone suffix) is parsed in the
+  // BROWSER'S local timezone, so the same typed value would set a
+  // different actual moment depending on where the tester's machine
+  // thinks it is. This was the real bug behind "00:00 shows the UK facing
+  // the sun" — the input was never reliably midnight UTC to begin with.
+  const t = new Date(simDate.value + "Z").getTime();
   if (!Number.isFinite(t)) return;
   simTimeMs = t;
   syncInputsFromSimTime();
@@ -1512,6 +1419,8 @@ const btnClose = document.getElementById("btnClose");
 const panel = document.querySelector(".solar-panel");
 
 btnReset?.addEventListener("click", () => resetView());
+document.getElementById("btnStation")?.addEventListener("click", () => returnToStation());
+
 btnClose?.addEventListener("click", () => {
   if (!panel) return;
   panel.style.display = (panel.style.display === "none") ? "" : "none";
@@ -1529,6 +1438,13 @@ function getPlanetByMesh(mesh) {
 function getMoonByMesh(mesh) {
   return moons.find(m => m.mesh === mesh) || null;
 }
+
+function returnToStation() {
+  if (!stationHitMesh) return;
+  selectBodyByMesh(stationHitMesh);
+  focusOn(stationHitMesh);
+}
+window.returnToStation = returnToStation;
 
 function selectBodyByMesh(mesh) {
   markBodyDiscovered(mesh);
@@ -1828,6 +1744,82 @@ wireModal(journalBrowserModal);
 wireModal(journalEntryModal);
 wireModal(journalEditorModal);
 
+/* -----------------------------------------------------
+   Profile Modal
+----------------------------------------------------- */
+const profileModal = document.getElementById("profileModal");
+const profileDisplayName = document.getElementById("profileDisplayName");
+const profileNameStatus = document.getElementById("profileNameStatus");
+const profileEP = document.getElementById("profileEP");
+const profileScannedCount = document.getElementById("profileScannedCount");
+const profileAchievements = document.getElementById("profileAchievements");
+wireModal(profileModal);
+
+function renderAchievements(isEarlySupporter, scannedCount) {
+  if (!profileAchievements) return;
+  const badges = [];
+  if (isEarlySupporter) badges.push({ label: "First 100", desc: "One of the first 100 accounts" });
+  if (scannedCount >= 1) badges.push({ label: "First Scan", desc: "Scanned your first body" });
+  if (scannedCount >= 5) badges.push({ label: "Explorer", desc: "Scanned 5 or more bodies" });
+
+  profileAchievements.innerHTML = badges.length
+    ? badges.map(b => `<span class="btn neon" style="width:auto; padding:6px 12px; cursor:default;" title="${b.desc}">🏆 ${b.label}</span>`).join("")
+    : `<span style="opacity:0.6; font-size:0.85em;">None yet — scan a body to get started</span>`;
+}
+
+async function openProfileModal() {
+  openModal(profileModal);
+  if (profileDisplayName) profileDisplayName.value = window.currentDisplayName || "";
+  if (profileNameStatus) profileNameStatus.textContent = "";
+
+  if (!window.isSolarUser) {
+    if (profileEP) profileEP.textContent = String(explorationPoints);
+    if (profileScannedCount) profileScannedCount.textContent = String(scannedBodies.size);
+    renderAchievements(false, scannedBodies.size);
+    return;
+  }
+
+  try {
+    const res = await fetch("/solar-system/api/progress");
+    const data = await res.json();
+    if (data.success) {
+      if (profileEP) profileEP.textContent = data.exploration_points.toLocaleString();
+      const count = (data.scanned_bodies || []).length;
+      if (profileScannedCount) profileScannedCount.textContent = String(count);
+      renderAchievements(data.is_early_supporter, count);
+    }
+  } catch (e) {
+    console.warn("Could not load profile stats", e);
+  }
+}
+document.getElementById("navProfileBtn")?.addEventListener("click", () => openProfileModal());
+
+document.getElementById("btnProfileSaveName")?.addEventListener("click", async () => {
+  const name = (profileDisplayName?.value || "").trim();
+  if (!name) return;
+  if (profileNameStatus) profileNameStatus.textContent = "Saving…";
+  try {
+    const res = await fetch("/solar-system/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ display_name: name })
+    });
+    const data = await res.json();
+    if (profileNameStatus) profileNameStatus.textContent = data.success ? "Saved." : (data.message || "Could not save.");
+    if (data.success) window.currentDisplayName = name;
+  } catch (e) {
+    if (profileNameStatus) profileNameStatus.textContent = "Could not save — try again.";
+  }
+});
+
+document.getElementById("btnClearProgress")?.addEventListener("click", async () => {
+  if (!confirm("Clear all Exploration Points and scanned bodies? This is meant for testing.")) return;
+  await window.resetProgress();
+  if (profileEP) profileEP.textContent = "0";
+  if (profileScannedCount) profileScannedCount.textContent = "0";
+  renderAchievements(false, 0);
+});
+
 let _entryCurrentlyOpen = null; // item currently displayed in entry modal
 
 function getSelectionContext() {
@@ -1937,6 +1929,7 @@ function openJournalBrowser(mode = "all") {
 }
 
 btnJournal?.addEventListener("click", () => openJournalBrowser("all"));
+document.getElementById("navJournalBtn")?.addEventListener("click", () => openJournalBrowser("all"));
 btnJournalBrowserAll?.addEventListener("click", () => openJournalBrowser("all"));
 btnJournalBrowserThis?.addEventListener("click", () => openJournalBrowser("this"));
 btnJournalBrowserGeneral?.addEventListener("click", () => openJournalBrowser("general"));
@@ -2154,6 +2147,8 @@ function setSelected(bodyOrNull) {
 }
 
 function resetView() {
+  camera.up.set(0, 1, 0);
+  controls.enabled = true;
   followMode = false;
   focusTween = null;
   selected = null;
@@ -2169,6 +2164,8 @@ btnFocus?.addEventListener("click", () => {
 });
 
 function focusOn(mesh) {
+  camera.up.set(0, 1, 0);
+
   const target = new THREE.Vector3();
   mesh.getWorldPosition(target);
 
@@ -2189,31 +2186,61 @@ function focusOn(mesh) {
   controls.minDistance = Math.max(planetRadius * 1.05, 0.00005);
   setCameraNearFor(planetRadius);
 
+  // Scroll-zoom or drag-rotate would fight directly with the POV framing —
+  // there's no "target" to orbit around in a meaningful way when the
+  // camera IS the station, so any interaction just breaks the intended
+  // "what the station sees" view rather than adjusting it usefully.
+  controls.enabled = !mesh.userData?.isStation;
+
   // The 55-unit floor exists to keep the camera from sitting uncomfortably
-  // close to small visual-scale bodies — but it's a fixed absolute value,
-  // so in true-scale mode (where even Jupiter is ~0.09 units) it would
-  // dominate completely and place the camera nowhere near close enough to
-  // actually see anything.
-  const camDist = mesh.userData?.isStation
-    ? planetRadius * 11   // pure multiplier, not a fixed floor — scales down correctly with the station's own radius in True Scale, instead of ignoring it
-    : trueScaleEnabled
-      ? Math.max(planetRadius * 6, planetRadius + 0.002)
-      : Math.max(planetRadius * 10, 55);
+  // close to small bodies at true scale (even Jupiter is ~0.09 units) —
+  // a large fixed floor would dominate completely and place the camera
+  // nowhere near close enough to actually see anything.
+  let camDist = mesh.userData?.isStation
+    ? planetRadius * 11   // pure multiplier — scales correctly with the station's own tiny real-scale radius
+    : Math.max(planetRadius * 6, planetRadius + 0.002);
 
-  const desiredPos = target.clone()
-    .add(dir.clone().multiplyScalar(camDist))
-    .add(new THREE.Vector3(0, camDist * 0.35, 0));
+  // If this planet has moons, make sure the framing actually shows the
+  // outermost one — using only the planet's own (often tiny) radius left
+  // the Moon completely outside Earth's default close-up frame (10x
+  // farther out than the camera itself), which is exactly what made both
+  // the Moon and the Station's close orbit look broken/"inside Earth" —
+  // nothing was actually wrong with their positions, the camera just
+  // never showed enough space to see them in.
+  if (!mesh.userData?.isStation) {
+    let outermostMoonDist = 0;
+    for (const m of moons) {
+      if (m.parentObj?.mesh !== mesh) continue;
+      const d = (m.el.a || 0) * KM_TO_UNITS;
+      if (d > outermostMoonDist) outermostMoonDist = d;
+    }
+    if (outermostMoonDist > 0) {
+      camDist = Math.max(camDist, outermostMoonDist * 1.3);
+    }
+  }
 
-  followOffset.copy(desiredPos).sub(target);
+  let toPos, toTarget;
+  if (mesh.userData?.isStation) {
+    const earthP = planets.find(p => p.mesh.userData.name === "Earth");
+    toPos = target.clone(); // camera ends up AT the station's own position
+    toTarget = earthP ? earthP.mesh.getWorldPosition(new THREE.Vector3()) : target.clone();
+  } else {
+    toPos = target.clone()
+      .add(dir.clone().multiplyScalar(camDist))
+      .add(new THREE.Vector3(0, camDist * 0.35, 0));
+    toTarget = target;
+  }
+
+  followOffset.copy(toPos).sub(toTarget);
 
   followMode = true;
   focusTween = {
     t: 0,
     duration: 0.65,
     fromPos: camera.position.clone(),
-    toPos: desiredPos,
+    toPos,
     fromTarget: controls.target.clone(),
-    toTarget: target
+    toTarget
   };
 }
 
@@ -2271,7 +2298,6 @@ window.addEventListener("resize", () => {
 let stationGroup = null;
 let stationHitMesh = null;
 const STATION_ORBIT_PERIOD_S   = 4200;               // slightly faster than the real ~90-min ISS period
-const STATION_ORBIT_R_VISUAL   = 10.5;               // visual mode (scene units)
 const STATION_ORBIT_R_TRUE     = 6791 * KM_TO_UNITS; // ~420 km altitude
 
 function makeSpaceStation() {
@@ -2309,14 +2335,17 @@ function makeSpaceStation() {
     new THREE.SphereGeometry(0.7, 8, 8),
     new THREE.MeshBasicMaterial({ visible: false })
   );
-  // True radius is proportional to how much Earth itself shrinks between
-  // modes — the station was designed to look right next to Earth's VISUAL
-  // radius (5.6), so keeping that same size-ratio in True Scale mode is
-  // what keeps it looking sensible next to true-scale Earth instead of
-  // swallowing it whole. Previously this was the same fixed value in both
-  // modes, which is exactly why it never actually shrank.
-  const stationTrueRadius = 0.7 * (TRUE_SCALE_RADII.Earth / 5.6);
-  hit.userData = { name: "Explorer Station", radius: 0.7, visualRadius: 0.7, trueRadius: stationTrueRadius, isStation: true };
+  // Real ISS is genuinely microscopic next to Earth (~109m truss vs
+  // Earth's 6371km radius, a ratio of ~8.55e-6). The model's raw geometry
+  // (truss/panels/hab module) spans up to ~2.8 units — this ratio is what
+  // the whole station group gets rescaled to match, via
+  // applyRealScaleCorrections(). radius holds the FINAL true-scale value
+  // directly (0.7 was a leftover un-corrected placeholder that silently
+  // defeated the scaling correction — the exact bug that made the station
+  // swallow Earth whole).
+  const ISS_TO_EARTH_RATIO = 8.554e-6;
+  const stationTrueRadius = TRUE_SCALE_RADII.Earth * ISS_TO_EARTH_RATIO;
+  hit.userData = { name: "Explorer Station", radius: stationTrueRadius, isStation: true };
   group.add(hit);
   group.userData.name = "Explorer Station";
 
@@ -2339,10 +2368,47 @@ const EP_TABLE = {
 };
 function bodyEP(name, kind) { return EP_TABLE[name] ?? (kind === "moon" ? 50 : 75); }
 
-function saveProgress() {
+function saveProgressLocally() {
   localStorage.setItem("solar_ep", String(explorationPoints));
   localStorage.setItem("solar_scanned", JSON.stringify([...scannedBodies]));
 }
+
+// On load, if signed in, the server is authoritative — pulls in whatever
+// progress exists on the account (e.g. from a different device) rather
+// than trusting whatever this browser's localStorage happens to have.
+async function syncProgressFromServer() {
+  if (!window.isSolarUser) return;
+  try {
+    const res = await fetch("/solar-system/api/progress");
+    const data = await res.json();
+    if (!data.success) return;
+
+    explorationPoints = data.exploration_points || 0;
+    scannedBodies.clear();
+    for (const name of (data.scanned_bodies || [])) scannedBodies.add(name);
+    saveProgressLocally();
+    updateEPDisplay();
+    updateScanButton();
+  } catch (e) {
+    console.warn("Could not fetch account progress, using local cache", e);
+  }
+}
+
+async function resetProgress() {
+  if (window.isSolarUser) {
+    try {
+      await fetch("/solar-system/api/progress/reset", { method: "POST" });
+    } catch (e) {
+      console.warn("Could not reset server progress", e);
+    }
+  }
+  explorationPoints = 0;
+  scannedBodies.clear();
+  saveProgressLocally();
+  updateEPDisplay();
+  updateScanButton();
+}
+window.resetProgress = resetProgress;
 
 function updateEPDisplay() {
   const el = document.getElementById("epCounter");
@@ -2373,12 +2439,39 @@ function startScan() {
   if (overlay) overlay.classList.add("scan-active");
   if (label)   label.textContent = `Scanning ${name}…`;
 
-  scanTimer = setTimeout(() => {
+  scanTimer = setTimeout(async () => {
     scanActive = false;
-    scannedBodies.add(name);
-    const ep = bodyEP(name, selected.kind);
-    explorationPoints += ep;
-    saveProgress();
+
+    let ep = bodyEP(name, selected.kind);
+
+    if (window.isSolarUser) {
+      // Server is authoritative when signed in — its EP table can't be
+      // spoofed by the client, and this is also what actually persists
+      // progress to the account instead of just this browser.
+      try {
+        const res = await fetch("/solar-system/api/progress/scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ body_name: name })
+        });
+        const data = await res.json();
+        if (data.success) {
+          explorationPoints = data.exploration_points;
+          ep = data.ep_awarded ?? ep;
+          scannedBodies.clear();
+          for (const n of (data.scanned_bodies || [])) scannedBodies.add(n);
+        }
+      } catch (e) {
+        console.warn("Could not sync scan to account, saving locally only", e);
+        scannedBodies.add(name);
+        explorationPoints += ep;
+      }
+    } else {
+      scannedBodies.add(name);
+      explorationPoints += ep;
+    }
+
+    saveProgressLocally();
     updateEPDisplay();
     markBodyDiscovered(selected.mesh);
 
@@ -2396,6 +2489,7 @@ function startScan() {
 window.startScan = startScan;
 
 updateEPDisplay();
+syncProgressFromServer();
 
 /* -----------------------------------------------------
    Animate
@@ -2520,13 +2614,7 @@ function animate() {
     const el = m.mesh.userData.moonEl;
     if (!el) continue;
 
-    // Use true-scale km→unit conversion for ALL moons in true-scale mode, not
-    // just Earth's Moon. Without this, other moons kept their compressed visual
-    // distances while their parent planets shrank, making them appear enormous
-    // relative to their (now correctly tiny) parent bodies.
-    const useTrueDistance = trueScaleEnabled;
-    const scale = m.parentScale || 1;
-    const distScale = useTrueDistance ? KM_TO_UNITS : (MOON_KM_TO_UNITS * scale);
+    const distScale = KM_TO_UNITS;
     const localPos = orbitPositionLocal(el, simDays, distScale);
 
     m.mesh.position.copy(localPos);
@@ -2567,15 +2655,29 @@ function animate() {
 
   // follow selected body
   if (followMode && selected?.mesh && !focusTween) {
-    selected.mesh.getWorldPosition(_v3b);
-    const target = _v3b;
+    if (selected.mesh.userData?.isStation) {
+      // POV mode: camera sits AT the station's actual position, looking
+      // toward Earth — replicating what the station would actually see,
+      // rather than the normal third-person "orbit around the focused
+      // body" framing used for everything else.
+      const earthP = planets.find(p => p.mesh.userData.name === "Earth");
+      if (earthP) {
+        selected.mesh.getWorldPosition(_v3b);
+        earthP.mesh.getWorldPosition(_v3a);
+        camera.position.copy(_v3b);
+        controls.target.copy(_v3a);
+      }
+    } else {
+      selected.mesh.getWorldPosition(_v3b);
+      const target = _v3b;
 
-    if (followAllowUserControl) {
-      followOffset.copy(camera.position).sub(controls.target);
+      if (followAllowUserControl) {
+        followOffset.copy(camera.position).sub(controls.target);
+      }
+
+      controls.target.copy(target);
+      camera.position.copy(target).add(followOffset);
     }
-
-    controls.target.copy(target);
-    camera.position.copy(target).add(followOffset);
   }
 
   controls.update();
@@ -2585,7 +2687,7 @@ function animate() {
     const earthP = planets.find(p => p.mesh.userData.name === "Earth");
     if (earthP) {
       earthP.mesh.getWorldPosition(_v3a);
-      const orbitR = trueScaleEnabled ? STATION_ORBIT_R_TRUE : STATION_ORBIT_R_VISUAL;
+      const orbitR = STATION_ORBIT_R_TRUE;
       const angle  = (simTimeMs / 1000 / STATION_ORBIT_PERIOD_S) * Math.PI * 2;
       const incl   = 0.9; // ~51.6° ISS inclination
       stationGroup.position.set(
@@ -2647,27 +2749,16 @@ if (toggleTrails) {
 }
 
 // True Scale is now the default view.
-applyTrueScale(true);
+applyRealScaleCorrections();
 
 animate();
 
-// Start near Earth, with the Station selected — focusing the CAMERA on the
-// station specifically was the bug: its distance formula is calibrated for
-// its own fixed ~2.8-unit model, which in default True Scale mode is
-// nowhere near true-scale Earth's real size (~0.0085 units). At that
-// distance Earth's actual angular size works out to about 0.12 degrees —
-// genuinely invisible — so the view showed the station alone with nothing
-// recognizable nearby. Focusing on Earth uses its own already-correct
-// scale-aware framing, so Earth is guaranteed visible; the station orbits
-// close enough to still be nearby in view.
-const earthForInitialFocus = planets.find(p => p.mesh.userData.name === "Earth")?.mesh;
-
+// The Explorer Station is the starting area now — POV mode (camera at the
+// station's position, looking at Earth) is confirmed working well, so this
+// can be the actual default view rather than a workaround focusing on
+// Earth instead.
 if (stationHitMesh) {
   selectBodyByMesh(stationHitMesh);
-}
-if (earthForInitialFocus) {
-  focusOn(earthForInitialFocus);
-} else if (stationHitMesh) {
   focusOn(stationHitMesh);
 } else {
   setSelected(null);

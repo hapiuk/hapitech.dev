@@ -25,8 +25,8 @@
 		<div class="solar-topnav__links">
 			{% if is_solar_user %}
 				<span class="solar-topnav__hello">Hi, {{ display_name }}</span>
-				<a href="{{ url_for('solar_system.journal') }}">My Journal</a>
-				<a href="{{ url_for('solar_system.profile') }}">Profile</a>
+				<button type="button" id="navJournalBtn" class="btn neon" style="width:auto; padding:8px 14px;">My Journal</button>
+				<button type="button" id="navProfileBtn" class="btn neon" style="width:auto; padding:8px 14px;">Profile</button>
 				<button type="button" id="navLogoutBtn" class="btn neon" style="width:auto; padding:8px 14px;">Log out</button>
 			{% else %}
 				<a href="{{ url_for('solar_system.login') }}">Log in</a>
@@ -81,11 +81,6 @@
 						</select>
 					</label>
 
-					<label class="hud-toggle" title="Real relative sizes — makes planets tiny next to their orbits, which is genuinely how big the gaps really are">
-						<input id="toggleTrueScale" type="checkbox" checked/>
-						True Scale
-					</label>
-
 					<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
 						<span id="epCounter" style="font-size:12px; color:#7fe8ff; font-weight:600; letter-spacing:0.04em;">EP: 0</span>
 						<button id="btnScan" class="btn neon" style="width:auto; padding:6px 12px; font-size:12px;" disabled>Scan</button>
@@ -98,7 +93,7 @@
 					<div class="hud-title" style="min-width:64px;">Time</div>
 
 					<label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#cfe7ff; opacity:.9;">
-						<span style="white-space:nowrap;">Sim date</span>
+						<span style="white-space:nowrap;">Sim date (UTC)</span>
 						<input id="simDate" type="datetime-local" style="width:220px;">
 					</label>
 
@@ -131,6 +126,7 @@
 		<div class="view-controls">
 			<button id="btnFocus" class="btn neon">Focus</button>
 			<button id="btnReset" class="btn neon">Reset view</button>
+			<button id="btnStation" class="btn neon" title="Return to the Explorer Station">Back to Station</button>
 		</div>
 
 		<!-- Body Info & Community — visible to everyone, updates with selection -->
@@ -336,6 +332,45 @@
 					<button type="button" data-close="1" class="btn neon" style="width:auto; padding:10px 14px;">Cancel</button>
 				</div>
 			</form>
+		</div>
+	</div>
+</div>
+
+<!-- Profile modal -->
+<div id="profileModal" class="modal" aria-hidden="true" role="dialog" aria-label="Profile">
+	<div class="modal__backdrop" data-close="1"></div>
+	<div class="modal__panel">
+		<div class="modal__head">
+			<div class="modal__title">👤 Profile</div>
+			<button data-close="1" class="btn neon" style="width:auto; padding:8px 10px;">Close</button>
+		</div>
+
+		<div class="modal__body">
+			<div style="margin-bottom:16px;">
+				<label style="display:block; font-size:0.85em; opacity:0.7; margin-bottom:4px;">Display name</label>
+				<div style="display:flex; gap:8px;">
+					<input id="profileDisplayName" type="text" style="flex:1; background:rgba(0,0,0,0.3); color:#eaf6ff; border:1px solid rgba(255,255,255,0.2); padding:8px;">
+					<button id="btnProfileSaveName" class="btn neon" style="width:auto; padding:8px 14px;">Save</button>
+				</div>
+				<div id="profileNameStatus" style="font-size:0.82em; opacity:0.7; margin-top:4px;"></div>
+			</div>
+
+			<div style="margin-bottom:16px;">
+				<label style="display:block; font-size:0.85em; opacity:0.7; margin-bottom:4px;">Stats</label>
+				<div id="profileStats" style="display:flex; gap:20px;">
+					<div><span style="font-size:1.4em; font-weight:bold;" id="profileEP">—</span><br><span style="font-size:0.8em; opacity:0.7;">Exploration Points</span></div>
+					<div><span style="font-size:1.4em; font-weight:bold;" id="profileScannedCount">—</span><br><span style="font-size:0.8em; opacity:0.7;">Bodies scanned</span></div>
+				</div>
+			</div>
+
+			<div style="margin-bottom:16px;">
+				<label style="display:block; font-size:0.85em; opacity:0.7; margin-bottom:6px;">Achievements</label>
+				<div id="profileAchievements" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
+			</div>
+
+			<div style="border-top:1px solid rgba(255,255,255,0.15); padding-top:14px;">
+				<button id="btnClearProgress" class="btn neon" style="width:auto; padding:8px 14px; background:rgba(200,50,50,0.25);">Clear Progress (testing)</button>
+			</div>
 		</div>
 	</div>
 </div>
@@ -573,10 +608,6 @@
 
 			updateHudHeightVar();
 
-			var toggleTrueScale = document.getElementById("toggleTrueScale");
-			toggleTrueScale?.addEventListener("change", function () {
-				if (window.applyTrueScale) { window.applyTrueScale(toggleTrueScale.checked); }
-			});
 			window.addEventListener("resize", updateHudHeightVar);
 			window.addEventListener("orientationchange", updateHudHeightVar);
 			// Fonts/content can shift layout slightly after first paint.
@@ -693,6 +724,10 @@
 		})();
 	</script>
 
+	<script>
+		window.isSolarUser = {{ is_solar_user | tojson }};
+		window.currentDisplayName = {{ (display_name if is_solar_user else "") | tojson }};
+	</script>
 	<script type="module" src="{{ url_for('static', filename='solar-system/app.js', v=app_js_version) }}"></script>
 </body>
 </html>

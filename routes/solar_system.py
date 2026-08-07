@@ -149,6 +149,99 @@ def journal():
     return render_template("solar_system/journal.html", body_choices=_load_body_choices())
 
 
+
+# Fixed point value per body "type" — same values already used client-side
+# for the scan reward, now enforced server-side too so the amount actually
+# awarded can't be spoofed by whatever a client happens to send.
+_SCAN_EP_VALUES = {
+    "sun": 1000, "explorer station": 500,
+    "mercury": 150, "venus": 150, "earth": 150, "mars": 150,
+    "jupiter": 250, "saturn": 250, "uranus": 250, "neptune": 250,
+}
+_DEFAULT_MOON_EP = 50
+
+
+def _ep_for_body(name: str) -> int:
+    key = (name or "").strip().lower()
+    if key in _SCAN_EP_VALUES:
+        return _SCAN_EP_VALUES[key]
+    return _DEFAULT_MOON_EP
+
+
+@solar_system_bp.route("/api/progress", methods=["GET"])
+@login_required
+def get_progress():
+    if not _is_solar_user():
+        return jsonify({"success": False, "message": "Not a solar account"}), 403
+
+    import json
+    try:
+        scanned = json.loads(current_user.scanned_bodies or "[]")
+    except (ValueError, TypeError):
+        scanned = []
+
+    return jsonify({
+        "success": True,
+        "exploration_points": current_user.exploration_points,
+        "scanned_bodies": scanned,
+        "is_early_supporter": current_user.is_early_supporter,
+    })
+
+
+@solar_system_bp.route("/api/progress/scan", methods=["POST"])
+@login_required
+def record_scan():
+    if not _is_solar_user():
+        return jsonify({"success": False, "message": "Not a solar account"}), 403
+
+    import json
+    data = request.get_json(silent=True) or {}
+    body_name = (data.get("body_name") or "").strip()
+    if not body_name:
+        return jsonify({"success": False, "message": "Missing body_name"}), 400
+
+    try:
+        scanned = json.loads(current_user.scanned_bodies or "[]")
+    except (ValueError, TypeError):
+        scanned = []
+
+    if body_name in scanned:
+        # Already scanned — return current totals rather than double-award.
+        return jsonify({
+            "success": True,
+            "already_scanned": True,
+            "exploration_points": current_user.exploration_points,
+            "scanned_bodies": scanned,
+        })
+
+    ep_awarded = _ep_for_body(body_name)
+    scanned.append(body_name)
+    current_user.scanned_bodies = json.dumps(scanned)
+    current_user.exploration_points += ep_awarded
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "already_scanned": False,
+        "ep_awarded": ep_awarded,
+        "exploration_points": current_user.exploration_points,
+        "scanned_bodies": scanned,
+    })
+
+
+@solar_system_bp.route("/api/progress/reset", methods=["POST"])
+@login_required
+def reset_progress():
+    if not _is_solar_user():
+        return jsonify({"success": False, "message": "Not a solar account"}), 403
+
+    current_user.exploration_points = 0
+    current_user.scanned_bodies = "[]"
+    db.session.commit()
+
+    return jsonify({"success": True})
+
+
 @solar_system_bp.route("/profile", methods=["GET", "POST"])
 @login_required
 def profile():
