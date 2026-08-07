@@ -26,6 +26,8 @@ class SolarUser(UserMixin, db.Model):
     display_name = db.Column(db.String(80), nullable=False)
     is_early_supporter = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    exploration_points = db.Column(db.Integer, nullable=False, default=0)
+    scanned_bodies = db.Column(db.Text, nullable=False, default="[]")  # JSON-encoded list of body names
 
     # No password field — accounts are accessed via emailed one-time codes only.
 

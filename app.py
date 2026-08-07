@@ -95,6 +95,18 @@ def create_app():
 						"ALTER TABLE solar_journal_entries ADD COLUMN is_public BOOLEAN NOT NULL DEFAULT 0"
 					))
 
+		if "solar_users" in inspector.get_table_names():
+			existing_user_cols = {c["name"] for c in inspector.get_columns("solar_users")}
+			with db.engines["solar"].begin() as conn:
+				if "exploration_points" not in existing_user_cols:
+					conn.execute(text(
+						"ALTER TABLE solar_users ADD COLUMN exploration_points INTEGER NOT NULL DEFAULT 0"
+					))
+				if "scanned_bodies" not in existing_user_cols:
+					conn.execute(text(
+						"ALTER TABLE solar_users ADD COLUMN scanned_bodies TEXT NOT NULL DEFAULT '[]'"
+					))
+
 		from utils.journal_db import init_db as init_journal_db
 		init_journal_db()
 
