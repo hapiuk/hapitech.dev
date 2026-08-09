@@ -1,0 +1,100 @@
+<!-- templates/terms.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='media/favicon/favicon-96x96.png') }}" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='media/favicon/favicon.svg') }}" />
+  <link rel="shortcut icon" href="{{ url_for('static', filename='media/favicon/favicon.ico') }}" />
+  <title>Terms &amp; Conditions — HapiTech</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .legal-page{ max-width: 780px; margin: 0 auto; padding: 100px 0 60px; }
+    .legal-page h1{ font-size: clamp(2rem,4vw,2.6rem); margin-bottom: 6px; }
+    .legal-updated{ opacity: .65; font-size: .85rem; margin-bottom: 32px; }
+    .legal-page section{ padding: 0 0 34px; }
+    .legal-page h2{ font-size: 1.3rem; margin-bottom: 12px; }
+    .legal-page p, .legal-page li{ opacity: .88; line-height: 1.65; margin-bottom: 12px; }
+    .legal-page ul{ padding-left: 22px; margin-bottom: 12px; }
+    .legal-page a{ color: #8ec8ff; }
+    .legal-card{ padding: 36px clamp(20px,4vw,48px); }
+  </style>
+</head>
+<body>
+  <div class="bg"></div>
+
+  <header class="site-header">
+    <nav class="site-nav neon-card">
+      <a href="/" class="brand">
+        <img src="{{ url_for('static', filename='media/logo.png') }}" alt="HapiTech Logo">
+        <span>HapiTech</span>
+      </a>
+      <div class="nav-links">
+        <a href="/#services">Services</a>
+        <a href="/#work">Projects</a>
+        <a href="/login">Client Login</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="page">
+    <div class="neon-card legal-card legal-page">
+      <h1>Terms &amp; Conditions</h1>
+      <p class="legal-updated">Last updated: 9 August 2026</p>
+
+      <section>
+        <h2>1. Who we are</h2>
+        <p>HapiTech is operated by Aaron Gomm, a sole trader trading as "HapiTech", based at 2 Deer Walk, Oxford, OX4 7XX. Contact: <a href="mailto:aaron@hapitech.dev">aaron@hapitech.dev</a>. These terms are governed by the law of England and Wales.</p>
+      </section>
+
+      <section>
+        <h2>2. Website design &amp; development services</h2>
+        <p>Enquiries made through the contact form aren't a binding agreement — they're the start of a conversation. Any actual work (website builds, ongoing support, hosting management) is agreed separately, in writing, on a per-project basis covering scope, price and timeline. These website terms don't replace or override a separately signed agreement or quote for client work.</p>
+      </section>
+
+      <section>
+        <h2>3. Client portal</h2>
+        <p>If we've given you access to the client portal, it's for you to view information about your project or account. Keep your login details confidential — you're responsible for activity under your account. Let us know immediately if you think your access has been compromised.</p>
+      </section>
+
+      <section>
+        <h2>4. Solar Journal</h2>
+        <p>Solar Journal is a free, personal project — an interactive solar-system explorer with an optional journal feature. By creating an account you agree to:</p>
+        <ul>
+          <li>only post content you have the rights to, especially uploaded images</li>
+          <li>not post anything illegal, abusive, or infringing on someone else's rights, even in private entries</li>
+          <li>understand that anything you mark "share publicly" is visible to other Solar Journal users</li>
+          <li>accept reasonable storage/upload limits (currently 15MB per image, 2 entries per celestial body)</li>
+        </ul>
+        <p>We can remove content or suspend/delete an account that breaches these terms, at our discretion, particularly for anything illegal or abusive.</p>
+        <p>Solar Journal is provided "as is", as a hobby project. We do our best to keep it running and your data safe, but we don't guarantee uptime and it isn't a paid, contracted service unless separately agreed otherwise.</p>
+      </section>
+
+      <section>
+        <h2>5. Intellectual property</h2>
+        <p>Unless otherwise agreed in writing, the HapiTech website, its design and its code remain the property of HapiTech. Content you submit to Solar Journal (journal text, images) remains yours — by posting it, you grant us a licence to store it and display it back to you (and, for entries you mark public, to other users) as part of the service.</p>
+      </section>
+
+      <section>
+        <h2>6. Liability</h2>
+        <p>We'll do our best to keep our sites and services running reliably, but we can't guarantee they'll be uninterrupted or error-free. To the extent permitted by law, we're not liable for indirect or consequential loss arising from your use of this site or Solar Journal. Nothing in these terms limits liability that can't legally be limited, such as for fraud or death/personal injury caused by negligence.</p>
+      </section>
+
+      <section>
+        <h2>7. Changes</h2>
+        <p>We may update these terms from time to time; continued use of the site after a change means you accept the update. Significant changes will be reflected in the date above.</p>
+      </section>
+
+      <section style="padding-bottom:0;">
+        <h2>8. Contact</h2>
+        <p>Questions about these terms: <a href="mailto:aaron@hapitech.dev">aaron@hapitech.dev</a>.</p>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site">
+    &copy; HapiTech {{ current_year }} · <a href="/">Home</a> · <a href="/privacy">Privacy Policy</a>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!-- templates/privacy.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='media/favicon/favicon-96x96.png') }}" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='media/favicon/favicon.svg') }}" />
+  <link rel="shortcut icon" href="{{ url_for('static', filename='media/favicon/favicon.ico') }}" />
+  <title>Privacy Policy — HapiTech</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .legal-page{ max-width: 780px; margin: 0 auto; padding: 100px 0 60px; }
+    .legal-page h1{ font-size: clamp(2rem,4vw,2.6rem); margin-bottom: 6px; }
+    .legal-updated{ opacity: .65; font-size: .85rem; margin-bottom: 32px; }
+    .legal-page section{ padding: 0 0 34px; }
+    .legal-page h2{ font-size: 1.3rem; margin-bottom: 12px; }
+    .legal-page p, .legal-page li{ opacity: .88; line-height: 1.65; margin-bottom: 12px; }
+    .legal-page ul{ padding-left: 22px; margin-bottom: 12px; }
+    .legal-page a{ color: #8ec8ff; }
+    .legal-card{ padding: 36px clamp(20px,4vw,48px); }
+  </style>
+</head>
+<body>
+  <div class="bg"></div>
+
+  <header class="site-header">
+    <nav class="site-nav neon-card">
+      <a href="/" class="brand">
+        <img src="{{ url_for('static', filename='media/logo.png') }}" alt="HapiTech Logo">
+        <span>HapiTech</span>
+      </a>
+      <div class="nav-links">
+        <a href="/#services">Services</a>
+        <a href="/#work">Projects</a>
+        <a href="/login">Client Login</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="page">
+    <div class="neon-card legal-card legal-page">
+      <h1>Privacy Policy</h1>
+      <p class="legal-updated">Last updated: 9 August 2026</p>
+
+      <section>
+        <h2>1. Who we are</h2>
+        <p>This site is operated by Aaron Gomm, trading as HapiTech ("HapiTech", "we", "us"), a sole trader based in Oxford, UK.</p>
+        <p>Address: 2 Deer Walk, Oxford, OX4 7XX<br>Contact: <a href="mailto:aaron@hapitech.dev">aaron@hapitech.dev</a></p>
+        <p>We're the data controller for the personal data described below.</p>
+      </section>
+
+      <section>
+        <h2>2. What data we collect</h2>
+        <p><strong>Contact form.</strong> When you use the "Get in Touch" form on this site, we collect the name, email address and message you provide. To help filter spam and respond appropriately, we also capture your IP address, browser user-agent, referring page and the time of submission. This is sent to us by email — it isn't stored in a database.</p>
+        <p><strong>Client accounts.</strong> If you're a HapiTech client with portal access, we hold your name, email address and phone number so we can manage the relationship and give you access to your dashboard. Login is by username and password, stored as a salted hash — we never see or store your plain password.</p>
+        <p><strong>Solar Journal accounts.</strong> Solar Journal (hapitech.dev/solar-system) is a separate, self-contained feature. To create an account you provide an email address and a display name. There's no password — logging in works by emailing you a one-time 6-digit code, valid for 10 minutes. We use your email only to send these codes and, if needed, essential messages about your account.</p>
+        <p><strong>Solar Journal entries.</strong> If you post a journal entry, we store the text you write and, optionally, an image you upload (resized and re-encoded, max 15MB raw upload). Entries are private by default and are never shown to anyone else — including other Solar Journal users — unless you tick "share publicly" on that specific entry.</p>
+      </section>
+
+      <section>
+        <h2>3. Why we process this data</h2>
+        <ul>
+          <li>Contact form: legitimate interest — responding to enquiries you've sent us.</li>
+          <li>Client accounts: contract / legitimate interest — providing the service you've engaged us for.</li>
+          <li>Solar Journal accounts and entries: consent — you created the account and chose what to submit.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. Where your data is stored</h2>
+        <p>Everything above is stored on our own server, a VPS hosted with Namecheap, Inc. Outgoing email (contact form notifications, Solar Journal login codes) also goes through Namecheap's email service. We don't use any other third party for this — no analytics, no ad networks, no data brokers — and we don't sell or share your data with anyone else.</p>
+      </section>
+
+      <section>
+        <h2>5. Cookies</h2>
+        <p>We only use one cookie: a signed session cookie that keeps you logged in (client portal or Solar Journal). It's strictly necessary for the site to function and is deleted when you log out or it expires. We don't use analytics or tracking cookies, so there's no cookie consent banner.</p>
+      </section>
+
+      <section>
+        <h2>6. How long we keep it</h2>
+        <ul>
+          <li>Contact form submissions exist only as an email in our inbox, kept as long as any other business correspondence, then deleted at our discretion.</li>
+          <li>Client account data is kept for the duration of the working relationship and a reasonable period afterward for accounting/legal purposes.</li>
+          <li>Solar Journal accounts and entries are kept until you delete them or ask us to delete your account.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>7. Your rights</h2>
+        <p>Under UK GDPR you can ask us to:</p>
+        <ul>
+          <li>tell you what data we hold about you</li>
+          <li>correct inaccurate data</li>
+          <li>delete your data ("right to be forgotten")</li>
+          <li>restrict or object to how we use it</li>
+          <li>give you a copy of your data in a portable format</li>
+        </ul>
+        <p>To do any of this, email <a href="mailto:aaron@hapitech.dev">aaron@hapitech.dev</a>. We'll respond within one month. If you're not happy with how we've handled your data, you can complain to the UK Information Commissioner's Office at <a href="https://ico.org.uk" target="_blank" rel="noopener">ico.org.uk</a>.</p>
+      </section>
+
+      <section>
+        <h2>8. Children</h2>
+        <p>Solar Journal isn't specifically aimed at children. If you're under 13, please don't create an account without a parent or guardian's involvement. If you believe a child has created an account, get in touch and we'll remove it.</p>
+      </section>
+
+      <section style="padding-bottom:0;">
+        <h2>9. Changes to this policy</h2>
+        <p>We'll update this page if what we collect or how we use it changes. Significant changes will be reflected in the date above.</p>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site">
+    &copy; HapiTech {{ current_year }} · <a href="/">Home</a> · <a href="/terms">Terms &amp; Conditions</a>
+  </footer>
+</body>
+</html>

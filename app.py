@@ -191,6 +191,14 @@ def create_app():
 		logout_user()
 		return jsonify({"success": True})
 
+	@app.route("/privacy")
+	def privacy():
+		return render_template("privacy.html", current_year=datetime.datetime.utcnow().year)
+
+	@app.route("/terms")
+	def terms():
+		return render_template("terms.html", current_year=datetime.datetime.utcnow().year)
+
 	@app.route("/contact", methods=["POST"])
 	def contact():
 		data = request.get_json(silent=True) or {}
