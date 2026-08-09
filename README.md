@@ -2,7 +2,7 @@
 
 Official website for **HapiTech**, an independent software development studio building modern websites, web applications and bespoke software solutions.
 
-This repo also currently hosts **Solar Journal**, a public 3D solar-system explorer with gamified body-scanning and a personal/community journal. It's built as a self-contained module — its own database bind, its own auth system, no foreign keys into the HapiTech tables — deliberately so it can be split out into its own deployment.
+This repo also hosts **Solar Journal** (`/solar-system`) — a public 3D solar-system explorer with body scanning, exploration points, and a personal/community journal. It's built as a self-contained module (own database bind, own auth, no foreign keys into the main site tables) so it can be split out later if needed.
 
 Designed, developed and maintained by HapiTech.
 
@@ -10,12 +10,19 @@ Designed, developed and maintained by HapiTech.
 
 ## Tech Stack
 
-- **Backend:** Flask (Python), SQLAlchemy + Alembic (Flask-Migrate)
+- **Backend:** Flask (Python), SQLAlchemy + Alembic (Flask-Migrate), Flask-Login
 - **Frontend:** HTML, CSS, JavaScript (Jinja2 templates); Solar Journal's 3D view is hand-rolled JS in `static/solar-system/`
-- **WSGI Server:** Gunicorn
-- **Reverse Proxy:** NGINX
-- **Process Management:** systemd
-- **SSL:** Let's Encrypt
+- **Images:** Pillow (Solar Journal uploads)
+- **Production:** Gunicorn behind NGINX, systemd, Let's Encrypt SSL
+
+---
+
+## Features
+
+- **Public site** — homepage, contact form (SMTP), privacy policy and terms
+- **Admin portal** — client CRUD, dashboard stats, internal ops tools (admin-only)
+- **Client portal** — login-gated dashboard for clients
+- **Solar Journal** — passwordless email one-time-code auth, 3D explorer, scanning / exploration points, per-body journal entries with image uploads
 
 ---
 
@@ -23,24 +30,28 @@ Designed, developed and maintained by HapiTech.
 
 ```
 hapitech/
-├── app.py                # app factory — main site, admin, client portal
-├── manage.py              # Flask-Migrate shell entrypoint
-├── models/                # SQLAlchemy models
-├── routes/                # blueprints: solar_system, journal_api, admin_command_center
-├── utils/                 # mailer, image processing, service ops, curated body facts
-├── templates/              # Jinja2 templates (site, admin, solar system)
-├── static/                 # CSS/JS/media + solar-system 3D assets/textures
-├── migrations/              # Alembic migrations (main site models only)
-├── instance/                # auto-created by Flask-SQLAlchemy — holds solar_journal.db
+├── app.py                 # App factory — main site, admin, client portal
+├── manage.py              # Flask-Migrate entrypoint
+├── models/                # SQLAlchemy models (main site + solar bind)
+├── routes/                # Blueprints (solar system, journal API, admin tools)
+├── utils/                 # Mailer, image limits, journal helpers, static body data
+├── templates/             # Jinja2 templates
+├── static/                # CSS/JS/media + solar-system 3D assets
+├── migrations/            # Alembic migrations (main site models only)
+├── instance/              # Local runtime data (gitignored)
 ├── requirements.txt
 └── README.md
 ```
 
-### Key subsystems
+### Persistence (three separate stores)
 
-- **HapiTech site & client portal** — homepage, contact form (SMTP), admin/client login, client CRUD, and an admin **command center** that runs whitelisted `systemctl`/`journalctl` commands against HapiTech's own service and three client deployments (`spartanbricklaying`, `rolandshandyman`, `gravemistakegames`).
-- **Solar Journal** (`/solar-system`) — public, passwordless auth (emailed one-time code), 3D solar system explorer, exploration-point scanning, per-body journal entries with image uploads. Own SQLAlchemy bind (`"solar"`) → `instance/solar_journal.db`.
-- **Personal dev journal** (`/api/journal/*`) — admin-only project log (entries + goals), backed by a separate raw sqlite3 file (`utils/hapitech.sqlite3`), unrelated to Solar Journal.
+| Store | Used for | How it's managed |
+| --- | --- | --- |
+| Default SQLAlchemy bind | Admin/client users and clients | Alembic (`flask db upgrade`) |
+| `"solar"` SQLAlchemy bind | Solar Journal users, login codes, entries | `db.create_all` + startup column patches |
+| Raw sqlite3 (via `utils/journal_db.py`) | Admin personal dev journal API | Created at startup; path overridable with `HAPITECH_DB_PATH` |
+
+Database files and `instance/` are gitignored — never commit them.
 
 ---
 
@@ -49,7 +60,7 @@ hapitech/
 ```bash
 python -m venv venv
 
-# Linux
+# Linux / macOS
 source venv/bin/activate
 
 # Windows
@@ -57,19 +68,56 @@ venv\Scripts\activate
 
 pip install -r requirements.txt
 
+# Main-site tables (User / Client)
+flask --app manage.py db upgrade
+
 python app.py
 ```
 
-Optional environment variables — the app runs with safe local defaults (SQLite, dev secret key) if these aren't set:
+App listens on `http://127.0.0.1:5000` (dev server binds `0.0.0.0:5000`).
 
-- `SECRET_KEY`, `DATABASE_URL`, `SOLAR_DATABASE_URL`
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `SMTP_TO` — required for the contact form and Solar Journal login-code emails to actually send
+### Environment variables
+
+All optional for local use — the app falls back to SQLite and a **dev-only** secret key if unset. Set real values in production (via environment or a gitignored `.env`; `python-dotenv` is available).
+
+| Variable | Purpose |
+| --- | --- |
+| `SECRET_KEY` | Flask session signing — **required in production** |
+| `DATABASE_URL` | Main site DB (default: `sqlite:///hapitech.db`) |
+| `SOLAR_DATABASE_URL` | Solar Journal DB (default: `sqlite:///solar_journal.db`) |
+| `HAPITECH_DB_PATH` | Override path for the admin journal sqlite file |
+| `SMTP_HOST` | SMTP server host |
+| `SMTP_PORT` | SMTP port (default `587`) |
+| `SMTP_USER` | SMTP username |
+| `SMTP_PASS` | SMTP password |
+| `SMTP_FROM` | From address |
+| `SMTP_TO` | Inbox for contact-form messages |
+
+Without SMTP configured, the contact form and Solar Journal login-code emails will fail at send time.
+
+**Do not commit** `.env`, database files, backups, or real credentials.
 
 ---
 
 ## Deployment
 
-The production application is served using **Gunicorn** behind **NGINX** with SSL provided by **Let's Encrypt**.
+Production is intended to run under a WSGI server (e.g. Gunicorn) behind a reverse proxy with TLS. Exact unit names, paths and proxy config are environment-specific and intentionally not documented here.
+
+For the main site schema:
+
+```bash
+flask --app manage.py db upgrade
+```
+
+---
+
+## Security notes (public repo)
+
+- No secrets, API keys, or production connection strings belong in this repository.
+- Admin routes and ops tooling are login- and role-gated; treat production `SECRET_KEY`, SMTP credentials and host access as sensitive.
+- Uploads and request bodies are size-capped in the app config.
+
+If you find a vulnerability, please report it privately to HapiTech rather than opening a public issue with exploit detail.
 
 ---
 
