@@ -30,7 +30,10 @@
         <img src="{{ url_for('static', filename='media/logo.png') }}" alt="HapiTech Logo">
         <span>HapiTech</span>
       </a>
-      <div class="nav-links">
+      <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="navLinks" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-links" id="navLinks">
         <a href="/#services">Services</a>
         <a href="/#work">Projects</a>
         <a href="/login">Client Login</a>
@@ -96,5 +99,6 @@
   <footer class="site">
     &copy; HapiTech {{ current_year }} · <a href="/">Home</a> · <a href="/privacy">Privacy Policy</a>
   </footer>
+  <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
 </body>
 </html>

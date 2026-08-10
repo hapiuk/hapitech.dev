@@ -1846,24 +1846,198 @@ footer.site{
 
 
 /* ==========================================================
-   LAB — two shipped products, given room to breathe rather than
-   stretched to fill a grid built for a third card that's gone
+   LAB — domain-as-title, echoing the mono "engraved tag" reference
+   style hapitech.report uses on its own equipment/job identifiers
    ========================================================== */
 
-.work-grid--lab{
-    grid-template-columns:repeat(auto-fit,minmax(380px,1fr));
+.project-eyebrow{
+    font-size:.72rem;
 
-    max-width:920px;
+    font-weight:700;
 
-    margin:0 auto;
+    letter-spacing:.08em;
+
+    text-transform:uppercase;
+
+    color:rgba(126,188,255,.6);
 }
 
-.project-domain{
+.project-domain-title{
     font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 
-    font-size:.78rem;
+    font-size:1.3rem;
 
-    letter-spacing:.02em;
+    font-weight:700;
 
-    color:rgba(126,188,255,.65);
+    letter-spacing:-.01em;
+
+    color:#eaf3ff;
+}
+
+
+/* ==========================================================
+   MOBILE NAV TOGGLE — collapses the link list behind a button so
+   the header doesn't stack into a wall of full-width rows
+   ========================================================== */
+
+.nav-toggle{
+    display:none;
+
+    width:40px;
+    height:40px;
+
+    align-items:center;
+    justify-content:center;
+
+    flex-direction:column;
+    gap:5px;
+
+    background:transparent;
+
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:0;
+
+    cursor:pointer;
+
+    flex-shrink:0;
+}
+
+.nav-toggle span{
+    display:block;
+
+    width:18px;
+    height:2px;
+
+    background:#eaf3ff;
+
+    transition:transform .2s, opacity .2s;
+}
+
+.nav-toggle[aria-expanded="true"] span:nth-child(1){
+    transform:translateY(7px) rotate(45deg);
+}
+
+.nav-toggle[aria-expanded="true"] span:nth-child(2){
+    opacity:0;
+}
+
+.nav-toggle[aria-expanded="true"] span:nth-child(3){
+    transform:translateY(-7px) rotate(-45deg);
+}
+
+@media (max-width:900px){
+
+    .site-nav{
+        flex-wrap:nowrap;
+
+        justify-content:space-between;
+
+        padding:14px 18px;
+    }
+
+    .brand{
+        width:auto;
+
+        justify-content:flex-start;
+    }
+
+    .nav-toggle{
+        display:inline-flex;
+    }
+
+    .nav-links{
+        display:none;
+
+        width:100%;
+
+        flex-direction:column;
+
+        align-items:center;
+
+        gap:16px;
+
+        margin:16px 0 4px;
+
+        order:5;
+    }
+
+    .nav-links.is-open{
+        display:flex;
+    }
+
+    .nav-contact{
+        width:auto;
+
+        padding:.7rem 1.1rem;
+
+        font-size:.85rem;
+    }
+}
+
+
+/* ==========================================================
+   APP PINS — HapiTech Report + Solar Journal, our own products,
+   bottom-left; side by side on desktop, stacked on mobile
+   ========================================================== */
+
+.app-pins{
+    position:fixed;
+
+    left:28px;
+    bottom:28px;
+
+    z-index:100;
+
+    display:flex;
+
+    gap:10px;
+}
+
+.app-pin{
+    width:44px;
+    height:44px;
+
+    border-radius:0;
+
+    display:grid;
+    place-items:center;
+
+    color:rgba(255,255,255,.75);
+
+    background:rgba(14,18,28,.75);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    backdrop-filter:blur(16px);
+
+    opacity:.85;
+
+    transition:
+        transform .2s,
+        opacity .2s,
+        border-color .2s;
+}
+
+.app-pin:hover{
+    transform:translateY(-3px);
+
+    opacity:1;
+}
+
+.app-pin--report:hover{
+    border-color:rgba(120,180,255,.4);
+}
+
+.app-pin--space:hover{
+    border-color:rgba(169,110,255,.4);
+}
+
+@media (max-width:640px){
+
+    .app-pins{
+        left:16px;
+        bottom:16px;
+
+        flex-direction:column;
+    }
 }
