@@ -1804,3 +1804,42 @@ footer.site{
 
     font-weight:600;
 }
+
+
+/* ==========================================================
+   FLAGSHIP CARD — the one shipped, live product in the Lab
+   ========================================================== */
+
+.work-card--flagship{
+    border-color:rgba(120,180,255,.28);
+
+    background:
+        linear-gradient(160deg,
+            rgba(88,155,255,.10),
+            rgba(169,110,255,.06)),
+        rgba(12,17,28,.58);
+}
+
+.work-card--flagship:hover{
+    border-color:rgba(120,180,255,.5);
+
+    box-shadow:
+        0 22px 60px rgba(66,129,255,.28);
+}
+
+.work-card--flagship p{
+    color:rgba(234,243,255,.75);
+
+    font-size:.95rem;
+}
+
+.project-status--live{
+    background:
+        linear-gradient(135deg,
+            rgba(88,155,255,.28),
+            rgba(169,110,255,.22));
+
+    border-color:rgba(120,180,255,.4);
+
+    color:#eaf3ff;
+}
