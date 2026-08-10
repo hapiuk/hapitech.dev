@@ -1843,3 +1843,27 @@ footer.site{
 
     color:#eaf3ff;
 }
+
+
+/* ==========================================================
+   LAB — two shipped products, given room to breathe rather than
+   stretched to fill a grid built for a third card that's gone
+   ========================================================== */
+
+.work-grid--lab{
+    grid-template-columns:repeat(auto-fit,minmax(380px,1fr));
+
+    max-width:920px;
+
+    margin:0 auto;
+}
+
+.project-domain{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+
+    font-size:.78rem;
+
+    letter-spacing:.02em;
+
+    color:rgba(126,188,255,.65);
+}
