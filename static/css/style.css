@@ -1928,7 +1928,7 @@ footer.site{
 @media (max-width:900px){
 
     .site-nav{
-        flex-wrap:nowrap;
+        flex-wrap:wrap;
 
         justify-content:space-between;
 
