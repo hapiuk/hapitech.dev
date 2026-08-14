@@ -13,3 +13,15 @@ venv/
 *.bak
 *.bak.*
 node_modules/
+
+# --- Sterile push policy (2026-08-14) ---
+*.db
+*.db-*
+*.pid
+.DS_Store
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.coverage
+bckup/
