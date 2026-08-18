@@ -218,7 +218,9 @@ def report_tenants_register():
 @admin_required
 def webdev_clients():
     clients = WebdevClient.query.order_by(WebdevClient.name.asc()).all()
-    return render_template("admin/report_tenants/webdev_clients.html", clients=clients)
+    total_jobs = sum(len(c.jobs) for c in clients)
+    total_paid = sum(float(c.total_paid_gbp or 0) for c in clients)
+    return render_template("admin/report_tenants/webdev_clients.html", clients=clients, total_jobs=total_jobs, total_paid=total_paid)
 
 
 @report_tenants_bp.route("/webdev-clients/new", methods=["GET", "POST"])

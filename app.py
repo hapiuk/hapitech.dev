@@ -148,19 +148,23 @@ def create_app():
 			admin.set_password("Password1234!")
 		db.session.commit()
 
-		# Seed initial webdev agency clients if empty
+		# Seed initial webdev agency clients if empty (Roland's Handyman & Ray G's Handyman only)
 		from models.webdev_client import WebdevClient, WebdevJob
+		# Clean up any unrequested Spartan entries if present
+		spartan = WebdevClient.query.filter(WebdevClient.name.like("%Spartan%")).first()
+		if spartan:
+			db.session.delete(spartan)
+			db.session.commit()
+
 		if not WebdevClient.query.first():
 			c1 = WebdevClient(name="Roland's Handyman", domain="rolandshandyman.co.uk", contact_email="aaron@hapitech.dev", payment_status="PAID", total_paid_gbp=500)
 			c2 = WebdevClient(name="Ray G's Handyman", domain="rayghandymanservice.co.uk", contact_email="aaron@hapitech.dev", payment_status="PAID", total_paid_gbp=500)
-			c3 = WebdevClient(name="Spartan Bricklaying", domain="spartanbricklaying.co.uk", contact_email="aaron@hapitech.dev", payment_status="PAID", total_paid_gbp=750)
-			db.session.add_all([c1, c2, c3])
+			db.session.add_all([c1, c2])
 			db.session.flush()
 
 			j1 = WebdevJob(client_id=c1.id, title="Website Build & Launch", job_type="website_build", price_gbp=500, payment_status="PAID", status="completed")
 			j2 = WebdevJob(client_id=c2.id, title="Website Build & Launch", job_type="website_build", price_gbp=500, payment_status="PAID", status="completed")
-			j3 = WebdevJob(client_id=c3.id, title="Brand Website Build", job_type="website_build", price_gbp=750, payment_status="PAID", status="completed")
-			db.session.add_all([j1, j2, j3])
+			db.session.add_all([j1, j2])
 			db.session.commit()
 
 	# --------------------------------------------------

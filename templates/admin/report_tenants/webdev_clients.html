@@ -21,12 +21,12 @@
   </div>
   <div class="neon-card admin-card">
     <div class="admin-card__kicker">Total Paid (£)</div>
-    <div class="admin-card__value">£{{ clients | sum(attribute='total_paid_gbp') | int }}</div>
+    <div class="admin-card__value">£{{ "%.2f"|format(total_paid if total_paid is defined else 0) }}</div>
     <div class="admin-card__hint">Cumulative payments received</div>
   </div>
   <div class="neon-card admin-card">
     <div class="admin-card__kicker">Total Jobs</div>
-    <div class="admin-card__value">{{ clients | sum(attribute='jobs') | list | length if clients else 0 }}</div>
+    <div class="admin-card__value">{{ total_jobs if total_jobs is defined else 0 }}</div>
     <div class="admin-card__hint">Across all webdev clients</div>
   </div>
 </div>
