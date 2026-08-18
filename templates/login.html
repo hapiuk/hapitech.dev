@@ -280,15 +280,53 @@
 
       <form id="loginForm" class="login-form" onsubmit="return false;">
         <label class="field">
-          <span>Username</span>
-          <input id="username" autocomplete="username" type="text" required>
+          <span>Username or Email</span>
+          <input id="username" autocomplete="username" type="text" placeholder="e.g. aaron@hapitech.dev" required>
         </label>
         <label class="field">
           <span>Password</span>
           <input id="password" type="password" autocomplete="current-password" required>
         </label>
         <button id="loginBtn" class="btn neon" type="button">Sign In</button>
+        
+        <div style="margin-top:8px; text-align:center;">
+          <button id="toggleOtpBtn" class="btn neon" type="button" style="font-size:12px; padding:6px 12px; opacity:0.85;">
+            ✉️ Sign In with Email Code
+          </button>
+        </div>
+
         <p id="loginMsg" class="message"></p>
+      </form>
+
+      <!-- OTP Email Code Form (hidden by default) -->
+      <form id="otpForm" class="login-form" style="display:none;" onsubmit="return false;">
+        <div id="otpStep1">
+          <label class="field">
+            <span>Admin Email</span>
+            <input id="otpEmail" type="email" placeholder="aaron@hapitech.dev" value="aaron@hapitech.dev" required>
+          </label>
+          <button id="requestOtpBtn" class="btn neon" type="button" style="margin-top:10px; width:100%;">
+            Send Login Code
+          </button>
+        </div>
+
+        <div id="otpStep2" style="display:none;">
+          <label class="field">
+            <span>6-Digit Verification Code</span>
+            <input id="otpCode" type="text" placeholder="123456" maxlength="6" style="letter-spacing:2px; font-weight:bold; text-align:center;" required>
+          </label>
+          <button id="verifyOtpBtn" class="btn neon" type="button" style="margin-top:10px; width:100%;">
+            Verify Code & Sign In
+          </button>
+        </div>
+
+        <div style="margin-top:8px; text-align:center;">
+          <button id="togglePwBtn" class="btn neon" type="button" style="font-size:12px; padding:6px 12px; opacity:0.85;">
+            🔑 Sign In with Password
+          </button>
+        </div>
+
+        <p id="otpMsg" class="message"></p>
       </form>
 
       <div class="footer-links">

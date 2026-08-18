@@ -82,6 +82,95 @@ if(loginBtn){
   });
 }
 
+// OTP Email Login
+const toggleOtpBtn = document.getElementById('toggleOtpBtn');
+const togglePwBtn = document.getElementById('togglePwBtn');
+const otpForm = document.getElementById('otpForm');
+const requestOtpBtn = document.getElementById('requestOtpBtn');
+const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+const otpMsg = document.getElementById('otpMsg');
+const otpStep1 = document.getElementById('otpStep1');
+const otpStep2 = document.getElementById('otpStep2');
+
+if(toggleOtpBtn && otpForm && loginForm){
+  toggleOtpBtn.addEventListener('click', () => {
+    loginForm.style.display = 'none';
+    otpForm.style.display = 'grid';
+  });
+}
+
+if(togglePwBtn && otpForm && loginForm){
+  togglePwBtn.addEventListener('click', () => {
+    otpForm.style.display = 'none';
+    loginForm.style.display = 'grid';
+  });
+}
+
+if(requestOtpBtn){
+  requestOtpBtn.addEventListener('click', async () => {
+    const email = (document.getElementById('otpEmail')?.value || "").trim();
+    if(!email){
+      if(otpMsg){ otpMsg.style.color = "#ffb7b7"; otpMsg.textContent = "Please enter your email."; }
+      return;
+    }
+    requestOtpBtn.disabled = true;
+    requestOtpBtn.textContent = "Sending code...";
+
+    try {
+      const res = await fetch('/login-code/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await readJsonSafe(res);
+      if(res.ok && data.success){
+        if(otpMsg){ otpMsg.style.color = "#bfffdc"; otpMsg.textContent = data.message; }
+        if(otpStep1) otpStep1.style.display = 'none';
+        if(otpStep2) otpStep2.style.display = 'block';
+      } else {
+        if(otpMsg){ otpMsg.style.color = "#ffb7b7"; otpMsg.textContent = data.message || "Failed to send code."; }
+      }
+    } catch(err) {
+      if(otpMsg){ otpMsg.style.color = "#ffb7b7"; otpMsg.textContent = "Network error."; }
+    } finally {
+      requestOtpBtn.disabled = false;
+      requestOtpBtn.textContent = "Send Login Code";
+    }
+  });
+}
+
+if(verifyOtpBtn){
+  verifyOtpBtn.addEventListener('click', async () => {
+    const code = (document.getElementById('otpCode')?.value || "").trim();
+    if(!code || code.length < 6){
+      if(otpMsg){ otpMsg.style.color = "#ffb7b7"; otpMsg.textContent = "Enter 6-digit verification code."; }
+      return;
+    }
+    verifyOtpBtn.disabled = true;
+    verifyOtpBtn.textContent = "Verifying...";
+
+    try {
+      const res = await fetch('/login-code/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+      const data = await readJsonSafe(res);
+      if(res.ok && data.success){
+        if(otpMsg){ otpMsg.style.color = "#bfffdc"; otpMsg.textContent = "Code verified — logging in..."; }
+        setTimeout(() => { window.location.href = "/"; }, 250);
+      } else {
+        if(otpMsg){ otpMsg.style.color = "#ffb7b7"; otpMsg.textContent = data.message || "Verification failed."; }
+      }
+    } catch(err) {
+      if(otpMsg){ otpMsg.style.color = "#ffb7b7"; otpMsg.textContent = "Network error."; }
+    } finally {
+      verifyOtpBtn.disabled = false;
+      verifyOtpBtn.textContent = "Verify Code & Sign In";
+    }
+  });
+}
+
 // contact popup behaviour
 const contactBubble = document.getElementById('contactBubble');
 const contactPopup = document.getElementById('contactPopup');

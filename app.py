@@ -16,6 +16,7 @@ from routes.solar_system import solar_system_bp
 from routes.journal_api import bp_journal
 from utils.mailer import send_contact_email
 from routes.admin_command_center import admin_command_center_bp
+from routes.report_tenants import report_tenants_bp
 from utils.command_center import get_service_state, SERVICES
 
 def handle_contact(data: dict) -> None:
@@ -129,6 +130,38 @@ def create_app():
 	app.register_blueprint(solar_system_bp, url_prefix="/solar-system")
 	app.register_blueprint(bp_journal)
 	app.register_blueprint(admin_command_center_bp)
+	app.register_blueprint(report_tenants_bp)
+
+	# --------------------------------------------------
+	# startup DB seeding & admin account setup
+	# --------------------------------------------------
+	with app.app_context():
+		db.create_all()
+		admin = User.query.filter((User.email == "aaron@hapitech.dev") | (User.username == "aaron@hapitech.dev") | (User.username == "aaron")).first()
+		if not admin:
+			admin = User(email="aaron@hapitech.dev", username="aaron@hapitech.dev", role="admin")
+			admin.set_password("Password1234!")
+			db.session.add(admin)
+		else:
+			admin.role = "admin"
+			admin.email = "aaron@hapitech.dev"
+			admin.set_password("Password1234!")
+		db.session.commit()
+
+		# Seed initial webdev agency clients if empty
+		from models.webdev_client import WebdevClient, WebdevJob
+		if not WebdevClient.query.first():
+			c1 = WebdevClient(name="Roland's Handyman", domain="rolandshandyman.co.uk", contact_email="aaron@hapitech.dev", payment_status="PAID", total_paid_gbp=500)
+			c2 = WebdevClient(name="Ray G's Handyman", domain="rayghandymanservice.co.uk", contact_email="aaron@hapitech.dev", payment_status="PAID", total_paid_gbp=500)
+			c3 = WebdevClient(name="Spartan Bricklaying", domain="spartanbricklaying.co.uk", contact_email="aaron@hapitech.dev", payment_status="PAID", total_paid_gbp=750)
+			db.session.add_all([c1, c2, c3])
+			db.session.flush()
+
+			j1 = WebdevJob(client_id=c1.id, title="Website Build & Launch", job_type="website_build", price_gbp=500, payment_status="PAID", status="completed")
+			j2 = WebdevJob(client_id=c2.id, title="Website Build & Launch", job_type="website_build", price_gbp=500, payment_status="PAID", status="completed")
+			j3 = WebdevJob(client_id=c3.id, title="Brand Website Build", job_type="website_build", price_gbp=750, payment_status="PAID", status="completed")
+			db.session.add_all([j1, j2, j3])
+			db.session.commit()
 
 	# --------------------------------------------------
 	# error handling — API-style routes get JSON, not an HTML error page
@@ -169,7 +202,7 @@ def create_app():
 			username = (data.get("username") or "").strip()
 			password = data.get("password") or ""
 
-			user = User.query.filter_by(username=username).first()
+			user = User.query.filter((User.username == username) | (User.email == username)).first()
 			if user and user.check_password(password):
 				login_user(user)
 				return jsonify({
@@ -184,6 +217,95 @@ def create_app():
 			}), 401
 
 		return render_template("login.html")
+
+	@app.route("/login-code/request", methods=["POST"])
+	def request_login_code():
+		import random
+		from flask import session
+		data = request.get_json(silent=True) or {}
+		email = (data.get("email") or "").strip().lower()
+
+		if not email:
+			return jsonify({"success": False, "message": "Email address required"}), 400
+
+		user = User.query.filter((User.email == email) | (User.username == email)).first()
+		if not user:
+			# Return generic message to avoid email enumeration
+			return jsonify({"success": True, "message": "If an account exists, a code has been sent."})
+
+		code = f"{random.randint(100000, 999999)}"
+		session["otp_user_id"] = user.id
+		session["otp_code"] = code
+		session["otp_expires"] = (datetime.datetime.utcnow() + datetime.timedelta(minutes=10)).isoformat()
+
+		meta = {
+			"client": "hapitech.dev admin login",
+			"host": request.host,
+			"utc": datetime.datetime.utcnow().isoformat(),
+		}
+		try:
+			send_contact_email(
+				name="HapiTech Admin System",
+				email=user.email,
+				message=f"Your HapiTech.dev login verification code is: {code}\n\nThis code expires in 10 minutes.",
+				meta=meta,
+			)
+		except Exception as exc:
+			print(f"[OTP_EMAIL_ERROR] {exc}")
+
+		return jsonify({"success": True, "message": "Login code sent to your email address."})
+
+	@app.route("/login-code/verify", methods=["POST"])
+	def verify_login_code():
+		from flask import session
+		data = request.get_json(silent=True) or {}
+		code = (data.get("code") or "").strip()
+
+		stored_code = session.get("otp_code")
+		user_id = session.get("otp_user_id")
+		expires_raw = session.get("otp_expires")
+
+		if not (stored_code and user_id and expires_raw):
+			return jsonify({"success": False, "message": "No active login code request found."}), 400
+
+		expires = datetime.datetime.fromisoformat(expires_raw)
+		if datetime.datetime.utcnow() > expires:
+			session.pop("otp_code", None)
+			return jsonify({"success": False, "message": "Login code has expired. Please request a new one."}), 400
+
+		if code != stored_code:
+			return jsonify({"success": False, "message": "Invalid code. Please check and try again."}), 400
+
+		user = User.query.get(user_id)
+		if not user:
+			return jsonify({"success": False, "message": "User account not found."}), 404
+
+		session.pop("otp_code", None)
+		session.pop("otp_user_id", None)
+		session.pop("otp_expires", None)
+
+		login_user(user)
+		return jsonify({"success": True, "message": "Logged in successfully", "role": user.role})
+
+	@app.route("/admin/change-password", methods=["GET", "POST"])
+	@admin_required
+	def change_password():
+		if request.method == "POST":
+			data = request.get_json(silent=True) or {}
+			current_pw = data.get("current_password") or ""
+			new_pw = data.get("new_password") or ""
+
+			if not current_user.check_password(current_pw):
+				return jsonify({"success": False, "message": "Current password incorrect."}), 400
+
+			if len(new_pw) < 12:
+				return jsonify({"success": False, "message": "New password must be at least 12 characters."}), 400
+
+			current_user.set_password(new_pw)
+			db.session.commit()
+			return jsonify({"success": True, "message": "Password updated successfully."})
+
+		return render_template("admin/change_password.html")
 
 	@app.route("/logout", methods=["POST"])
 	@login_required
@@ -237,38 +359,34 @@ def create_app():
 	@app.route("/admin")
 	@admin_required
 	def admin_dashboard():
-		clients_total = db.session.query(func.count(Client.id)).scalar() or 0
-		clients_active = db.session.query(func.count(Client.id)).filter(Client.status == "active").scalar() or 0
-		clients_paused = db.session.query(func.count(Client.id)).filter(Client.status == "paused").scalar() or 0
-		clients_archived = db.session.query(func.count(Client.id)).filter(Client.status == "archived").scalar() or 0
+		from models.webdev_client import WebdevClient, WebdevJob
+		from routes.report_tenants import _get_report_tenants
 
-		users_total = db.session.query(func.count(User.id)).scalar() or 0
-		users_admins = db.session.query(func.count(User.id)).filter(User.role == "admin").scalar() or 0
-		users_clients = db.session.query(func.count(User.id)).filter(User.role == "client").scalar() or 0
+		webdev_clients = WebdevClient.query.all()
+		webdev_jobs = WebdevJob.query.all()
+
+		total_revenue = sum(float(c.total_paid_gbp) for c in webdev_clients)
+		total_received = sum(float(j.price_gbp) for j in webdev_jobs if j.payment_status == "PAID")
+		total_unpaid = sum(float(j.price_gbp) for j in webdev_jobs if j.payment_status != "PAID")
+
+		report_tenants, _ = _get_report_tenants()
 
 		stats = {
-			"clients_total": clients_total,
-			"clients_active": clients_active,
-			"clients_paused": clients_paused,
-			"clients_archived": clients_archived,
-			"users_total": users_total,
-			"users_admins": users_admins,
-			"users_clients": users_clients,
-			"invoices_total": 0,
-			"invoices_unpaid": 0,
-			"invoices_overdue": 0,
-			"alerts_total": 0
+			"total_revenue": total_revenue,
+			"total_received": total_received,
+			"total_unpaid": total_unpaid,
+			"webdev_clients_count": len(webdev_clients),
+			"report_tenants_count": len(report_tenants),
 		}
 
-		# operations: service health cards
 		service_states = [get_service_state(svc) for svc in SERVICES.values()]
-
-		recent_clients = Client.query.order_by(Client.id.desc()).limit(5).all()
 
 		return render_template(
 			"admin/dashboard.html",
 			stats=stats,
-			recent_clients=recent_clients,
+			webdev_clients=webdev_clients,
+			webdev_jobs=webdev_jobs,
+			report_tenants=report_tenants,
 			service_states=service_states,
 		)
 

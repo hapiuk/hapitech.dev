@@ -45,13 +45,18 @@
 				<a class="admin-nav__item {% if request.path == '/admin' %}is-active{% endif %}" href="{{ url_for('admin_dashboard') }}">
 					<span class="dot"></span> Overview
 				</a>
-				<a class="admin-nav__item {% if request.path.startswith('/admin/clients') %}is-active{% endif %}" href="{{ url_for('admin_clients') }}">
-					<span class="dot"></span> Clients
+				<a class="admin-nav__item {% if request.path.startswith('/admin/report-tenants') %}is-active{% endif %}" href="{{ url_for('report_tenants.report_tenants') }}">
+					<span class="dot"></span> Report Tenants
 				</a>
-
-				<a class="admin-nav__item" href="#" onclick="return false;"><span class="dot"></span> Invoices</a>
-				<a class="admin-nav__item" href="#" onclick="return false;"><span class="dot"></span> Site Status</a>
-				<a class="admin-nav__item" href="#" onclick="return false;"><span class="dot"></span> Work Logs</a>
+				<a class="admin-nav__item {% if request.path.startswith('/admin/webdev-clients') %}is-active{% endif %}" href="{{ url_for('report_tenants.webdev_clients') }}">
+					<span class="dot"></span> Webdev Clients & Costings
+				</a>
+				<a class="admin-nav__item {% if request.path.startswith('/admin/clients') %}is-active{% endif %}" href="{{ url_for('admin_clients') }}">
+					<span class="dot"></span> All Clients CRM
+				</a>
+				<a class="admin-nav__item {% if request.path == '/admin/change-password' %}is-active{% endif %}" href="{{ url_for('change_password') }}">
+					<span class="dot"></span> Change Password
+				</a>
 			</div>
 
 			{# Mobile-only actions inside the drawer #}
