@@ -1,0 +1,81 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Webdev Clients — HapiTech Admin{% endblock %}
+{% block header_title %}Webdev Agency Clients{% endblock %}
+{% block header_subtitle %}Web development project tracking{% endblock %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="flash flash--{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<!-- Summary KPIs -->
+<div class="admin-grid">
+  <div class="neon-card admin-card">
+    <div class="admin-card__kicker">Total Webdev Clients</div>
+    <div class="admin-card__value">{{ clients | length }}</div>
+    <div class="admin-card__hint">{{ clients | selectattr('status','eq','active') | list | length }} active</div>
+  </div>
+  <div class="neon-card admin-card">
+    <div class="admin-card__kicker">Total Paid (£)</div>
+    <div class="admin-card__value">£{{ clients | sum(attribute='total_paid_gbp') | int }}</div>
+    <div class="admin-card__hint">Cumulative payments received</div>
+  </div>
+  <div class="neon-card admin-card">
+    <div class="admin-card__kicker">Total Jobs</div>
+    <div class="admin-card__value">{{ clients | sum(attribute='jobs') | list | length if clients else 0 }}</div>
+    <div class="admin-card__hint">Across all webdev clients</div>
+  </div>
+</div>
+
+<!-- Client list -->
+<div class="neon-card admin-block">
+  <div class="admin-row">
+    <div>
+      <h2 class="admin-h2">All Webdev Clients</h2>
+      <p class="admin-muted">Managed separately from hapitech.report inspection tenants.</p>
+    </div>
+    <a class="btn neon admin-btn-sm" href="{{ url_for('report_tenants.webdev_clients_new') }}">+ New Client</a>
+  </div>
+
+  {% if clients %}
+  <div class="list-lite">
+    {% for c in clients %}
+    <div class="list-item">
+      <div style="flex:1;">
+        <div class="list-title">{{ c.name }}</div>
+        <div class="list-meta">
+          {% if c.domain %}<a href="https://{{ c.domain }}" target="_blank" rel="noopener" style="color:var(--neon-blue,#4db6ff);">{{ c.domain }}</a> &nbsp;·&nbsp;{% endif %}
+          Status: <span class="pill {{ 'ok' if c.status == 'active' else '' }}">{{ c.status }}</span>
+          &nbsp;·&nbsp;
+          Paid: <strong>£{{ '%.2f'|format(c.total_paid_gbp|float) }}</strong>
+          &nbsp;·&nbsp;
+          Jobs: <strong>{{ c.jobs | length }}</strong>
+        </div>
+      </div>
+      <div class="btn-row">
+        <span class="pill {{ 'ok' if c.payment_status == 'PAID' else 'warn' }}">{{ c.payment_status }}</span>
+        <a class="btn neon admin-btn-sm" href="{{ url_for('report_tenants.webdev_client_view', client_id=c.id) }}">View</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <p class="admin-muted" style="padding:12px 0;">
+      No webdev clients yet. Create one to get started.
+    </p>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .flash { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 0.9rem; }
+  .flash--success { background: rgba(74,222,128,0.12); border: 1px solid #4ade80; color: #4ade80; }
+  .flash--error   { background: rgba(248,113,113,0.12); border: 1px solid #f87171; color: #f87171; }
+</style>
+{% endblock %}

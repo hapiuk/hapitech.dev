@@ -1,0 +1,135 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}{{ client.name }} — Webdev Client{% endblock %}
+{% block header_title %}{{ client.name }}{% endblock %}
+{% block header_subtitle %}Webdev client detail & jobs{% endblock %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="flash flash--{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<!-- Client summary -->
+<div class="neon-card admin-block">
+  <div class="admin-row">
+    <div>
+      <h2 class="admin-h2">{{ client.name }}</h2>
+      <p class="admin-muted">
+        {% if client.domain %}
+          <a href="https://{{ client.domain }}" target="_blank" rel="noopener"
+             style="color:var(--neon-blue,#4db6ff);">{{ client.domain }}</a>
+          &nbsp;·&nbsp;
+        {% endif %}
+        Status: <span class="pill {{ 'ok' if client.status == 'active' else '' }}">{{ client.status }}</span>
+        &nbsp;·&nbsp;
+        Payment: <span class="pill {{ 'ok' if client.payment_status == 'PAID' else 'warn' }}">{{ client.payment_status }}</span>
+      </p>
+    </div>
+    <div class="btn-row">
+      <a class="btn neon admin-btn-sm"
+         href="{{ url_for('report_tenants.webdev_client_edit', client_id=client.id) }}">Edit</a>
+      <a class="btn neon admin-btn-sm"
+         href="{{ url_for('report_tenants.webdev_clients') }}">← Back</a>
+    </div>
+  </div>
+
+  <div class="admin-two" style="margin-top:16px;">
+    <div>
+      <div class="admin-label">Contact</div>
+      <div>{{ client.contact_name or '—' }}</div>
+      <div class="list-meta">{{ client.contact_email or '' }}{% if client.contact_email and client.contact_phone %} · {% endif %}{{ client.contact_phone or '' }}</div>
+    </div>
+    <div>
+      <div class="admin-label">Financials</div>
+      <div class="admin-card__value" style="font-size:1.6rem;">£{{ '%.2f'|format(client.total_paid_gbp|float) }}</div>
+      <div class="list-meta">Total paid to date</div>
+    </div>
+  </div>
+
+  {% if client.notes %}
+  <div style="margin-top:14px;">
+    <div class="admin-label">Notes</div>
+    <p class="admin-muted">{{ client.notes }}</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Jobs -->
+<div class="neon-card admin-block">
+  <div class="admin-row">
+    <div>
+      <h2 class="admin-h2">Jobs &amp; Pricing</h2>
+      <p class="admin-muted">Tracked tasks for {{ client.name }}.</p>
+    </div>
+    <a class="btn neon admin-btn-sm"
+       href="{{ url_for('report_tenants.webdev_job_new', client_id=client.id) }}">+ Add Job</a>
+  </div>
+
+  {% if client.jobs %}
+  <!-- Summary totals -->
+  {% set total_price = client.jobs | sum(attribute='price_gbp') %}
+  {% set paid_price  = client.jobs | selectattr('payment_status','eq','PAID') | sum(attribute='price_gbp') %}
+  <div class="admin-grid" style="margin-bottom:16px;">
+    <div class="neon-card admin-card">
+      <div class="admin-card__kicker">Total Quoted</div>
+      <div class="admin-card__value">£{{ '%.2f'|format(total_price|float) }}</div>
+    </div>
+    <div class="neon-card admin-card">
+      <div class="admin-card__kicker">Total Paid</div>
+      <div class="admin-card__value">£{{ '%.2f'|format(paid_price|float) }}</div>
+    </div>
+    <div class="neon-card admin-card">
+      <div class="admin-card__kicker">Outstanding</div>
+      <div class="admin-card__value">£{{ '%.2f'|format((total_price - paid_price)|float) }}</div>
+    </div>
+  </div>
+
+  <div class="list-lite">
+    {% for job in client.jobs %}
+    <div class="list-item">
+      <div style="flex:1;">
+        <div class="list-title">{{ job.title }}</div>
+        <div class="list-meta">
+          <span class="pill">{{ job.job_type | replace('_',' ') | title }}</span>
+          &nbsp;·&nbsp;
+          <span class="pill {{ 'ok' if job.status == 'completed' else 'warn' if job.status == 'in_progress' else '' }}">{{ job.status }}</span>
+          {% if job.description %} &nbsp;·&nbsp; {{ job.description | truncate(60) }}{% endif %}
+        </div>
+      </div>
+      <div class="btn-row" style="align-items:center;">
+        <span class="pill {{ 'ok' if job.payment_status == 'PAID' else 'warn' }}">{{ job.payment_status }}</span>
+        <strong style="min-width:70px;text-align:right;">£{{ '%.2f'|format(job.price_gbp|float) }}</strong>
+        <a class="btn neon admin-btn-sm"
+           href="{{ url_for('report_tenants.webdev_job_edit', client_id=client.id, job_id=job.id) }}">Edit</a>
+        <form method="POST"
+              action="{{ url_for('report_tenants.webdev_job_delete', client_id=client.id, job_id=job.id) }}"
+              style="display:inline;"
+              onsubmit="return confirm('Delete job \'{{ job.title }}\'?')">
+          <button class="btn neon admin-btn-sm" type="submit"
+                  style="border-color:#f87171;color:#f87171;">Del</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <p class="admin-muted" style="padding:12px 0;">
+      No jobs yet — <a href="{{ url_for('report_tenants.webdev_job_new', client_id=client.id) }}"
+                       style="color:var(--neon-blue,#4db6ff);">add the first job</a>.
+    </p>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .flash { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 0.9rem; }
+  .flash--success { background: rgba(74,222,128,0.12); border: 1px solid #4ade80; color: #4ade80; }
+  .flash--error   { background: rgba(248,113,113,0.12); border: 1px solid #f87171; color: #f87171; }
+  .admin-label { font-size: 0.78rem; color: var(--text-muted,#8899aa); margin-bottom:2px; }
+</style>
+{% endblock %}

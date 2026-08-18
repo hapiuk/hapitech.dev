@@ -1,0 +1,112 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}{{ 'Edit' if action == 'edit' else 'New' }} Webdev Client — HapiTech Admin{% endblock %}
+{% block header_title %}{{ 'Edit Webdev Client' if action == 'edit' else 'New Webdev Client' }}{% endblock %}
+{% block header_subtitle %}Web development agency client{% endblock %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="flash flash--{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div class="neon-card admin-block">
+  <div class="admin-row">
+    <h2 class="admin-h2">{{ 'Edit' if action == 'edit' else 'New' }} Webdev Client</h2>
+    <a class="btn neon admin-btn-sm" href="{{ url_for('report_tenants.webdev_clients') }}">← Back</a>
+  </div>
+
+  <form method="POST"
+        action="{{ url_for('report_tenants.webdev_client_edit', client_id=client.id) if action == 'edit' else url_for('report_tenants.webdev_clients_new') }}"
+        class="rt-form" style="margin-top:16px;">
+
+    <div class="rt-form__row">
+      <div class="rt-form__field">
+        <label class="admin-label" for="f-name">Company Name *</label>
+        <input class="rt-input" id="f-name" name="name" type="text" required
+               value="{{ client.name if client else '' }}" placeholder="Roland's Handyman">
+      </div>
+      <div class="rt-form__field">
+        <label class="admin-label" for="f-domain">Domain</label>
+        <input class="rt-input" id="f-domain" name="domain" type="text"
+               value="{{ client.domain if client else '' }}" placeholder="rolandshandyman.co.uk">
+      </div>
+    </div>
+
+    <div class="rt-form__row" style="margin-top:12px;">
+      <div class="rt-form__field">
+        <label class="admin-label" for="f-contact-name">Contact Name</label>
+        <input class="rt-input" id="f-contact-name" name="contact_name" type="text"
+               value="{{ client.contact_name if client else '' }}" placeholder="Roland Smith">
+      </div>
+      <div class="rt-form__field">
+        <label class="admin-label" for="f-contact-email">Contact Email</label>
+        <input class="rt-input" id="f-contact-email" name="contact_email" type="email"
+               value="{{ client.contact_email if client else '' }}" placeholder="roland@example.com">
+      </div>
+      <div class="rt-form__field">
+        <label class="admin-label" for="f-contact-phone">Contact Phone</label>
+        <input class="rt-input" id="f-contact-phone" name="contact_phone" type="text"
+               value="{{ client.contact_phone if client else '' }}" placeholder="+44 7xxx xxxxxx">
+      </div>
+    </div>
+
+    <div class="rt-form__row" style="margin-top:12px;">
+      <div class="rt-form__field">
+        <label class="admin-label" for="f-status">Status</label>
+        <select class="rt-input" id="f-status" name="status">
+          <option value="active" {{ 'selected' if not client or client.status == 'active' }}>Active</option>
+          <option value="paused" {{ 'selected' if client and client.status == 'paused' }}>Paused</option>
+          <option value="archived" {{ 'selected' if client and client.status == 'archived' }}>Archived</option>
+        </select>
+      </div>
+      <div class="rt-form__field">
+        <label class="admin-label" for="f-payment-status">Payment Status</label>
+        <select class="rt-input" id="f-payment-status" name="payment_status">
+          <option value="UNPAID" {{ 'selected' if not client or client.payment_status == 'UNPAID' }}>UNPAID</option>
+          <option value="PAID" {{ 'selected' if client and client.payment_status == 'PAID' }}>PAID</option>
+        </select>
+      </div>
+      <div class="rt-form__field">
+        <label class="admin-label" for="f-total-paid">Total Paid (£)</label>
+        <input class="rt-input" id="f-total-paid" name="total_paid_gbp" type="number"
+               step="0.01" min="0"
+               value="{{ '%.2f'|format(client.total_paid_gbp|float) if client else '0.00' }}">
+      </div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label class="admin-label" for="f-notes">Notes</label>
+      <textarea class="rt-input" id="f-notes" name="notes" rows="3"
+                placeholder="Any notes about this client…">{{ client.notes if client else '' }}</textarea>
+    </div>
+
+    <div style="margin-top:16px;" class="btn-row">
+      <button class="btn neon" type="submit">
+        {{ 'Save Changes' if action == 'edit' else 'Create Client' }}
+      </button>
+      <a class="btn neon admin-btn-sm" href="{{ url_for('report_tenants.webdev_clients') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .flash { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 0.9rem; }
+  .flash--success { background: rgba(74,222,128,0.12); border: 1px solid #4ade80; color: #4ade80; }
+  .flash--error   { background: rgba(248,113,113,0.12); border: 1px solid #f87171; color: #f87171; }
+  .rt-form__row { display: flex; flex-wrap: wrap; gap: 12px; }
+  .rt-form__field { flex: 1; min-width: 180px; }
+  .rt-input {
+    width: 100%; padding: 8px 10px; background: var(--bg-card,#111);
+    border: 1px solid var(--border,#2a3040); border-radius: 6px;
+    color: var(--text-main,#e4e8f0); font-size: 0.9rem; box-sizing: border-box;
+  }
+  .rt-input:focus { outline: none; border-color: var(--neon-blue,#4db6ff); }
+  .admin-label { display: block; font-size: 0.78rem; color: var(--text-muted,#8899aa); margin-bottom:4px; }
+</style>
+{% endblock %}

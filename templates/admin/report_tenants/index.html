@@ -1,0 +1,199 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Report Tenants — HapiTech Admin{% endblock %}
+{% block header_title %}Report Tenants{% endblock %}
+{% block header_subtitle %}hapitech.report • tenant management{% endblock %}
+
+{% block content %}
+
+<!-- Flash messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="flash flash--{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<!-- Top summary -->
+<div class="admin-grid">
+  <div class="neon-card admin-card">
+    <div class="admin-card__kicker">Total Tenants</div>
+    <div class="admin-card__value">{{ tenants | length }}</div>
+    <div class="admin-card__hint">Registered on hapitech.report</div>
+  </div>
+  <div class="neon-card admin-card">
+    <div class="admin-card__kicker">Active Clients (all tenants)</div>
+    <div class="admin-card__value">{{ tenants | sum(attribute='active_client_count') }}</div>
+    <div class="admin-card__hint">Aggregate count only — privacy isolated</div>
+  </div>
+  <div class="neon-card admin-card">
+    <div class="admin-card__kicker">MRR (est.)</div>
+    <div class="admin-card__value">£{{ tenants | sum(attribute='monthly_fee') }}</div>
+    <div class="admin-card__hint">Monthly recurring revenue estimate</div>
+  </div>
+</div>
+
+{% if db_error %}
+<div class="neon-card admin-block" style="border-color:var(--neon-warn,#f59e0b);">
+  <div class="admin-row">
+    <div>
+      <h2 class="admin-h2">⚠ Database Error</h2>
+      <p class="admin-muted">Could not connect to hapitech.report database.</p>
+    </div>
+  </div>
+  <pre class="admin-pre" style="color:var(--neon-warn,#f59e0b);">{{ db_error }}</pre>
+</div>
+{% endif %}
+
+<!-- Tenant list -->
+<div class="neon-card admin-block">
+  <div class="admin-row">
+    <div>
+      <h2 class="admin-h2">Tenant Companies</h2>
+      <p class="admin-muted">
+        Active inspection tenants on hapitech.report.
+        <strong>Client counts are numerical aggregates only — no client PII is shown here.</strong>
+      </p>
+    </div>
+    <div class="btn-row">
+      <button class="btn neon admin-btn-sm" type="button" id="btnDiagnostics">
+        Run Diagnostics
+      </button>
+    </div>
+  </div>
+
+  {% if tenants %}
+  <div class="list-lite">
+    {% for t in tenants %}
+    <div class="list-item rt-tenant-row">
+      <div class="rt-tenant-info">
+        <div class="list-title">{{ t.name }}</div>
+        <div class="list-meta">
+          Slug: <code>{{ t.slug }}</code>
+          &nbsp;·&nbsp;
+          Plan: <span class="pill {{ 'ok' if t.plan_tier == 'growth' else '' }}">{{ t.plan_tier_label }}</span>
+          &nbsp;·&nbsp;
+          Active clients: <strong>{{ t.active_client_count }}</strong>
+          &nbsp;·&nbsp;
+          Fee: {% if t.monthly_fee > 0 %}£{{ t.monthly_fee }}/mo{% else %}Free{% endif %}
+        </div>
+      </div>
+      <div class="btn-row">
+        <span class="pill {{ 'ok' if t.get('payment_status','UNPAID') == 'PAID' else 'warn' }}">
+          {{ t.get('payment_status', 'UNPAID') }}
+        </span>
+        <form method="POST" action="{{ url_for('report_tenants.report_tenants_mark_paid', tenant_id=t.id) }}"
+              style="display:inline;">
+          <button class="btn neon admin-btn-sm" type="submit"
+                  title="Mark this tenant's monthly payment as received">
+            Mark Paid
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <p class="admin-muted" style="padding:12px 0;">No tenants found in hapitech.report database.</p>
+  {% endif %}
+</div>
+
+<!-- Diagnostics output panel (hidden until triggered) -->
+<div id="diagPanel" class="neon-card admin-block" style="display:none;">
+  <div class="admin-row">
+    <h2 class="admin-h2">Diagnostics</h2>
+    <button class="btn neon admin-btn-sm" type="button" onclick="document.getElementById('diagPanel').style.display='none'">✕ Close</button>
+  </div>
+  <div id="diagBody" class="list-lite"></div>
+</div>
+
+<!-- Register new tenant -->
+<div class="neon-card admin-block">
+  <div class="admin-row">
+    <div>
+      <h2 class="admin-h2">Deploy / Register New Tenant</h2>
+      <p class="admin-muted">Provision a new company account on hapitech.report.</p>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('report_tenants.report_tenants_register') }}"
+        class="rt-form">
+    <div class="rt-form__row">
+      <div class="rt-form__field">
+        <label class="admin-label" for="reg-name">Company Name</label>
+        <input class="rt-input" id="reg-name" name="name" type="text"
+               placeholder="Acme Inspections Ltd" required>
+      </div>
+      <div class="rt-form__field">
+        <label class="admin-label" for="reg-slug">Slug</label>
+        <input class="rt-input" id="reg-slug" name="slug" type="text"
+               placeholder="acme-inspections" required
+               pattern="[a-z0-9\-]+" title="Lowercase letters, numbers, hyphens only">
+      </div>
+      <div class="rt-form__field">
+        <label class="admin-label" for="reg-email">Admin Email</label>
+        <input class="rt-input" id="reg-email" name="email" type="email"
+               placeholder="admin@acme.com" required>
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <button class="btn neon" type="submit">Register Tenant</button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .rt-tenant-row { align-items: flex-start; }
+  .rt-tenant-info { flex: 1; min-width: 0; }
+  .rt-form__row { display: flex; flex-wrap: wrap; gap: 12px; }
+  .rt-form__field { flex: 1; min-width: 180px; }
+  .rt-input {
+    width: 100%; padding: 8px 10px; background: var(--bg-card,#111);
+    border: 1px solid var(--border,#2a3040); border-radius: 6px;
+    color: var(--text-main,#e4e8f0); font-size: 0.9rem;
+  }
+  .rt-input:focus { outline: none; border-color: var(--neon-blue,#4db6ff); }
+  .admin-label { display: block; font-size: 0.78rem; color: var(--text-muted,#8899aa); margin-bottom:4px; }
+  .flash { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 0.9rem; }
+  .flash--success { background: rgba(74,222,128,0.12); border: 1px solid #4ade80; color: #4ade80; }
+  .flash--error   { background: rgba(248,113,113,0.12); border: 1px solid #f87171; color: #f87171; }
+  .diag-row { display: flex; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border,#2a3040); }
+  .diag-check { flex: 1; font-size: 0.85rem; }
+  .diag-detail { flex: 2; font-size: 0.8rem; color: var(--text-muted,#8899aa); }
+</style>
+
+<script>
+document.getElementById('btnDiagnostics').addEventListener('click', async function(){
+  const panel = document.getElementById('diagPanel');
+  const body  = document.getElementById('diagBody');
+  panel.style.display = 'block';
+  body.innerHTML = '<div class="admin-muted">Running diagnostics…</div>';
+
+  try {
+    const r = await fetch('{{ url_for("report_tenants.report_tenants_diagnostics") }}', { method: 'POST' });
+    const d = await r.json();
+    if (!d.results || !d.results.length) {
+      body.innerHTML = '<div class="admin-muted">No results returned.</div>';
+      return;
+    }
+    body.innerHTML = d.results.map(row => `
+      <div class="diag-row">
+        <div class="diag-check">
+          <span class="pill ${ row.status === 'OK' ? 'ok' : row.status === 'WARN' ? 'warn' : 'fail' }">${escHtml(row.status)}</span>
+          &nbsp;${escHtml(row.check)}
+        </div>
+        <div class="diag-detail">${escHtml(row.detail || '')}</div>
+      </div>
+    `).join('');
+  } catch(e) {
+    body.innerHTML = `<pre class="admin-pre">${escHtml(String(e))}</pre>`;
+  }
+});
+
+function escHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+</script>
+{% endblock %}
