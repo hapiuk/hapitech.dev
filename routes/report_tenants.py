@@ -48,6 +48,11 @@ REPORT_DB_PATH = os.getenv(
     "/var/home/hapi/nostromo_ai/projects/hapitech.report/instance/dev.db"
 )
 
+REPORT_DATABASE_URL = os.getenv(
+    "REPORT_DATABASE_URL",
+    "postgresql+psycopg://hapireport:dev-only-local-password@127.0.0.1:5432/hapireport"
+)
+
 PLAN_TIERS = {
     "free_starter": "Free Starter",
     "growth": "Growth",
@@ -59,41 +64,44 @@ MONTHLY_FEES = {
 }
 
 
+def _get_report_engine():
+    from sqlalchemy import create_engine, text
+    try:
+        engine = create_engine(REPORT_DATABASE_URL)
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return engine
+    except Exception:
+        sqlite_url = f"sqlite:///{REPORT_DB_PATH}"
+        return create_engine(sqlite_url)
+
+
 def _get_report_tenants():
     """
-    Query hapitech.report SQLite DB (read-only).
+    Query hapitech.report DB (PostgreSQL / SQLite fallback).
     Returns list of dicts — only aggregate / non-PII data.
     Privacy: ONLY client COUNT per tenant, never names or addresses.
     """
     try:
-        import sqlite3
-        conn = sqlite3.connect(f"file:{REPORT_DB_PATH}?mode=ro", uri=True,
-                               check_same_thread=False)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
+        from sqlalchemy import text
+        engine = _get_report_engine()
+        with engine.connect() as conn:
+            rows = conn.execute(text("""
+                SELECT c.id, c.name, c.slug, c.email, c.created_at
+                FROM companies c
+                ORDER BY c.id
+            """)).mappings().all()
+            companies = [dict(r) for r in rows]
 
-        # Fetch companies (tenants)
-        cur.execute("""
-            SELECT c.id, c.name, c.slug, c.email, c.created_at
-            FROM companies c
-            ORDER BY c.id
-        """)
-        companies = [dict(row) for row in cur.fetchall()]
+            for co in companies:
+                cnt = conn.execute(text(
+                    "SELECT COUNT(*) FROM clients WHERE company_id = :cid AND active = true"
+                ), {"cid": co["id"]}).scalar() or 0
+                co["active_client_count"] = cnt
+                co["plan_tier"] = "free_starter" if cnt <= 5 else "growth"
+                co["plan_tier_label"] = PLAN_TIERS[co["plan_tier"]]
+                co["monthly_fee"] = MONTHLY_FEES[co["plan_tier"]]
 
-        # For each company: active client count (privacy-safe aggregate only)
-        for co in companies:
-            cur.execute(
-                "SELECT COUNT(*) FROM clients WHERE company_id = ? AND active = 1",
-                (co["id"],)
-            )
-            co["active_client_count"] = cur.fetchone()[0]
-
-            # Derive plan tier from client count (rudimentary until plan_tier column added)
-            co["plan_tier"] = "free_starter" if co["active_client_count"] <= 5 else "growth"
-            co["plan_tier_label"] = PLAN_TIERS[co["plan_tier"]]
-            co["monthly_fee"] = MONTHLY_FEES[co["plan_tier"]]
-
-        conn.close()
         return companies, None
     except Exception as exc:
         return [], str(exc)
@@ -177,33 +185,90 @@ def report_tenants_mark_paid(tenant_id):
 @admin_required
 def report_tenants_register():
     """
-    Placeholder: trigger tenant registration in hapitech.report.
-    In production this would call the hapitech.report seed-demo CLI or
-    an internal API endpoint to provision the new tenant.
+    Onboard a new tenant company + primary admin user onto hapitech.report,
+    seed default item categories, and send an onboarding email with credentials.
     """
+    from werkzeug.security import generate_password_hash
+    from utils.mailer import send_contact_email
+    from sqlalchemy import text
+
     name = (request.form.get("name") or "").strip()
     slug = (request.form.get("slug") or "").strip().lower().replace(" ", "-")
-    email = (request.form.get("email") or "").strip()
+    email = (request.form.get("email") or "").strip().lower()
 
     if not (name and slug and email):
         flash("Name, slug, and admin email are required.", "error")
         return redirect(url_for("report_tenants.report_tenants"))
 
-    # Attempt to insert via sqlite3 directly into the report DB
+    temp_password = "HapiTech2026!Onboard"
+    pw_hash = generate_password_hash(temp_password)
+    now_dt = datetime.utcnow()
+
     try:
-        import sqlite3
-        conn = sqlite3.connect(REPORT_DB_PATH, check_same_thread=False)
-        cur = conn.cursor()
-        cur.execute(
-            """INSERT INTO companies
-               (name, slug, email, primary_color, secondary_color, created_at)
-               VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (name, slug, email, "#1e3a5f", "#4db6ff", datetime.utcnow().isoformat())
+        engine = _get_report_engine()
+        with engine.begin() as conn:
+            # 1. Create company
+            res = conn.execute(text(
+                """INSERT INTO companies (name, slug, email, primary_color, secondary_color, created_at)
+                   VALUES (:name, :slug, :email, '#1e3a5f', '#4db6ff', :now)
+                   RETURNING id
+                """
+            ), {"name": name, "slug": slug, "email": email, "now": now_dt})
+            company_id = res.scalar()
+            if not company_id:
+                res_id = conn.execute(text("SELECT id FROM companies WHERE slug = :slug"), {"slug": slug}).scalar()
+                company_id = res_id
+
+            # 2. Create or update primary admin user (handles duplicate email constraint across tenants)
+            admin_name = f"{name} Administrator"
+            existing_user_id = conn.execute(text(
+                "SELECT id FROM users WHERE LOWER(email) = :email"
+            ), {"email": email}).scalar()
+
+            if existing_user_id:
+                conn.execute(text(
+                    """UPDATE users
+                       SET company_id = :company_id, name = :name, role = 'admin', password_hash = :pw_hash, active = true
+                       WHERE id = :uid
+                    """
+                ), {"company_id": company_id, "name": admin_name, "pw_hash": pw_hash, "uid": existing_user_id})
+            else:
+                conn.execute(text(
+                    """INSERT INTO users (company_id, email, name, role, password_hash, active, created_at)
+                       VALUES (:company_id, :email, :name, 'admin', :pw_hash, true, :now)
+                    """
+                ), {"company_id": company_id, "email": email, "name": admin_name, "pw_hash": pw_hash, "now": now_dt})
+
+            # 3. Seed default item categories
+            default_categories = [
+                ("Lifting Equipment & Tackle", '["LOLER"]', 6),
+                ("Workplace Machinery & Tools", '["PUWER"]', 12),
+                ("Pressure Systems & Vessels", '["PSSR"]', 12),
+            ]
+            for cat_name, types_json, interval in default_categories:
+                conn.execute(text(
+                    """INSERT INTO item_categories (company_id, name, inspection_types, default_inspection_frequency_months, active, created_at)
+                       VALUES (:company_id, :name, :types, :interval, true, :now)
+                    """
+                ), {"company_id": company_id, "name": cat_name, "types": types_json, "interval": interval, "now": now_dt})
+
+        # 4. Send Onboarding Email to email address (e.g. aaron+deploy@hapitech.dev -> inbox)
+        from utils.mailer import send_onboarding_email
+        login_url = "http://100.78.142.108:5003/login"
+        try:
+            send_onboarding_email(
+                recipient_email=email,
+                company_name=name,
+                temp_password=temp_password,
+                login_url=login_url,
+            )
+        except Exception as mail_err:
+            print(f"[ONBOARDING_EMAIL_ERROR] {mail_err}")
+
+        flash(
+            f"Tenant '{name}' provisioned successfully! Admin user created for {email} (Temp Password: {temp_password}). Onboarding email sent to {email}.",
+            "success"
         )
-        conn.commit()
-        conn.close()
-        flash(f"Tenant '{name}' registered successfully.", "success")
     except Exception as exc:
         flash(f"Registration failed: {exc}", "error")
 
