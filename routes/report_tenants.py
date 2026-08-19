@@ -851,6 +851,61 @@ def report_tenants_push_upgrade(tenant_id):
     return redirect(url_for("report_tenants.report_tenants"))
 
 
+@report_tenants_bp.route("/report-tenants/<int:tenant_id>/delete", methods=["POST"])
+@admin_required
+def report_tenants_delete(tenant_id):
+    """
+    Remove a tenant company and all associated records from hapitech.report database.
+    """
+    from sqlalchemy import text
+    try:
+        engine = _get_report_engine()
+        with engine.begin() as conn:
+            # Check company exists
+            row = conn.execute(text("SELECT name FROM companies WHERE id = :cid"), {"cid": tenant_id}).mappings().first()
+            if not row:
+                flash(f"Tenant #{tenant_id} not found.", "error")
+                return redirect(url_for("report_tenants.report_tenants"))
+            cname = row["name"]
+
+            # Delete child records in cascade order
+            conn.execute(text("DELETE FROM report_versions WHERE package_id IN (SELECT id FROM report_packages WHERE company_id = :cid)"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM report_packages WHERE company_id = :cid"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM report_queue_items WHERE job_id IN (SELECT id FROM jobs WHERE company_id = :cid)"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM inspection_photos WHERE inspection_id IN (SELECT id FROM inspections WHERE company_id = :cid)"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM defects WHERE company_id = :cid"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM inspections WHERE company_id = :cid"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM job_items WHERE job_id IN (SELECT id FROM jobs WHERE company_id = :cid)"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM job_engineers WHERE job_id IN (SELECT id FROM jobs WHERE company_id = :cid)"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM jobs WHERE company_id = :cid"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM items WHERE company_id = :cid"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM item_categories WHERE company_id = :cid"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM locations WHERE company_id = :cid"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM portal_terms_acceptances WHERE company_id = :cid"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM contracts WHERE company_id = :cid"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM clients WHERE company_id = :cid"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM audit_log WHERE company_id = :cid"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM report_reference_sequences WHERE company_id = :cid"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM login_codes WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid)"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM user_totp_backup_codes WHERE user_id IN (SELECT id FROM users WHERE company_id = :cid)"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM users WHERE company_id = :cid"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM companies WHERE id = :cid"), {"cid": tenant_id})
+
+        # Also cleanup local payment status in hapitech.dev
+        MonthlyPaymentStatus.query.filter_by(
+            entity_type="report_tenant",
+            entity_id=tenant_id
+        ).delete()
+        db.session.commit()
+
+        flash(f"Tenant '{cname}' (ID #{tenant_id}) removed successfully.", "success")
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Error removing tenant: {exc}", "error")
+
+    return redirect(url_for("report_tenants.report_tenants"))
+
+
 # ---------------------------------------------------------------------------
 # Recurring Payments — shared helpers
 # ---------------------------------------------------------------------------

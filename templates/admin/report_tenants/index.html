@@ -136,6 +136,17 @@
           </button>
         </form>
         {% endif %}
+
+        <!-- Delete Tenant -->
+        <form method="POST" action="{{ url_for('report_tenants.report_tenants_delete', tenant_id=t.id) }}"
+              style="display:inline;"
+              onsubmit="return confirm('Are you sure you want to permanently delete tenant \'{{ t.name }}\' and all associated data?');">
+          <button class="btn neon admin-btn-sm" type="submit"
+                  title="Permanently remove this tenant"
+                  style="background:rgba(239,68,68,0.15); color:#ef4444; border-color:rgba(239,68,68,0.3);">
+            Delete
+          </button>
+        </form>
       </div>
     </div>
     {% endfor %}
