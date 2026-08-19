@@ -1,0 +1,164 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Pricing Config — HapiTech Admin{% endblock %}
+{% block header_title %}Pricing Configuration{% endblock %}
+{% block header_subtitle %}hapitech.report • subscription tier management{% endblock %}
+
+{% block content %}
+
+<!-- Flash messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="flash flash--{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<!-- Tier list -->
+<div class="neon-card admin-block">
+  <div class="admin-row">
+    <div>
+      <h2 class="admin-h2">Subscription Tiers</h2>
+      <p class="admin-muted">
+        Configure pricing tiers for hapitech.report tenants. These tiers are used
+        for client limit enforcement and monthly fee calculation.
+        <strong>Edit prices and limits here — no code changes needed.</strong>
+      </p>
+    </div>
+    <div class="btn-row">
+      <a class="btn neon admin-btn-sm" href="{{ url_for('pricing_config.pricing_tier_new') }}">
+        + New Tier
+      </a>
+      {% if not tiers %}
+      <form method="POST" action="{{ url_for('pricing_config.pricing_tier_seed') }}" style="display:inline;">
+        <button class="btn neon admin-btn-sm" type="submit" style="background:rgba(16,185,129,0.15); color:#10b981; border-color:rgba(16,185,129,0.3);">
+          Seed Defaults
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if tiers %}
+  <div class="table-lite">
+    <div class="t-head">
+      <div>Key</div>
+      <div>Name</div>
+      <div>Client Limit</div>
+      <div>Price (£/mo)</div>
+      <div>Status</div>
+    </div>
+    {% for t in tiers %}
+    <div class="t-row" style="grid-template-columns:1.2fr 1.8fr .8fr .8fr 1fr;">
+      <div>
+        <code style="font-size:12px; opacity:0.8;">{{ t.tier_key }}</code>
+      </div>
+      <div>
+        <div class="t-title">{{ t.name }}</div>
+        <div class="t-sub">Sort: {{ t.sort_order }}</div>
+      </div>
+      <div>
+        {% if t.client_limit is not none %}
+          {{ t.client_limit }}
+        {% else %}
+          <span style="opacity:0.5;">Unlimited</span>
+        {% endif %}
+      </div>
+      <div>
+        {% if t.monthly_price_gbp|float > 0 %}
+          £{{ '%.0f'|format(t.monthly_price_gbp|float) }}
+        {% else %}
+          Free
+        {% endif %}
+      </div>
+      <div>
+        <span class="pill {{ 'ok' if t.active else 'bad' }}">
+          {{ 'Active' if t.active else 'Inactive' }}
+        </span>
+        <a class="btn neon admin-btn-sm" href="{{ url_for('pricing_config.pricing_tier_edit', tier_id=t.id) }}"
+           style="margin-left:6px;">
+          Edit
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="admin-muted" style="padding:12px 0;">
+    No pricing tiers configured yet.
+    Click <strong>Seed Defaults</strong> to create the standard tier structure,
+    or <strong>+ New Tier</strong> to create custom tiers.
+  </p>
+  {% endif %}
+</div>
+
+<!-- Tier legend -->
+<div class="neon-card admin-block">
+  <h2 class="admin-h2">Tier Key Reference</h2>
+  <p class="admin-muted">
+    The <strong>tier_key</strong> value is stored as the <code>plan_override</code> column on
+    hapitech.report companies. When a tenant's plan_override matches a tier_key, those
+    limits and prices apply. When plan_override is empty, the system derives the tier
+    from the tenant's active client count.
+  </p>
+  <div style="margin-top:12px;">
+    <table style="width:100%; font-size:13px; border-collapse:collapse;">
+      <thead>
+        <tr style="text-align:left; opacity:0.6; border-bottom:1px solid rgba(120,180,255,0.06);">
+          <th style="padding:6px 8px;">Key</th>
+          <th style="padding:6px 8px;">Client Limit</th>
+          <th style="padding:6px 8px;">Price</th>
+          <th style="padding:6px 8px;">Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid rgba(120,180,255,0.04);">
+          <td style="padding:6px 8px;"><code>free_starter</code></td>
+          <td style="padding:6px 8px;">5</td>
+          <td style="padding:6px 8px;">£0/mo</td>
+          <td style="padding:6px 8px; opacity:0.7;">Default for new tenants</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(120,180,255,0.04);">
+          <td style="padding:6px 8px;"><code>standard_25</code></td>
+          <td style="padding:6px 8px;">25</td>
+          <td style="padding:6px 8px;">£79/mo</td>
+          <td style="padding:6px 8px; opacity:0.7;">—</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(120,180,255,0.04);">
+          <td style="padding:6px 8px;"><code>standard_75</code></td>
+          <td style="padding:6px 8px;">75</td>
+          <td style="padding:6px 8px;">£149/mo</td>
+          <td style="padding:6px 8px; opacity:0.7;">—</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(120,180,255,0.04);">
+          <td style="padding:6px 8px;"><code>standard_150</code></td>
+          <td style="padding:6px 8px;">150</td>
+          <td style="padding:6px 8px;">£249/mo</td>
+          <td style="padding:6px 8px; opacity:0.7;">—</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(120,180,255,0.04);">
+          <td style="padding:6px 8px;"><code>standard_300</code></td>
+          <td style="padding:6px 8px;">300</td>
+          <td style="padding:6px 8px;">£399/mo</td>
+          <td style="padding:6px 8px; opacity:0.7;">—</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;"><code>bespoke</code></td>
+          <td style="padding:6px 8px;">Unlimited</td>
+          <td style="padding:6px 8px;">Custom</td>
+          <td style="padding:6px 8px; opacity:0.7;">Contact for pricing</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .flash { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 0.9rem; }
+  .flash--success { background: rgba(74,222,128,0.12); border: 1px solid #4ade80; color: #4ade80; }
+  .flash--error   { background: rgba(248,113,113,0.12); border: 1px solid #f87171; color: #f87171; }
+  .flash--info    { background: rgba(96,165,250,0.12); border: 1px solid #60a5fa; color: #60a5fa; }
+</style>
+{% endblock %}

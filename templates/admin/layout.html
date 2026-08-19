@@ -35,9 +35,9 @@
 
 	</header>
 
-	<main class="admin-shell">
-		<div class="admin-overlay" onclick="document.body.classList.remove('nav-open')"></div>
+	<div class="admin-overlay" onclick="document.body.classList.remove('nav-open')"></div>
 
+	<main class="admin-shell">
 		<aside class="admin-nav neon-card">
 			<div class="admin-nav__section">
 				<div class="admin-nav__label">Navigation</div>
@@ -48,9 +48,12 @@
 				<a class="admin-nav__item {% if request.path.startswith('/admin/report-tenants') %}is-active{% endif %}" href="{{ url_for('report_tenants.report_tenants') }}">
 					<span class="dot"></span> Report Tenants
 				</a>
-				<a class="admin-nav__item {% if request.path.startswith('/admin/webdev-clients') %}is-active{% endif %}" href="{{ url_for('report_tenants.webdev_clients') }}">
-					<span class="dot"></span> Webdev Clients & Costings
-				</a>
+			<a class="admin-nav__item {% if request.path.startswith('/admin/webdev-clients') %}is-active{% endif %}" href="{{ url_for('report_tenants.webdev_clients') }}">
+				<span class="dot"></span> Webdev Clients & Costings
+			</a>
+			<a class="admin-nav__item {% if request.path.startswith('/admin/pricing-config') %}is-active{% endif %}" href="{{ url_for('pricing_config.pricing_config') }}">
+				<span class="dot"></span> Pricing Config
+			</a>
 				<a class="admin-nav__item {% if request.path.startswith('/admin/clients') %}is-active{% endif %}" href="{{ url_for('admin_clients') }}">
 					<span class="dot"></span> All Clients CRM
 				</a>
@@ -69,12 +72,11 @@
 				</button>
 			</div>
 
-			<div class="admin-nav__section">
-				<div class="admin-nav__label">Shortcuts</div>
-				<a class="admin-nav__link" href="https://hapitech.dev" target="_blank" rel="noopener">Open hub site</a>
-				<a class="admin-nav__link" href="https://gravemistakegames.com" target="_blank" rel="noopener">GraveMistakeGames</a>
-				<a class="admin-nav__link" href="https://rolandshandyman.co.uk" target="_blank" rel="noopener">Roland’s Handyman</a>
-			</div>
+		<div class="admin-nav__section">
+			<div class="admin-nav__label">Shortcuts</div>
+			<a class="admin-nav__link" href="https://hapitech.dev" target="_blank" rel="noopener">Open hub site</a>
+			<a class="admin-nav__link" href="https://rolandshandyman.co.uk" target="_blank" rel="noopener">Roland's Handyman</a>
+		</div>
 		</aside>
 
 		<section class="admin-content">

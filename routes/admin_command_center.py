@@ -19,34 +19,7 @@ def admin_required(fn):
 		return fn(*args, **kwargs)
 	return wrapper
 
-# --- Optional legacy pages (keep for now, but we won’t rely on them) ---
-
-@admin_command_center_bp.route("/command-center", methods=["GET", "POST"])
-@admin_required
-def command_center():
-	selected = ""
-	output = ""
-	exit_code = None
-
-	if request.method == "POST":
-		selected = request.form.get("cmd", "")
-		output, exit_code = run_command(selected)
-
-	return render_template(
-		"admin/command_center.html",
-		commands=COMMANDS,
-		selected=selected,
-		output=output,
-		exit_code=exit_code,
-	)
-
-@admin_command_center_bp.route("/status", methods=["GET"])
-@admin_required
-def status_board():
-	service_states = [get_service_state(svc) for svc in SERVICES.values()]
-	return render_template("admin/status_board.html", service_states=service_states)
-
-# --- Dashboard API ---
+# --- Dashboard API (used by service modal in layout.html) ---
 
 @admin_command_center_bp.route("/api/run-command", methods=["POST"])
 @admin_required

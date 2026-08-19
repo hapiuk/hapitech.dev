@@ -70,30 +70,176 @@
         <div class="list-meta">
           Slug: <code>{{ t.slug }}</code>
           &nbsp;·&nbsp;
-          Plan: <span class="pill {{ 'ok' if t.plan_tier == 'growth' else '' }}">{{ t.plan_tier_label }}</span>
+          Plan: <span class="pill {{ 'ok' if t.plan_tier != 'free_starter' else '' }}">{{ t.plan_tier_label }}</span>
           &nbsp;·&nbsp;
           Active clients: <strong>{{ t.active_client_count }}</strong>
           &nbsp;·&nbsp;
           Fee: {% if t.monthly_fee > 0 %}£{{ t.monthly_fee }}/mo{% else %}Free{% endif %}
+          &nbsp;·&nbsp;
+          Email: {{ t.email }}
         </div>
+
+        <!-- Dot Calendar -->
+        {% if t.plan_tier != 'free_starter' %}
+        <div class="dot-calendar" style="display:flex; gap:4px; margin-top:8px;">
+          {% for dot in t.dots %}
+          <div class="dot-item" style="text-align:center;">
+            <div class="dot dot--{{ dot.status|lower }}" style="width:12px; height:12px; border-radius:50%;
+              background:{% if dot.status == 'PAID' %}#10b981{% elif dot.status == 'OVERDUE' %}#ef4444{% else %}#f59e0b{% endif %};
+              box-shadow: 0 0 6px {% if dot.status == 'PAID' %}rgba(16,185,129,0.5){% elif dot.status == 'OVERDUE' %}rgba(239,68,68,0.5){% else %}rgba(245,158,11,0.5){% endif %};"></div>
+            <div style="font-size:9px; opacity:0.6; margin-top:2px;">{{ dot.month[-2:] }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="font-size:11px; opacity:0.6; margin-top:8px; color:#60a5fa;">Free tier — no payment tracking</div>
+        {% endif %}
       </div>
       <div class="btn-row">
-        <span class="pill {{ 'ok' if t.get('payment_status','UNPAID') == 'PAID' else 'warn' }}">
-          {{ t.get('payment_status', 'UNPAID') }}
+        {% if t.plan_tier != 'free_starter' %}
+        <span class="pill {{ 'ok' if t.current_month_status == 'PAID' else 'warn' }}">
+          {{ t.current_month_status }}
         </span>
+        {% endif %}
+
+        <!-- Tier cycle button -->
+        <form method="POST" action="{{ url_for('report_tenants.report_tenants_upgrade', tenant_id=t.id) }}"
+              style="display:inline;">
+          <button class="btn neon admin-btn-sm" type="submit"
+                  title="Cycle plan tier to next level">
+            Change Tier
+          </button>
+        </form>
+
+        <!-- Edit button -->
+        <button class="btn neon admin-btn-sm" type="button"
+                onclick="openEditModal('{{ t.id }}', '{{ t.name }}', '{{ t.email }}')">
+          Edit
+        </button>
+
+        <!-- Push Upgrade -->
+        <form method="POST" action="{{ url_for('report_tenants.report_tenants_push_upgrade', tenant_id=t.id) }}"
+              style="display:inline;">
+          <button class="btn neon admin-btn-sm" type="submit"
+                  title="Run schema checks & migrations for this tenant">
+            Push Upgrade
+          </button>
+        </form>
+
+        {% if t.plan_tier != 'free_starter' %}
         <form method="POST" action="{{ url_for('report_tenants.report_tenants_mark_paid', tenant_id=t.id) }}"
               style="display:inline;">
           <button class="btn neon admin-btn-sm" type="submit"
-                  title="Mark this tenant's monthly payment as received">
+                  title="Mark this tenant's monthly payment as received"
+                  style="background:rgba(16,185,129,0.15); color:#10b981; border-color:rgba(16,185,129,0.3);">
             Mark Paid
           </button>
         </form>
+        {% endif %}
       </div>
     </div>
     {% endfor %}
   </div>
   {% else %}
     <p class="admin-muted" style="padding:12px 0;">No tenants found in hapitech.report database.</p>
+  {% endif %}
+</div>
+
+<!-- Recurring Payments for Report Tenants -->
+<div class="neon-card admin-block">
+  <div class="admin-row">
+    <div>
+      <h2 class="admin-h2">Recurring Payments</h2>
+      <p class="admin-muted">Subscription tracking for report tenants.</p>
+    </div>
+  </div>
+
+  {% if recurring_items %}
+  <div class="list-lite">
+    {% for rp in recurring_items %}
+    <div class="list-item">
+      <div style="flex:1;">
+        <div class="list-title">{{ rp.title }}</div>
+        <div class="list-meta">
+          £{{ '%.2f'|format(rp.amount_gbp|float) }} / {{ rp.billing_interval }}
+          &nbsp;·&nbsp;
+          Due: {{ rp.next_due_date.strftime('%d %b %Y') if rp.next_due_date else '—' }}
+          &nbsp;·&nbsp;
+          Status: <span class="pill {{ 'ok' if rp.status == 'active' else 'bad' }}">{{ rp.status }}</span>
+        </div>
+      </div>
+      <div class="btn-row">
+        <span class="pill {{ 'ok' if rp.payment_status == 'PAID' else 'warn' }}">{{ rp.payment_status }}</span>
+        {% if rp.status == 'active' %}
+        <form method="POST" action="{{ url_for('report_tenants.recurring_toggle_paid', rp_id=rp.id) }}" style="display:inline;">
+          <button class="btn neon admin-btn-sm" type="submit">Toggle Paid</button>
+        </form>
+        <form method="POST" action="{{ url_for('report_tenants.recurring_cancel', rp_id=rp.id) }}" style="display:inline;">
+          <button class="btn neon admin-btn-sm" type="submit" style="color:var(--neon-warn,#f59e0b);">Cancel</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <p class="admin-muted" style="padding:12px 0;">No recurring items yet.</p>
+  {% endif %}
+
+  <!-- Add recurring item for first tenant (inline form) -->
+  {% if tenants %}
+  <details style="margin-top:12px;">
+    <summary style="cursor:pointer; font-size:13px; opacity:0.8;">+ Add Recurring Item</summary>
+    <form method="POST" class="rt-form" style="margin-top:10px;"
+          id="addRecurringForm">
+      <div class="rt-form__row">
+        <div class="rt-form__field">
+          <label class="admin-label" for="rp-tenant">Tenant</label>
+          <select class="rt-input" id="rp-tenant" name="tenant_id" required>
+            {% for t in tenants %}
+            <option value="{{ t.id }}">{{ t.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="rt-form__field">
+          <label class="admin-label" for="rp-title">Title</label>
+          <input class="rt-input" id="rp-title" name="title" type="text"
+                 placeholder="e.g. Monthly Hosting" required>
+        </div>
+        <div class="rt-form__field">
+          <label class="admin-label" for="rp-amount">Amount (£)</label>
+          <input class="rt-input" id="rp-amount" name="amount_gbp" type="number"
+                 step="0.01" min="0" value="0" required>
+        </div>
+      </div>
+      <div class="rt-form__row" style="margin-top:8px;">
+        <div class="rt-form__field">
+          <label class="admin-label" for="rp-interval">Interval</label>
+          <select class="rt-input" id="rp-interval" name="billing_interval">
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="annually">Annually</option>
+            <option value="one-off">One-off</option>
+          </select>
+        </div>
+        <div class="rt-form__field">
+          <label class="admin-label" for="rp-due">Next Due Date</label>
+          <input class="rt-input" id="rp-due" name="next_due_date" type="date">
+        </div>
+        <div class="rt-form__field" style="display:flex; align-items:flex-end;">
+          <button class="btn neon" type="submit">Add</button>
+        </div>
+      </div>
+    </form>
+    <script>
+    document.getElementById('addRecurringForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      var tenantId = document.getElementById('rp-tenant').value;
+      this.action = '/admin/report-tenants/' + tenantId + '/recurring/new';
+      this.submit();
+    });
+    </script>
+  </details>
   {% endif %}
 </div>
 
@@ -141,11 +287,50 @@
   </form>
 </div>
 
+<!-- Edit Tenant Modal -->
+<div id="editModal" class="modal" aria-hidden="true">
+  <div class="modal__overlay" onclick="closeEditModal()"></div>
+  <div class="modal__panel neon-card">
+    <div class="modal__head">
+      <div>
+        <div class="admin-title">Edit Tenant</div>
+        <div class="admin-subtitle" id="editModalSub">—</div>
+      </div>
+      <button class="btn neon" type="button" onclick="closeEditModal()">✕</button>
+    </div>
+    <form id="editTenantForm" method="POST" style="margin-top:16px;">
+      <div class="rt-form__row">
+        <div class="rt-form__field">
+          <label class="admin-label" for="edit-name">Company Name</label>
+          <input class="rt-input" id="edit-name" name="name" type="text" required>
+        </div>
+        <div class="rt-form__field">
+          <label class="admin-label" for="edit-email">Admin Email</label>
+          <input class="rt-input" id="edit-email" name="email" type="email">
+        </div>
+      </div>
+      <div class="rt-form__row" style="margin-top:10px;">
+        <div class="rt-form__field">
+          <label class="admin-label" for="edit-primary-color">Primary Colour</label>
+          <input class="rt-input" id="edit-primary-color" name="primary_color" type="color" value="#1e3a5f">
+        </div>
+        <div class="rt-form__field">
+          <label class="admin-label" for="edit-secondary-color">Secondary Colour</label>
+          <input class="rt-input" id="edit-secondary-color" name="secondary_color" type="color" value="#4db6ff">
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <button class="btn neon" type="submit">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <style>
-  .rt-tenant-row { align-items: flex-start; }
+  .rt-tenant-row { align-items: flex-start; flex-wrap: wrap; }
   .rt-tenant-info { flex: 1; min-width: 0; }
   .rt-form__row { display: flex; flex-wrap: wrap; gap: 12px; }
   .rt-form__field { flex: 1; min-width: 180px; }
@@ -191,6 +376,21 @@ document.getElementById('btnDiagnostics').addEventListener('click', async functi
     body.innerHTML = `<pre class="admin-pre">${escHtml(String(e))}</pre>`;
   }
 });
+
+/* Edit modal */
+function openEditModal(id, name, email){
+  document.getElementById('editTenantForm').action = '/admin/report-tenants/' + id + '/edit';
+  document.getElementById('editModalSub').textContent = name;
+  document.getElementById('edit-name').value = name;
+  document.getElementById('edit-email').value = email || '';
+  document.getElementById('editModal').classList.add('is-open');
+  document.getElementById('editModal').setAttribute('aria-hidden','false');
+}
+
+function closeEditModal(){
+  document.getElementById('editModal').classList.remove('is-open');
+  document.getElementById('editModal').setAttribute('aria-hidden','true');
+}
 
 function escHtml(s){
   return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));

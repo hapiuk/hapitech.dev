@@ -11,12 +11,14 @@ from models import db
 from models.user import User
 from models.client import Client
 from models.solar_user import SolarUser, SolarLoginCode
+from models.recurring_payment import RecurringPayment
 
 from routes.solar_system import solar_system_bp
 from routes.journal_api import bp_journal
 from utils.mailer import send_contact_email
 from routes.admin_command_center import admin_command_center_bp
 from routes.report_tenants import report_tenants_bp
+from routes.pricing_config import pricing_config_bp
 from utils.command_center import get_service_state, SERVICES
 
 def handle_contact(data: dict) -> None:
@@ -75,6 +77,11 @@ def create_app():
 	with app.app_context():
 		db.create_all(bind_key="solar")
 
+		# Ensure monthly_payment_status table exists
+		from models.monthly_payment_status import MonthlyPaymentStatus
+		from models.pricing_tier import PricingTier
+		db.create_all()
+
 		# create_all only creates missing tables — it never alters existing
 		# ones. solar_journal_entries already existed before entity_kind/
 		# entity_name were added, so patch those in safely if missing.
@@ -131,6 +138,7 @@ def create_app():
 	app.register_blueprint(bp_journal)
 	app.register_blueprint(admin_command_center_bp)
 	app.register_blueprint(report_tenants_bp)
+	app.register_blueprint(pricing_config_bp)
 
 	# --------------------------------------------------
 	# startup DB seeding & admin account setup
@@ -364,26 +372,35 @@ def create_app():
 	@admin_required
 	def admin_dashboard():
 		from models.webdev_client import WebdevClient, WebdevJob
-		from routes.report_tenants import _get_report_tenants
+		from models.monthly_payment_status import MonthlyPaymentStatus
+		from routes.report_tenants import _get_report_tenants, _get_plan_tiers
+
+		now = datetime.datetime.utcnow()
+		current_month = now.strftime("%Y-%m")
 
 		webdev_clients = WebdevClient.query.all()
 		webdev_jobs = WebdevJob.query.all()
 
-		total_revenue = sum(float(c.total_paid_gbp) for c in webdev_clients)
-		total_received = sum(float(j.price_gbp) for j in webdev_jobs if j.payment_status == "PAID")
-		total_unpaid = sum(float(j.price_gbp) for j in webdev_jobs if j.payment_status != "PAID")
-
+		# Monthly projected: sum of growth tenant fees
+		_, monthly_fees_db = _get_plan_tiers()
 		report_tenants, _ = _get_report_tenants()
+		monthly_projected = sum(monthly_fees_db.get(t.get("plan_tier", "free_starter"), 0) for t in report_tenants)
+
+		# Earned this month: payments marked PAID this month
+		earned_this_month = 0.0
+		paid_this_month = MonthlyPaymentStatus.query.filter(
+			MonthlyPaymentStatus.month == current_month,
+			MonthlyPaymentStatus.status == "PAID"
+		).all()
+		for p in paid_this_month:
+			earned_this_month += float(p.amount_gbp or 0)
 
 		stats = {
-			"total_revenue": total_revenue,
-			"total_received": total_received,
-			"total_unpaid": total_unpaid,
+			"monthly_projected": monthly_projected,
+			"earned_this_month": earned_this_month,
 			"webdev_clients_count": len(webdev_clients),
 			"report_tenants_count": len(report_tenants),
 		}
-
-		service_states = [get_service_state(svc) for svc in SERVICES.values()]
 
 		return render_template(
 			"admin/dashboard.html",
@@ -391,7 +408,6 @@ def create_app():
 			webdev_clients=webdev_clients,
 			webdev_jobs=webdev_jobs,
 			report_tenants=report_tenants,
-			service_states=service_states,
 		)
 
 	@app.route("/admin/clients")

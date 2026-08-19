@@ -123,6 +123,86 @@
   {% endif %}
 </div>
 
+<!-- Recurring Payments -->
+<div class="neon-card admin-block">
+  <div class="admin-row">
+    <div>
+      <h2 class="admin-h2">Recurring Payments</h2>
+      <p class="admin-muted">Subscription items for {{ client.name }}.</p>
+    </div>
+  </div>
+
+  {% if recurring_items %}
+  <div class="list-lite">
+    {% for rp in recurring_items %}
+    <div class="list-item">
+      <div style="flex:1;">
+        <div class="list-title">{{ rp.title }}</div>
+        <div class="list-meta">
+          £{{ '%.2f'|format(rp.amount_gbp|float) }} / {{ rp.billing_interval }}
+          &nbsp;·&nbsp;
+          Due: {{ rp.next_due_date.strftime('%d %b %Y') if rp.next_due_date else '—' }}
+          &nbsp;·&nbsp;
+          Status: <span class="pill {{ 'ok' if rp.status == 'active' else 'bad' }}">{{ rp.status }}</span>
+        </div>
+      </div>
+      <div class="btn-row">
+        <span class="pill {{ 'ok' if rp.payment_status == 'PAID' else 'warn' }}">{{ rp.payment_status }}</span>
+        {% if rp.status == 'active' %}
+        <form method="POST" action="{{ url_for('report_tenants.recurring_toggle_paid', rp_id=rp.id) }}" style="display:inline;">
+          <button class="btn neon admin-btn-sm" type="submit">Toggle Paid</button>
+        </form>
+        <form method="POST" action="{{ url_for('report_tenants.recurring_cancel', rp_id=rp.id) }}" style="display:inline;">
+          <button class="btn neon admin-btn-sm" type="submit" style="color:var(--neon-warn,#f59e0b);">Cancel</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <p class="admin-muted" style="padding:12px 0;">No recurring items yet.</p>
+  {% endif %}
+
+  <!-- Add recurring item -->
+  <details style="margin-top:12px;">
+    <summary style="cursor:pointer; font-size:13px; opacity:0.8;">+ Add Recurring Item</summary>
+    <form method="POST" action="{{ url_for('report_tenants.webdev_recurring_new', client_id=client.id) }}"
+          class="rt-form" style="margin-top:10px;">
+      <div class="rt-form__row">
+        <div class="rt-form__field">
+          <label class="admin-label" for="wr-title">Title</label>
+          <input class="rt-input" id="wr-title" name="title" type="text"
+                 placeholder="e.g. Monthly Hosting" required>
+        </div>
+        <div class="rt-form__field">
+          <label class="admin-label" for="wr-amount">Amount (£)</label>
+          <input class="rt-input" id="wr-amount" name="amount_gbp" type="number"
+                 step="0.01" min="0" value="0" required>
+        </div>
+      </div>
+      <div class="rt-form__row" style="margin-top:8px;">
+        <div class="rt-form__field">
+          <label class="admin-label" for="wr-interval">Interval</label>
+          <select class="rt-input" id="wr-interval" name="billing_interval">
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="annually">Annually</option>
+            <option value="one-off">One-off</option>
+          </select>
+        </div>
+        <div class="rt-form__field">
+          <label class="admin-label" for="wr-due">Next Due Date</label>
+          <input class="rt-input" id="wr-due" name="next_due_date" type="date">
+        </div>
+        <div class="rt-form__field" style="display:flex; align-items:flex-end;">
+          <button class="btn neon" type="submit">Add</button>
+        </div>
+      </div>
+    </form>
+  </details>
+</div>
+
 {% endblock %}
 
 {% block scripts %}

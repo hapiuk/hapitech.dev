@@ -39,6 +39,7 @@
       <p class="admin-muted">Managed separately from hapitech.report inspection tenants.</p>
     </div>
     <a class="btn neon admin-btn-sm" href="{{ url_for('report_tenants.webdev_clients_new') }}">+ New Client</a>
+    <button class="btn neon admin-btn-sm" type="button" onclick="document.getElementById('recurringModal').style.display='flex'">+ Add Recurring Payment</button>
   </div>
 
   {% if clients %}
@@ -55,10 +56,30 @@
           &nbsp;·&nbsp;
           Jobs: <strong>{{ c.jobs | length }}</strong>
         </div>
+
+        <!-- Dot Calendar -->
+        <div class="dot-calendar" style="display:flex; gap:4px; margin-top:8px;">
+          {% for dot in c.dots %}
+          <div class="dot-item" style="text-align:center;">
+            <div class="dot dot--{{ dot.status|lower }}" style="width:12px; height:12px; border-radius:50%;
+              background:{% if dot.status == 'PAID' %}#10b981{% elif dot.status == 'OVERDUE' %}#ef4444{% else %}#f59e0b{% endif %};
+              box-shadow: 0 0 6px {% if dot.status == 'PAID' %}rgba(16,185,129,0.5){% elif dot.status == 'OVERDUE' %}rgba(239,68,68,0.5){% else %}rgba(245,158,11,0.5){% endif %};"></div>
+            <div style="font-size:9px; opacity:0.6; margin-top:2px;">{{ dot.month[-2:] }}</div>
+          </div>
+          {% endfor %}
+        </div>
       </div>
       <div class="btn-row">
-        <span class="pill {{ 'ok' if c.payment_status == 'PAID' else 'warn' }}">{{ c.payment_status }}</span>
+        <span class="pill {{ 'ok' if c.current_month_status == 'PAID' else 'warn' }}">{{ c.current_month_status }}</span>
         <a class="btn neon admin-btn-sm" href="{{ url_for('report_tenants.webdev_client_view', client_id=c.id) }}">View</a>
+        <form method="POST" action="{{ url_for('report_tenants.webdev_client_mark_paid', client_id=c.id) }}"
+              style="display:inline;">
+          <button class="btn neon admin-btn-sm" type="submit"
+                  title="Mark this client's monthly payment as received"
+                  style="background:rgba(16,185,129,0.15); color:#10b981; border-color:rgba(16,185,129,0.3);">
+            Mark Paid
+          </button>
+        </form>
       </div>
     </div>
     {% endfor %}
@@ -77,5 +98,101 @@
   .flash { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 0.9rem; }
   .flash--success { background: rgba(74,222,128,0.12); border: 1px solid #4ade80; color: #4ade80; }
   .flash--error   { background: rgba(248,113,113,0.12); border: 1px solid #f87171; color: #f87171; }
+
+  /* Recurring Payment Modal */
+  #recurringModal {
+    display: none;
+    position: fixed; inset: 0; z-index: 100;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+  }
+  #recurringModal .modal-panel {
+    background: #1a2332; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px; width: 100%; max-width: 480px; padding: 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  #recurringModal label { display: block; font-size: 12px; color: var(--text-muted,#8899aa); margin-bottom: 4px; }
+  #recurringModal input, #recurringModal select {
+    width: 100%; padding: 8px 12px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05);
+    color: #e2e8f0; font-size: 13px; margin-bottom: 12px;
+  }
+  #recurringModal input:focus, #recurringModal select:focus {
+    outline: none; border-color: var(--neon-blue,#4db6ff);
+    box-shadow: 0 0 0 2px rgba(77,182,255,0.2);
+  }
 </style>
+
+<!-- Recurring Payment Modal -->
+<div id="recurringModal">
+  <div class="modal-panel">
+    <h3 style="font-size:16px; font-weight:700; margin-bottom:16px; color:#e2e8f0;">Add Recurring Payment</h3>
+    <form method="POST" id="recurringForm">
+      <div style="margin-bottom:4px;">
+        <label for="rp-client">Client</label>
+        <select id="rp-client" name="client_id" required>
+          <option value="">Select a client...</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}">{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="margin-bottom:4px;">
+        <label for="rp-title">Title</label>
+        <input id="rp-title" name="title" type="text" placeholder="e.g. Monthly Hosting" required>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div>
+          <label for="rp-amount">Amount (£)</label>
+          <input id="rp-amount" name="amount_gbp" type="number" step="0.01" min="0" value="0" required>
+        </div>
+        <div>
+          <label for="rp-interval">Interval</label>
+          <select id="rp-interval" name="billing_interval">
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="annually">Annually</option>
+            <option value="one-off">One-off</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label for="rp-due">Next Due Date</label>
+        <input id="rp-due" name="next_due_date" type="date">
+      </div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button type="button" class="btn neon admin-btn-sm"
+                onclick="document.getElementById('recurringModal').style.display='none'"
+                style="opacity:0.7;">Cancel</button>
+        <button type="submit" class="btn neon">Add Payment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function() {
+  var form = document.getElementById('recurringForm');
+  var modal = document.getElementById('recurringModal');
+  if (!form) return;
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var clientId = document.getElementById('rp-client').value;
+    if (!clientId) { alert('Please select a client.'); return; }
+    // Set form action to the client-specific recurring endpoint
+    form.action = '/admin/webdev-clients/' + clientId + '/recurring/new';
+    form.submit();
+  });
+
+  // Close on backdrop click
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) modal.style.display = 'none';
+  });
+  // Close on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') modal.style.display = 'none';
+  });
+})();
+</script>
 {% endblock %}

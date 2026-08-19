@@ -6,24 +6,24 @@
 
 {% block content %}
 
-	<!-- Financial KPIs -->
-	<div class="admin-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+	<!-- Overview KPIs -->
+	<div class="admin-grid" style="grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
 		<div class="neon-card admin-card" style="padding: 20px; border-radius: 16px;">
-			<div class="admin-card__kicker" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.7;">Webdev Revenue</div>
-			<div class="admin-card__value" style="font-size: 28px; font-weight: 850; margin: 6px 0; color: #4db6ff;">£{{ "%.2f"|format(stats.total_revenue) }}</div>
-			<div class="admin-card__hint" style="font-size: 12px; opacity: 0.75;">Total agency project revenue</div>
+			<div class="admin-card__kicker" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.7;">Monthly Projected</div>
+			<div class="admin-card__value" style="font-size: 28px; font-weight: 850; margin: 6px 0; color: #4db6ff;">£{{ "%.2f"|format(stats.monthly_projected) }}</div>
+			<div class="admin-card__hint" style="font-size: 12px; opacity: 0.75;">Growth tenants + recurring</div>
 		</div>
 
 		<div class="neon-card admin-card" style="padding: 20px; border-radius: 16px;">
-			<div class="admin-card__kicker" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.7;">Payments Received</div>
-			<div class="admin-card__value" style="font-size: 28px; font-weight: 850; margin: 6px 0; color: #10b981;">£{{ "%.2f"|format(stats.total_received) }}</div>
-			<div class="admin-card__hint" style="font-size: 12px; opacity: 0.75;">Cleared funds to date</div>
+			<div class="admin-card__kicker" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.7;">Earned This Month</div>
+			<div class="admin-card__value" style="font-size: 28px; font-weight: 850; margin: 6px 0; color: #10b981;">£{{ "%.2f"|format(stats.earned_this_month) }}</div>
+			<div class="admin-card__hint" style="font-size: 12px; opacity: 0.75;">Payments received this cycle</div>
 		</div>
 
 		<div class="neon-card admin-card" style="padding: 20px; border-radius: 16px;">
 			<div class="admin-card__kicker" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.7;">Webdev Clients</div>
 			<div class="admin-card__value" style="font-size: 28px; font-weight: 850; margin: 6px 0;">{{ stats.webdev_clients_count }}</div>
-			<div class="admin-card__hint" style="font-size: 12px; opacity: 0.75;">Roland's & Ray G</div>
+			<div class="admin-card__hint" style="font-size: 12px; opacity: 0.75;">Agency project accounts</div>
 		</div>
 
 		<div class="neon-card admin-card" style="padding: 20px; border-radius: 16px;">
@@ -36,74 +36,119 @@
 	<!-- Main Two Column Grid -->
 	<div class="admin-two" style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px;">
 		
-		<!-- Website Projects & Costings -->
+		<!-- Recent Earnings & Revenue (Merged) -->
 		<div class="neon-card admin-block" style="padding: 24px; border-radius: 16px;">
 			<div class="admin-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
 				<div>
-					<h2 class="admin-h2" style="font-size: 18px; font-weight: 700;">Website Projects & Costings</h2>
-					<p class="admin-muted" style="font-size: 13px;">Agency client builds, hosting & payment status.</p>
+					<h2 class="admin-h2" style="font-size: 18px; font-weight: 700;">Recent Earnings &amp; Revenue</h2>
+					<p class="admin-muted" style="font-size: 13px;">Webdev agency clients and inspection tenants — unified view.</p>
 				</div>
-				<a class="btn neon admin-btn-sm" href="{{ url_for('report_tenants.webdev_clients_new') }}">+ New Project</a>
+				<div class="btn-row" style="display:flex; gap:6px;">
+					<a class="btn neon admin-btn-sm" href="{{ url_for('report_tenants.webdev_clients_new') }}">+ New Project</a>
+					<a class="btn neon admin-btn-sm" href="{{ url_for('report_tenants.report_tenants') }}">Tenants ↗</a>
+				</div>
 			</div>
 
 			<div style="overflow-x: auto;">
 				<table style="width: 100%; border-collapse: collapse; font-size: 13px;">
 					<thead>
 						<tr style="border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left; opacity: 0.7;">
-							<th style="padding: 8px 12px;">Client</th>
-							<th style="padding: 8px 12px;">Domain</th>
-							<th style="padding: 8px 12px; text-align: right;">Total Price</th>
-							<th style="padding: 8px 12px; text-align: right;">Paid</th>
+							<th style="padding: 8px 12px;">Name</th>
+							<th style="padding: 8px 12px; text-align: center;">Type</th>
+							<th style="padding: 8px 12px;">Plan / Fee</th>
+							<th style="padding: 8px 12px; text-align: right;">Amount</th>
 							<th style="padding: 8px 12px; text-align: center;">Status</th>
-							<th style="padding: 8px 12px; text-align: right;">Action</th>
+							<th style="padding: 8px 12px; text-align: right;">Actions</th>
 						</tr>
 					</thead>
 					<tbody>
 						{% for c in webdev_clients %}
 						<tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
 							<td style="padding: 12px; font-weight: 600;">{{ c.name }}</td>
+							<td style="padding: 12px; text-align: center;">
+								<span style="background: rgba(16,185,129,0.15); color: #10b981; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">WEBDEV</span>
+							</td>
 							<td style="padding: 12px; opacity: 0.8;">{{ c.domain or "—" }}</td>
 							<td style="padding: 12px; text-align: right; font-family: monospace;">£{{ "%.2f"|format(c.total_paid_gbp) }}</td>
-							<td style="padding: 12px; text-align: right; font-family: monospace; color: #10b981;">£{{ "%.2f"|format(c.total_paid_gbp) }}</td>
 							<td style="padding: 12px; text-align: center;">
-								<span style="background: rgba(16,185,129,0.15); color: #10b981; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700;">PAID</span>
+								<span style="display:inline-block; width:8px; height:8px; border-radius:50%;
+									background:{% if c.payment_status == 'PAID' %}#10b981{% elif c.payment_status == 'OVERDUE' %}#ef4444{% else %}#f59e0b{% endif %};
+									box-shadow: 0 0 6px {% if c.payment_status == 'PAID' %}rgba(16,185,129,0.5){% elif c.payment_status == 'OVERDUE' %}rgba(239,68,68,0.5){% else %}rgba(245,158,11,0.5){% endif %};"></span>
+								<span style="margin-left:6px; font-size:11px; opacity:0.8;">{{ c.payment_status }}</span>
 							</td>
 							<td style="padding: 12px; text-align: right;">
 								<a href="{{ url_for('report_tenants.webdev_client_view', client_id=c.id) }}" class="btn neon admin-btn-sm" style="padding: 4px 10px; font-size: 11px;">Manage</a>
 							</td>
 						</tr>
 						{% endfor %}
+
+						{% for t in report_tenants %}
+						<tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+							<td style="padding: 12px; font-weight: 600;">{{ t.name }}</td>
+							<td style="padding: 12px; text-align: center;">
+								<span style="background: rgba(168,85,247,0.15); color: #c084fc; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">TENANT</span>
+							</td>
+							<td style="padding: 12px; opacity: 0.8;">{{ t.plan_tier_label }} · {{ t.active_client_count }} clients</td>
+							<td style="padding: 12px; text-align: right; font-family: monospace;">£{{ "%.2f"|format(t.monthly_fee) }}<span style="font-size:10px; opacity:0.6;">/mo</span></td>
+							<td style="padding: 12px; text-align: center;">
+								{% set tenant_status = t.get('current_month_status', 'DUE') %}
+								<span style="display:inline-block; width:8px; height:8px; border-radius:50%;
+									background:{% if tenant_status == 'PAID' %}#10b981{% elif tenant_status == 'FREE' %}#64748b{% else %}#f59e0b{% endif %};
+									box-shadow: 0 0 6px {% if tenant_status == 'PAID' %}rgba(16,185,129,0.5){% elif tenant_status == 'FREE' %}transparent{% else %}rgba(245,158,11,0.5){% endif %};"></span>
+								<span style="margin-left:6px; font-size:11px; opacity:0.8;">{{ tenant_status }}</span>
+							</td>
+							<td style="padding: 12px; text-align: right;">
+								<a href="{{ url_for('report_tenants.report_tenants') }}" class="btn neon admin-btn-sm" style="padding: 4px 10px; font-size: 11px;">Manage</a>
+							</td>
+						</tr>
+						{% endfor %}
 					</tbody>
 				</table>
 			</div>
+
+			{% if not webdev_clients and not report_tenants %}
+			<p class="admin-muted" style="padding:20px 0; text-align:center;">No clients or tenants yet. Add your first webdev project or provision a tenant.</p>
+			{% endif %}
 		</div>
 
-		<!-- hapitech.report Tenants Overview -->
-		<div class="neon-card admin-block" style="padding: 24px; border-radius: 16px;">
-			<div class="admin-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-				<div>
-					<h2 class="admin-h2" style="font-size: 18px; font-weight: 700;">Inspection Tenants</h2>
-					<p class="admin-muted" style="font-size: 13px;">hapitech.report tenant accounts.</p>
-				</div>
-				<a class="btn neon admin-btn-sm" href="{{ url_for('report_tenants.report_tenants') }}">Hub ↗</a>
-			</div>
-
-			<div class="list-lite" style="display: flex; flex-direction: column; gap: 12px;">
-				{% for t in report_tenants %}
-				<div class="list-item" style="padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
-					<div>
-						<div class="list-title" style="font-weight: 600; font-size: 14px;">{{ t.name }}</div>
-						<div class="list-meta" style="font-size: 12px; opacity: 0.7;">{{ t.active_client_count }} active clients • {{ t.plan_tier_label }}</div>
+		<!-- Quick Actions & Diagnostics -->
+		<div style="display:flex; flex-direction:column; gap:16px;">
+			<!-- Quick Stats -->
+			<div class="neon-card admin-block" style="padding: 20px; border-radius: 16px;">
+				<h3 class="admin-h2" style="font-size:15px; margin-bottom:12px;">Revenue Summary</h3>
+				<div style="display:flex; flex-direction:column; gap:10px;">
+					<div style="display:flex; justify-content:space-between; font-size:13px;">
+						<span style="opacity:0.7;">Webdev clients</span>
+						<span style="font-weight:600;">{{ webdev_clients | length }}</span>
 					</div>
-					<span style="background: rgba(59,130,246,0.15); color: #60a5fa; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">ACTIVE</span>
+					<div style="display:flex; justify-content:space-between; font-size:13px;">
+						<span style="opacity:0.7;">Inspection tenants</span>
+						<span style="font-weight:600;">{{ report_tenants | length }}</span>
+					</div>
+					<div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px solid rgba(255,255,255,0.08); padding-top:10px;">
+						<span style="opacity:0.7;">Monthly projected</span>
+						<span style="font-weight:700; color:#4db6ff;">£{{ "%.2f"|format(stats.monthly_projected) }}</span>
+					</div>
+					<div style="display:flex; justify-content:space-between; font-size:13px;">
+						<span style="opacity:0.7;">Earned this month</span>
+						<span style="font-weight:700; color:#10b981;">£{{ "%.2f"|format(stats.earned_this_month) }}</span>
+					</div>
 				</div>
-				{% else %}
-				<p class="admin-muted">No tenants registered yet.</p>
-				{% endfor %}
 			</div>
 
-			<div style="margin-top: 20px; text-align: center;">
-				<a href="{{ url_for('report_tenants.report_tenants') }}" class="btn neon admin-btn-sm" style="width: 100%;">Open Report Tenants Hub</a>
+			<!-- Service Status -->
+			<div class="neon-card admin-block" style="padding: 20px; border-radius: 16px;">
+				<h3 class="admin-h2" style="font-size:15px; margin-bottom:12px;">Services</h3>
+				<div style="display:flex; flex-direction:column; gap:8px;">
+					<div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+						<span>hapitech.report</span>
+						<span id="svc-report" style="font-size:11px; padding:2px 8px; border-radius:6px; background:rgba(255,255,255,0.05);">checking...</span>
+					</div>
+					<div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+						<span>hapitech.dev</span>
+						<span style="font-size:11px; padding:2px 8px; border-radius:6px; background:rgba(16,185,129,0.15); color:#10b981;">ACTIVE</span>
+					</div>
+				</div>
 			</div>
 		</div>
 
@@ -137,34 +182,6 @@
 		</div>
 	</div>
 
-	<!-- System Operations -->
-	<div class="neon-card admin-block" style="padding: 24px; border-radius: 16px;">
-		<div class="admin-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-			<div>
-				<h2 class="admin-h2" style="font-size: 18px; font-weight: 700;">System Operations</h2>
-				<p class="admin-muted" style="font-size: 13px;">Live background service health & monitoring.</p>
-			</div>
-		</div>
 
-		<div class="service-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
-			{% for s in service_states %}
-				<div class="neon-card service-card" style="padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.02);">
-					<div class="service-head" style="display: flex; justify-content: space-between; align-items: center;">
-						<div style="display:flex;align-items:center;gap:10px;min-width:0;">
-							<span class="light {{ s.level }}" style="width: 10px; height: 10px; border-radius: 50%; display: inline-block; background: {% if s.level == 'ok' %}#10b981{% else %}#f59e0b{% endif %};"></span>
-							<div style="min-width:0;">
-								<div class="service-name" style="font-weight: 600; font-size: 13px;">{{ s.service }}</div>
-								<div class="service-meta" style="font-size: 11px; opacity: 0.6;">{{ s.ActiveState }} / {{ s.SubState }}</div>
-							</div>
-						</div>
-
-						<button class="btn neon admin-btn-sm" type="button" onclick="openSvcModal('{{ s.service }}','{{ s.service }}')">
-							Manage
-						</button>
-					</div>
-				</div>
-			{% endfor %}
-		</div>
-	</div>
 
 {% endblock %}
