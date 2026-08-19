@@ -36,5 +36,34 @@ class PricingTier(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow,
                            onupdate=datetime.datetime.utcnow, nullable=False)
 
+    @classmethod
+    def seed_defaults(cls):
+        """Seed the 6 standard pricing tiers into the database if empty."""
+        defaults = [
+            ("free_starter", "Free Starter", 5, 0.0, 10),
+            ("standard_25", "Standard — 25 Clients", 25, 79.0, 20),
+            ("standard_75", "Standard — 75 Clients", 75, 149.0, 30),
+            ("standard_150", "Standard — 150 Clients", 150, 249.0, 40),
+            ("standard_300", "Standard — 300 Clients", 300, 399.0, 50),
+            ("bespoke", "Bespoke (300+ Clients)", None, 0.0, 60),
+        ]
+        seeded = 0
+        for tier_key, name, limit, price, sort in defaults:
+            existing = cls.query.filter_by(tier_key=tier_key).first()
+            if not existing:
+                tier = cls(
+                    tier_key=tier_key,
+                    name=name,
+                    client_limit=limit,
+                    monthly_price_gbp=price,
+                    sort_order=sort,
+                    active=True,
+                )
+                db.session.add(tier)
+                seeded += 1
+        if seeded > 0:
+            db.session.commit()
+        return seeded
+
     def __repr__(self):
         return f"<PricingTier {self.tier_key} £{self.monthly_price_gbp}/{self.client_limit}>"
