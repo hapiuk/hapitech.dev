@@ -445,9 +445,11 @@ def report_tenants_register():
                     """
                 ), {"company_id": company_id, "name": cat_name, "types": types_json, "interval": interval, "now": now_dt})
 
-        # 4. Send Onboarding Email to email address (e.g. aaron+deploy@hapitech.dev -> inbox)
+        # 4. Send Onboarding Email to email address
         from utils.mailer import send_onboarding_email
-        login_url = "http://100.78.142.108:5003/login"
+        login_url = os.getenv("REPORT_PUBLIC_URL", "https://hapitech.report/login")
+        email_sent = True
+        mail_error = None
         try:
             send_onboarding_email(
                 recipient_email=email,
@@ -456,12 +458,20 @@ def report_tenants_register():
                 login_url=login_url,
             )
         except Exception as mail_err:
+            email_sent = False
+            mail_error = str(mail_err)
             print(f"[ONBOARDING_EMAIL_ERROR] {mail_err}")
 
-        flash(
-            f"Tenant '{name}' provisioned successfully! Admin user created for {email} (Temp Password: {temp_password}). Onboarding email sent to {email}.",
-            "success"
-        )
+        if email_sent:
+            flash(
+                f"Tenant '{name}' provisioned successfully! Admin user created for {email} (Temp Password: {temp_password}). Onboarding email sent to {email}.",
+                "success"
+            )
+        else:
+            flash(
+                f"Tenant '{name}' provisioned! Admin user created for {email} (Temp Password: {temp_password}). Warning: Email could not be sent ({mail_error}).",
+                "warning"
+            )
     except Exception as exc:
         flash(f"Registration failed: {exc}", "error")
 
