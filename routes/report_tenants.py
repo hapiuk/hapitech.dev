@@ -869,10 +869,10 @@ def report_tenants_delete(tenant_id):
             cname = row["name"]
 
             # Delete child records in cascade order
-            conn.execute(text("DELETE FROM report_versions WHERE package_id IN (SELECT id FROM report_packages WHERE company_id = :cid)"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM report_versions WHERE company_id = :cid"), {"cid": tenant_id})
             conn.execute(text("DELETE FROM report_packages WHERE company_id = :cid"), {"cid": tenant_id})
-            conn.execute(text("DELETE FROM report_queue_items WHERE job_id IN (SELECT id FROM jobs WHERE company_id = :cid)"), {"cid": tenant_id})
-            conn.execute(text("DELETE FROM inspection_photos WHERE inspection_id IN (SELECT id FROM inspections WHERE company_id = :cid)"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM report_queue_items WHERE company_id = :cid"), {"cid": tenant_id})
+            conn.execute(text("DELETE FROM inspection_photos WHERE company_id = :cid"), {"cid": tenant_id})
             conn.execute(text("DELETE FROM defects WHERE company_id = :cid"), {"cid": tenant_id})
             conn.execute(text("DELETE FROM inspections WHERE company_id = :cid"), {"cid": tenant_id})
             conn.execute(text("DELETE FROM job_items WHERE job_id IN (SELECT id FROM jobs WHERE company_id = :cid)"), {"cid": tenant_id})
