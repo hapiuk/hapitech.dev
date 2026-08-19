@@ -145,16 +145,19 @@ def create_app():
 	# --------------------------------------------------
 	with app.app_context():
 		db.create_all()
-		admin = User.query.filter((User.email == "aaron@hapitech.dev") | (User.username == "aaron@hapitech.dev") | (User.username == "aaron")).first()
-		if not admin:
+
+		# Auto-seed pricing tiers if the table is empty
+		PricingTier.seed_defaults()
+
+		# Only provision the admin account when the users table is
+		# completely empty.  Never overwrite an existing admin password
+		# on process startup — password changes go through the
+		# /admin/change-password route.
+		if User.query.first() is None:
 			admin = User(email="aaron@hapitech.dev", username="aaron@hapitech.dev", role="admin")
 			admin.set_password("Password1234!")
 			db.session.add(admin)
-		else:
-			admin.role = "admin"
-			admin.email = "aaron@hapitech.dev"
-			admin.set_password("Password1234!")
-		db.session.commit()
+			db.session.commit()
 
 		# Seed initial webdev agency clients if empty (Roland's Handyman & Ray G's Handyman only)
 		from models.webdev_client import WebdevClient, WebdevJob

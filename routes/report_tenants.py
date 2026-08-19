@@ -345,9 +345,19 @@ def report_tenants_register():
     Onboard a new tenant company + primary admin user onto hapitech.report,
     seed default item categories, and send an onboarding email with credentials.
     """
-    from werkzeug.security import generate_password_hash
     from utils.mailer import send_contact_email
     from sqlalchemy import text
+
+    # Argon2id hashing — match hapitech.report/api/models/user.py
+    try:
+        from argon2 import PasswordHasher as Argon2Hasher
+        _pw_hasher = Argon2Hasher()
+        def _hash_password(pw: str) -> str:
+            return _pw_hasher.hash(pw)
+    except ImportError:
+        from werkzeug.security import generate_password_hash
+        def _hash_password(pw: str) -> str:
+            return generate_password_hash(pw)
 
     name = (request.form.get("name") or "").strip()
     slug = (request.form.get("slug") or "").strip().lower().replace(" ", "-")
@@ -358,7 +368,7 @@ def report_tenants_register():
         return redirect(url_for("report_tenants.report_tenants"))
 
     temp_password = "HapiTech2026!Onboard"
-    pw_hash = generate_password_hash(temp_password)
+    pw_hash = _hash_password(temp_password)
     now_dt = datetime.utcnow()
 
     try:
