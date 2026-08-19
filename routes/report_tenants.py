@@ -109,14 +109,40 @@ def _get_tier_for_client_count(cnt: int) -> str:
 
 def _get_report_engine():
     from sqlalchemy import create_engine, text
+    db_url = os.getenv(
+        "REPORT_DATABASE_URL",
+        "postgresql+psycopg://hapireport:dev-only-local-password@127.0.0.1:5432/hapireport"
+    )
+    db_path = os.getenv(
+        "REPORT_DB_PATH",
+        "/var/home/hapi/nostromo_ai/projects/hapitech.report/instance/dev.db"
+    )
+    pg_error = None
     try:
-        engine = create_engine(REPORT_DATABASE_URL)
+        engine = create_engine(db_url)
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         return engine
-    except Exception:
-        sqlite_url = f"sqlite:///{REPORT_DB_PATH}"
+    except Exception as exc:
+        pg_error = exc
+
+    # Try fallback URL driver format if psycopg fails or psycopg2 is present
+    if "postgresql+psycopg://" in db_url:
+        try:
+            alt_url = db_url.replace("postgresql+psycopg://", "postgresql://")
+            engine = create_engine(alt_url)
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            return engine
+        except Exception:
+            pass
+
+    # Only attempt SQLite fallback if the target file actually exists on disk
+    if os.path.isfile(db_path):
+        sqlite_url = f"sqlite:///{db_path}"
         return create_engine(sqlite_url)
+
+    raise RuntimeError(f"PostgreSQL connection failed ({pg_error}) and no SQLite fallback database file exists at {db_path}")
 
 
 def _get_report_tenants():
