@@ -137,10 +137,10 @@ def pricing_tier_seed():
 
     defaults = [
         ("free_starter", "Free Starter", 5, 0, 0),
-        ("standard_25", "Standard 25 Clients", 25, 79, 10),
-        ("standard_75", "Standard 75 Clients", 75, 149, 20),
-        ("standard_150", "Standard 150 Clients", 150, 249, 30),
-        ("standard_300", "Standard 300 Clients", 300, 399, 40),
+        ("standard_25", "Standard 25 Clients", 25, 29, 10),
+        ("standard_75", "Standard 75 Clients", 75, 59, 20),
+        ("standard_150", "Standard 150 Clients", 150, 99, 30),
+        ("standard_300", "Standard 300 Clients", 300, 149, 40),
         ("bespoke", "Bespoke (300+)", None, 0, 50),
     ]
 

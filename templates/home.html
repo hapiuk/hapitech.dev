@@ -1,280 +1,351 @@
 <!-- templates/home.html -->
 <!doctype html>
-<html lang="en">
+<html lang="en-GB">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HapiTech — Websites, platforms and tools, engineered with AI</title>
+  <meta name="description" content="HapiTech is an independent UK software studio. Business websites, web platforms and internal tools, built with AI and verified by an engineer, then hosted and looked after.">
+  <meta property="og:title" content="HapiTech — engineered with AI, owned by an engineer">
+  <meta property="og:description" content="Business websites, web platforms and internal tools. Built fast with AI, tested properly, hosted and supported.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#07090d">
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='media/favicon/favicon-96x96.png') }}" sizes="96x96" />
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='media/favicon/favicon.svg') }}" />
   <link rel="shortcut icon" href="{{ url_for('static', filename='media/favicon/favicon.ico') }}" />
   <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='media/favicon/apple-touch-icon.png') }}" />
   <meta name="apple-mobile-web-app-title" content="HapiTech" />
   <link rel="manifest" href="/static/media/favicon/site.webmanifest" />
-  <title>HapiTech</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="preload" href="{{ url_for('static', filename='fonts/geist-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+  <script>document.documentElement.classList.add('js')</script>
 </head>
-<body>
-  <div class="bg"></div>
+<body class="ht">
+  <a class="skip" href="#main">Skip to content</a>
+  <canvas id="field" aria-hidden="true"></canvas>
 
-<header class="site-header">
-    <nav class="site-nav neon-card">
+  <header class="nav" id="nav">
+    <div class="wrap nav__row">
+      <a href="/" class="brand" aria-label="HapiTech home">
+        <img src="{{ url_for('static', filename='media/logo.png') }}" alt="" width="28" height="32">
+        <span>HapiTech</span>
+      </a>
+      <nav class="nav__links" id="navLinks" aria-label="Main">
+        <a href="#build">Services</a>
+        <a href="#method">Method</a>
+        <a href="#work">Work</a>
+        <a href="#lab">Lab</a>
+        <a href="/login" class="nav__login">Client login</a>
+      </nav>
+      <a href="#contact" class="btn btn--sm nav__cta">Start a project</a>
+      <button class="nav__toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="navLinks" aria-label="Menu">
+        <span></span><span></span>
+      </button>
+    </div>
+  </header>
 
-        <a href="/" class="brand">
-            <img src="{{ url_for('static', filename='media/logo.png') }}" alt="HapiTech Logo">
-            <span>HapiTech</span>
-        </a>
-
-        <button class="btn nav-contact" onclick="openContact()">
-            Get Started
-        </button>
-
-        <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="navLinks" aria-label="Menu">
-            <span></span><span></span><span></span>
-        </button>
-
-        <div class="nav-links" id="navLinks">
-            <a href="#services">Services</a>
-            <a href="#work">Projects</a>
-            <a href="/login">Client Login</a>
-        </div>
-
-    </nav>
-</header>
-
-  <main class="page">
+  <main id="main">
 
     <!-- HERO -->
-    <section class="hero">
-      <h1>Big Websites, Small Businesses</h1>
-      <p>HapiTech designs, builds, and looks after business websites — from the first line of code through to ongoing support once you're live.</p>
-      <button class="btn" onclick="openContact()">Get in Touch</button>
-    </section>
-
-    <!-- SERVICES -->
-    <section id="services">
-      <div class="section-heading">
-        <h2>What I Do</h2>
-        <p>Two things, done properly.</p>
+    <section class="hero wrap">
+      <div class="hero__copy">
+        <p class="eyebrow"><span class="dot dot--live"></span>Independent software studio · UK</p>
+        <h1 class="hero__title">
+          Websites, platforms and tools.<br>
+          <span class="grad">Engineered with AI.</span><br>
+          Owned by an engineer.
+        </h1>
+        <p class="hero__lede">
+          HapiTech builds the software small businesses run on, and keeps it running.
+          AI does the heavy lifting; an engineer with fourteen years in IT designs it, tests it,
+          ships it and stays on hand when something needs to change.
+        </p>
+        <div class="hero__actions">
+          <a href="#contact" class="btn">Start a project</a>
+          <a href="#work" class="btn btn--ghost">See the work <span aria-hidden="true">→</span></a>
+        </div>
       </div>
 
-      <div class="services-grid">
-
-        <div class="neon-card service-card">
-          <div class="icon">🛠️</div>
-          <h3>Website & Business Site Development</h3>
-          <p>Custom-built business websites, designed and developed around how you actually work — including enquiry and quote forms tailored to your business, not a generic template bolted on.</p>
+      <div class="term" aria-label="How a HapiTech release runs">
+        <div class="term__bar" aria-hidden="true">
+          <span></span><span></span><span></span>
+          <p>~/hapitech · release</p>
         </div>
-
-        <div class="neon-card service-card">
-          <div class="icon">🔧</div>
-          <h3>Ongoing Support & Maintenance</h3>
-          <p>Sites don't stop needing attention after launch. I keep things running, deployed, and up to date — fixes, changes, and hosting management, whenever you need it.</p>
-        </div>
-
+        <pre class="term__body" id="termBody"><code><span class="t-dim">$</span> hapitech build --client "your business"
+<span class="t-ok">✓</span> spec agreed in plain English
+<span class="t-ok">✓</span> AI-assisted build · Flask · SQL · vanilla JS
+<span class="t-ok">✓</span> automated tests + real-browser checks
+<span class="t-ok">✓</span> every change reviewed before release
+<span class="t-dim">$</span> hapitech deploy
+<span class="t-ok">✓</span> nginx · gunicorn · systemd · TLS
+<span class="t-ok">✓</span> backup taken, rollback ready
+<span class="t-acc">●</span> live, and still looked after<span class="caret"></span></code></pre>
       </div>
     </section>
 
-    <!-- RECENT WORK -->
-    <section id="work">
-        <div class="section-heading">
-            <h2>Recent Work</h2>
-            <p>Businesses we've helped establish their online presence.</p>
+    <!-- PROOF STRIP -->
+    <section class="strip" aria-label="Currently running">
+      <div class="wrap strip__row">
+        <p class="strip__label">Running now</p>
+        <ul class="strip__list">
+          <li><span class="dot dot--live"></span>hapitech.report</li>
+          <li><span class="dot dot--live"></span>rolandshandyman.co.uk</li>
+          <li><span class="dot dot--live"></span>rayghandymanservice.co.uk</li>
+          <li><span class="dot dot--build"></span>hapitech.space</li>
+          <li><span class="dot dot--build"></span>MOTH//LIGHT</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- WHAT WE BUILD -->
+    <section id="build" class="section wrap">
+      <header class="section__head reveal">
+        <p class="kicker">01 — Services</p>
+        <h2>One studio, from the first sketch to the server it runs on.</h2>
+      </header>
+
+      <ol class="rows">
+        <li class="row reveal">
+          <span class="row__n">A</span>
+          <div class="row__main">
+            <h3>Business websites</h3>
+            <p>Fast, custom-built sites with enquiry and quote forms shaped around how you work. No page builders, no template bolted on.</p>
+          </div>
+          <p class="row__tag">Flask · Jinja · CSS · SMTP</p>
+        </li>
+        <li class="row reveal">
+          <span class="row__n">B</span>
+          <div class="row__main">
+            <h3>Web platforms &amp; SaaS</h3>
+            <p>Multi-user products with roles, audit trails, mobile field views and reporting, like hapitech.report, our statutory inspection platform.</p>
+          </div>
+          <p class="row__tag">Multi-tenant · Roles · Audit · Mobile</p>
+        </li>
+        <li class="row reveal">
+          <span class="row__n">C</span>
+          <div class="row__main">
+            <h3>Internal tools &amp; automation</h3>
+            <p>Dashboards, trackers and scripts that replace spreadsheets and copy-paste, built by someone who has run business systems from the inside.</p>
+          </div>
+          <p class="row__tag">Python · SQL · APIs · Scripting</p>
+        </li>
+        <li class="row reveal">
+          <span class="row__n">D</span>
+          <div class="row__main">
+            <h3>Hosting &amp; ongoing care</h3>
+            <p>Your site runs on hardened servers we manage: TLS, backups, updates, and changes when you ask for them.</p>
+          </div>
+          <p class="row__tag">Linux · nginx · SELinux · systemd</p>
+        </li>
+      </ol>
+    </section>
+
+    <!-- METHOD: HUMAN + AI -->
+    <section id="method" class="section section--panel">
+      <div class="wrap">
+        <header class="section__head reveal">
+          <p class="kicker">02 — Method</p>
+          <h2>AI for speed. An engineer for everything that matters.</h2>
+          <p class="section__lede">
+            AI lets a small studio build at the pace of a team. It does not get the final word:
+            every feature is specified, tested and checked by a person before it reaches you.
+          </p>
+        </header>
+
+        <div class="flow">
+          <article class="flow__step reveal">
+            <p class="flow__n">01</p>
+            <h3>Spec</h3>
+            <p>We agree what it does in plain English — screens, rules, edge cases — before any code exists.</p>
+          </article>
+          <article class="flow__step reveal">
+            <p class="flow__n">02</p>
+            <h3>Build with AI</h3>
+            <p>AI agents write and refactor code against the spec, inside the project's own conventions.</p>
+          </article>
+          <article class="flow__step reveal">
+            <p class="flow__n">03</p>
+            <h3>Verify</h3>
+            <p>Automated tests, real-browser checks at phone and desktop sizes, and a human review of every change.</p>
+          </article>
+          <article class="flow__step reveal">
+            <p class="flow__n">04</p>
+            <h3>Ship &amp; support</h3>
+            <p>Deployed to managed servers with backups and rollback, then looked after for as long as you need.</p>
+          </article>
         </div>
 
-        <div class="work-grid">
-            <a class="neon-card work-card"
-               href="https://rolandshandyman.co.uk"
-               target="_blank"
-               rel="noopener">
-                <img src="{{ url_for('static', filename='media/clients/rolandshandyman.png') }}"
-                     alt="Roland's Handyman">
-                <h3>Roland's Handyman</h3>
-                <span class="project-link">
-                    Visit Website →
-                </span>
-            </a>
-            <a class="neon-card work-card"
-               href="https://rayghandymanservice.co.uk"
-               target="_blank"
-               rel="noopener">
-                <img src="{{ url_for('static', filename='media/clients/rayg.png') }}"
-                     alt="Ray G Handyman Services">
-                <h3>Ray G Handyman Services</h3>
-                <span class="project-link">
-                    Visit Website →
-                </span>
-            </a>
+        <div class="facts reveal">
+          <div class="fact">
+            <p class="fact__v">420</p>
+            <p class="fact__k">automated tests run against hapitech.report</p>
+          </div>
+          <div class="fact">
+            <p class="fact__v">29</p>
+            <p class="fact__k">real-browser test stages check MOTH//LIGHT at five screen sizes</p>
+          </div>
+          <div class="fact">
+            <p class="fact__v">2012</p>
+            <p class="fact__k">the year our founder started in IT: games, defence, enterprise, industry</p>
+          </div>
         </div>
+      </div>
+    </section>
+
+    <!-- CLIENT WORK -->
+    <section id="work" class="section wrap">
+      <header class="section__head section__head--split reveal">
+        <div>
+          <p class="kicker">03 — Client work</p>
+          <h2>Live sites for local businesses.</h2>
+        </div>
+        <p class="section__lede">Designed, built, hosted and maintained by HapiTech, with enquiry forms that go straight to the owner's inbox.</p>
+      </header>
+
+      <div class="cases">
+        <a class="case reveal" href="https://rolandshandyman.co.uk" target="_blank" rel="noopener">
+          <figure class="case__shot">
+            <img src="{{ url_for('static', filename='media/work/rolands.webp') }}" alt="Roland's Handyman website homepage" width="1200" height="750" loading="lazy">
+          </figure>
+          <div class="case__meta">
+            <div>
+              <h3>Roland's Handyman</h3>
+              <p>Handyman &amp; property maintenance · website, enquiries, hosting</p>
+            </div>
+            <span class="case__go" aria-hidden="true">↗</span>
+          </div>
+        </a>
+        <a class="case reveal" href="https://rayghandymanservice.co.uk" target="_blank" rel="noopener">
+          <figure class="case__shot">
+            <img src="{{ url_for('static', filename='media/work/rayg.webp') }}" alt="Ray G Handyman Services website homepage" width="1200" height="750" loading="lazy">
+          </figure>
+          <div class="case__meta">
+            <div>
+              <h3>Ray G Handyman Services</h3>
+              <p>Home improvement &amp; renovation · website, gallery, quotes, hosting</p>
+            </div>
+            <span class="case__go" aria-hidden="true">↗</span>
+          </div>
+        </a>
+      </div>
     </section>
 
     <!-- THE LAB -->
-    <section id="lab">
-        <div class="section-heading">
-            <h2>The Lab</h2>
-            <p>What HapiTech builds and runs for itself — live products, not client sites.</p>
+    <section id="lab" class="section wrap">
+      <header class="section__head reveal">
+        <p class="kicker">04 — The Lab</p>
+        <h2>Products we build and run ourselves.</h2>
+        <p class="section__lede">The clearest proof of what we can build for you is what we build for ourselves.</p>
+      </header>
+
+      <div class="lab">
+        <a class="lab__item lab__item--lead reveal" href="https://hapitech.report" target="_blank" rel="noopener">
+          <div class="lab__top">
+            <p class="badge badge--live"><span class="dot dot--live"></span>Live · v0.9</p>
+            <span class="case__go" aria-hidden="true">↗</span>
+          </div>
+          <h3>hapitech.report</h3>
+          <p>Statutory inspection software for LOLER, PUWER and PSSR. Engineers inspect on a phone, one question at a time, with photos and signatures; the office sees results live.</p>
+          <ul class="chips">
+            <li>Multi-tenant SaaS</li><li>Branching inspection flows</li><li>Mobile field app</li><li>Audit trail</li>
+          </ul>
+        </a>
+
+        <a class="lab__item reveal" href="https://hapitech.space" target="_blank" rel="noopener">
+          <div class="lab__top">
+            <p class="badge"><span class="dot dot--build"></span>In development</p>
+            <span class="case__go" aria-hidden="true">↗</span>
+          </div>
+          <h3>hapitech.space</h3>
+          <p>A real-time 3D solar system in the browser, with planet positions computed live from orbital elements.</p>
+          <ul class="chips"><li>Three.js</li><li>Orbital mechanics</li><li>WebGL</li></ul>
+        </a>
+
+        <div class="lab__item reveal">
+          <div class="lab__top">
+            <p class="badge"><span class="dot dot--build"></span>In development</p>
+          </div>
+          <h3>MOTH//LIGHT</h3>
+          <p>A moonlit survival game for web and Android, with moth genetics, a living sanctuary and its own soundtrack. No engine, no framework.</p>
+          <ul class="chips"><li>Canvas 2D</li><li>Web Audio</li><li>Android</li></ul>
         </div>
-        <div class="work-grid">
-            <a class="neon-card work-card work-card--flagship"
-               href="https://hapitech.report"
-               target="_blank"
-               rel="noopener">
-                <div style="font-size:3rem;">📋</div>
-                <span class="project-eyebrow">Statutory inspections</span>
-                <h3 class="project-domain-title">hapitech.report</h3>
-                <p>LOLER, PUWER and PSSR — booked, inspected and reported without the paper trail.</p>
-                <span class="project-status project-status--live">
-                    Live · Alpha
-                </span>
-                <span class="project-link">
-                    Visit Site →
-                </span>
-            </a>
-            <a class="neon-card work-card"
-               href="https://hapitech.space"
-               target="_blank"
-               rel="noopener">
-                <div style="font-size:3rem;">🪐</div>
-                <span class="project-eyebrow">Solar system explorer</span>
-                <h3 class="project-domain-title">hapitech.space</h3>
-                <p>Scan real planetary bodies for exploration points and keep a personal journal as you go.</p>
-                <span class="project-status">
-                    In Development
-                </span>
-                <span class="project-link">
-                    Explore →
-                </span>
-            </a>
-        </div>
+      </div>
     </section>
 
-    <!-- CTA -->
-    <section class="cta">
-      <h2>Got a project in mind?</h2>
-      <p>Tell me what you need and I'll get back to you.</p>
-      <button class="btn" onclick="openContact()">Get in Touch</button>
+    <!-- ABOUT -->
+    <section class="section wrap about">
+      <div class="about__grid">
+        <header class="reveal">
+          <p class="kicker">05 — Who</p>
+          <h2>Built by someone who has supported systems, not just coded them.</h2>
+        </header>
+        <div class="about__body reveal">
+          <p>
+            HapiTech is run by Aaron, in IT since 2012: systems administration at Rebellion,
+            IT and telecoms for NATO sites in Afghanistan with Thales, senior customer engineering for
+            Rolls-Royce with Computacenter, and business systems for an industrial inspection company,
+            the experience behind hapitech.report.
+          </p>
+          <p>
+            That background is the difference: software that is secure, backed up and supportable,
+            not a demo that falls over after launch.
+          </p>
+          <ul class="timeline">
+            <li><span>2024</span> Founded HapiTech</li>
+            <li><span>2023</span> IT Business Systems Engineer · Industrial Safety Inspections</li>
+            <li><span>2021</span> Senior Customer Engineer · Computacenter, Rolls-Royce</li>
+            <li><span>2019</span> IT &amp; Telecoms Technician · Thales, Kabul</li>
+            <li><span>2012</span> IT Systems Administrator · Rebellion</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact" class="section wrap">
+      <div class="contact reveal">
+        <div class="contact__copy">
+          <p class="kicker">06 — Contact</p>
+          <h2>Got something that should be software?</h2>
+          <p>A new site, a tool to replace a spreadsheet, or help with something already built. Tell us what you need and you'll hear back from the person who would build it.</p>
+        </div>
+
+        <form class="form" id="contactForm" novalidate>
+          <label class="field">
+            <span>Name</span>
+            <input id="contactName" name="name" autocomplete="name" required>
+          </label>
+          <label class="field">
+            <span>Email</span>
+            <input id="contactEmail" name="email" type="email" autocomplete="email" required>
+          </label>
+          <label class="field">
+            <span>What can we help with?</span>
+            <textarea id="contactMessage" name="message" rows="5" required></textarea>
+          </label>
+          <div class="form__foot">
+            <p id="contactStatus" class="form__status" role="status" aria-live="polite"></p>
+            <button id="sendContact" type="submit" class="btn">Send message</button>
+          </div>
+        </form>
+      </div>
     </section>
 
   </main>
 
-  <footer class="site">
-    &copy; HapiTech {{ current_year }} · <a href="/login">Client Login</a> · <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms &amp; Conditions</a>
+  <footer class="foot">
+    <div class="wrap foot__row">
+      <p>&copy; HapiTech {{ current_year }}</p>
+      <nav aria-label="Footer">
+        <a href="/login">Client login</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+        <a href="https://www.linkedin.com/in/aaron-g-b8880868/" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="https://github.com/hapiuk" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
   </footer>
 
-  <!-- Contact FAB -->
-  <button class="contact-fab" onclick="openContact()">💬 Contact</button>
-
-  <!-- App pins: our own live products -->
-  <div class="app-pins">
-    <a class="app-pin app-pin--report" href="https://hapitech.report" target="_blank" rel="noopener" title="HapiTech Report" aria-label="HapiTech Report">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="5" y="3" width="14" height="18" rx="1" stroke="currentColor" stroke-width="2" opacity=".9"/>
-        <path d="M9 2.5h6v2.2a1 1 0 0 1-1 1H10a1 1 0 0 1-1-1V2.5Z" stroke="currentColor" stroke-width="2" opacity=".9"/>
-        <path d="M8.5 12.5l2 2 4-4.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>
-        <path d="M8.5 16.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".6"/>
-      </svg>
-    </a>
-    <a class="app-pin app-pin--space" href="https://hapitech.space" target="_blank" rel="noopener" title="Solar Journal" aria-label="Solar Journal">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z" stroke="currentColor" stroke-width="2" opacity=".9"/>
-        <path d="M3 12c3.5-3 14.5-3 18 0" stroke="currentColor" stroke-width="2" opacity=".7"/>
-        <path d="M3 12c3.5 3 14.5 3 18 0" stroke="currentColor" stroke-width="2" opacity=".5"/>
-      </svg>
-    </a>
-  </div>
-
-  <!-- Contact modal -->
-  <div id="contactModal" class="modal-overlay" onclick="if(event.target===this) closeContact()">
-    <div class="neon-card modal-box">
-      <button class="modal-close" onclick="closeContact()">&times;</button>
-      <h2>Get in Touch</h2>
-      <p class="sub">Tell me a bit about what you need — I'll reply as soon as I can.</p>
-
-      <form id="contactForm" onsubmit="return false;">
-        <input id="contactName" placeholder="Your name" required>
-        <input id="contactEmail" type="email" placeholder="Email" required>
-        <textarea id="contactMessage" placeholder="What can I help with?" required></textarea>
-
-        <div class="contact-actions">
-          <button type="button" class="btn" onclick="closeContact()" style="opacity:.7;">Close</button>
-          <button id="sendContact" type="button" class="btn">Send</button>
-        </div>
-        <p id="contactStatus" class="message"></p>
-      </form>
-    </div>
-  </div>
-
-  <script>
-    function openContact(){ document.getElementById('contactModal').classList.add('is-open'); }
-    function closeContact(){ document.getElementById('contactModal').classList.remove('is-open'); }
-
-    async function readJsonSafe(res){
-      const ct = (res.headers.get("content-type") || "").toLowerCase();
-      if(!ct.includes("application/json")){
-        return {__not_json:true, text: await res.text()};
-      }
-      try{ return await res.json(); }
-      catch(e){ return {__not_json:true, text: await res.text()}; }
-    }
-
-    const sendContact = document.getElementById('sendContact');
-    const contactForm = document.getElementById('contactForm');
-    const contactStatus = document.getElementById('contactStatus');
-
-    if(sendContact){
-      sendContact.addEventListener('click', async () => {
-        contactStatus.textContent = "";
-
-        const name = (document.getElementById('contactName')?.value || "").trim();
-        const email = (document.getElementById('contactEmail')?.value || "").trim();
-        const message = (document.getElementById('contactMessage')?.value || "").trim();
-
-        if(!name || !email || !message){
-          contactStatus.style.color = "#ffb7b7";
-          contactStatus.textContent = "Please fill all fields.";
-          return;
-        }
-
-        sendContact.disabled = true;
-        sendContact.textContent = "Sending...";
-
-        try{
-          const res = await fetch('/contact', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ name, email, message, client: "hapitech.dev homepage" }),
-            credentials: 'same-origin'
-          });
-
-          const data = await readJsonSafe(res);
-
-          if(data && data.__not_json){
-            contactStatus.style.color = res.ok ? "#bfffdc" : "#ffb7b7";
-            contactStatus.textContent = res.ok ? "Sent — thanks!" : "Failed to send";
-            if(res.ok){ setTimeout(closeContact, 1000); contactForm.reset(); }
-            return;
-          }
-
-          if(res.ok && data.success){
-            contactStatus.style.color = "#bfffdc";
-            contactStatus.textContent = data.message || "Sent — thanks!";
-            setTimeout(closeContact, 1000);
-            contactForm.reset();
-            return;
-          }
-
-          contactStatus.style.color = "#ffb7b7";
-          contactStatus.textContent = (data && data.message) ? data.message : "Failed to send";
-        }catch(err){
-          contactStatus.style.color = "#ffb7b7";
-          contactStatus.textContent = "Network error sending message";
-          console.error(err);
-        }finally{
-          sendContact.disabled = false;
-          sendContact.textContent = "Send";
-        }
-      });
-    }
-  </script>
-  <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/home.js') }}" defer></script>
 </body>
 </html>
