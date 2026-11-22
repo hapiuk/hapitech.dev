@@ -1,0 +1,22 @@
+{% extends "reviews/_base.html" %}
+{% block title %}{{ a.name }} reviews{% if avg %} · {{ '%.1f' % avg }}★ from {{ rows|length }}{% endif %}{% endblock %}
+{% block meta %}
+  <meta name="description" content="{{ rows|length }} customer reviews of {{ a.name }}{% if a.town %}, {{ a.town }}{% endif %}.">
+  {% if a.domain %}<link rel="canonical" href="https://{{ a.domain }}/#reviews">{% endif %}
+{% endblock %}
+{% block content %}
+<section class="rv__card">
+  <h1 class="rv__title">What customers say</h1>
+  {% if avg %}<p class="rv__score"><span class="rv__score-n">{{ '%.1f' % avg }}</span> {{ avg | round | int | stars }} <span class="muted">from {{ rows|length }} review{{ '' if rows|length == 1 else 's' }}</span></p>{% endif %}
+  {% if a.domain %}<p class="rv__sub"><a href="https://{{ a.domain }}">Visit {{ a.domain }} →</a></p>{% endif %}
+</section>
+{% for r in rows %}
+<article class="rv__card rv__review">
+  <div class="rv__review-top"><strong>{{ r.author_name }}</strong>{{ r.rating | stars }}</div>
+  <p class="rv__meta">{% if r.reviewed_at %}{{ r.reviewed_at | ukdate('%B %Y') }} · {% endif %}{% if r.source_url and r.source != 'hapitech' %}<a href="{{ r.source_url }}" target="_blank" rel="noopener">via {{ r.source_label }}</a>{% else %}via {{ r.source_label }}{% endif %}{% if r.verified %} · Verified customer{% endif %}</p>
+  {% if r.body %}<p class="rv__text">{{ r.body }}</p>{% endif %}
+  {% set photos = r.photos | fromjson %}{% if photos %}<div class="review__photos">{% for pid in photos %}{% set m = media_by_id(pid) %}{% if m %}<img src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="{{ m.alt or '' }}" loading="lazy">{% endif %}{% endfor %}</div>{% endif %}
+  {% if r.reply %}<div class="review__reply"><strong>Reply from {{ a.name }}</strong>{{ r.reply.body }}</div>{% endif %}
+</article>
+{% else %}<p class="rv__card">No reviews yet.</p>{% endfor %}
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import empty, review_card with context %}
+{% block title %}Reviews{% endblock %}
+{% block content %}
+<div class="page-top"><div><h1>Your reviews</h1><p>Everything here shows on your website. Replying shows customers you care.</p></div></div>
+<nav class="subnav">{% for s, label in [('all','All'),('unreplied','Needs a reply')] %}<a href="{{ url_for('portal.reviews', show=s) }}" {% if show == s %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+{% macro owner_actions(r) %}
+  <details class="fold" style="margin-top:10px">
+    <summary class="small">{{ 'Edit your reply' if r.reply else 'Reply' }}</summary>
+    <form method="post" action="{{ url_for('portal.review_action', rid=r.id, show=show) }}" class="stack">
+      <textarea name="body" rows="3" class="field" style="padding:12px;border-radius:12px;border:1px solid var(--line-2);background:var(--bg)" placeholder="Thanks so much, {{ r.author_name.split()[0] }}! Glad you're happy with it.">{{ r.reply.body if r.reply else '' }}</textarea>
+      <div class="row"><button class="btn btn--sm" name="action" value="reply">Save reply</button>
+        {% if r.reply %}<button class="btn btn--ghost btn--sm" name="action" value="delete-reply" data-confirm="Remove your reply?">Remove reply</button>{% endif %}</div>
+    </form>
+  </details>
+  {% if r.status != 'reported' %}
+  <details class="fold"><summary class="small muted">Report this review</summary>
+    <form method="post" action="{{ url_for('portal.review_action', rid=r.id, show=show) }}" class="stack">
+      <p class="small muted">For fake, abusive or wrong-business reviews only. HapiTech checks every report. By law, genuine reviews (good or bad) have to stay up.</p>
+      <input name="reason" class="field" style="padding:10px 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--bg)" placeholder="Why should we check it?">
+      <div><button class="btn btn--ghost btn--sm" name="action" value="report">Send report</button></div>
+    </form>
+  </details>
+  {% endif %}
+{% endmacro %}
+{% for r in rows %}{{ review_card(r, actions=owner_actions) }}{% else %}{{ empty('Nothing here', 'You are all caught up.' if show == 'unreplied' else 'No reviews yet.') }}{% endfor %}
+{% endblock %}

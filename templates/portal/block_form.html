@@ -1,0 +1,29 @@
+{% extends "app/base.html" %}
+{% block title %}Edit: {{ b.label }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ url_for('portal.website') }}">My website</a> / {{ b.group }}</p>
+<div class="page-top"><div><h1>{{ b.label }}</h1>{% if b.help %}<p>{{ b.help }}</p>{% endif %}</div></div>
+<form method="post" enctype="multipart/form-data" class="card stack" style="max-width:640px">
+  {% set d = b.data %}
+  {% if b.type == 'text' or b.type == 'price' %}
+    <label class="field"><input name="value" value="{{ d }}" {% if b.max_length %}maxlength="{{ b.max_length }}"{% endif %}></label>
+  {% elif b.type == 'longtext' %}
+    <label class="field"><textarea name="value" rows="6" {% if b.max_length %}maxlength="{{ b.max_length }}"{% endif %}>{{ d }}</textarea>{% if b.max_length %}<small>Up to {{ b.max_length }} characters</small>{% endif %}</label>
+  {% elif b.type == 'list' %}
+    <label class="field"><span class="small muted">One per line</span><textarea name="value" rows="8">{{ d|join('\n') }}</textarea></label>
+  {% elif b.type == 'hours' %}
+    {% for row in d %}<div class="form-grid"><input class="field" name="day" value="{{ row[0] }}"><input class="field" name="hours" value="{{ row[1] }}"></div>{% endfor %}
+    <div class="form-grid"><input class="field" name="day" placeholder="Add a day"><input class="field" name="hours" placeholder="e.g. 8am – 6pm"></div>
+  {% elif b.type == 'images' %}
+    <div class="photos">{% for x in d %}
+      <figure>{% if x is string %}<img src="https://{{ g.account.domain }}/static/{{ x[7:] }}" alt="">{% else %}{% set m = media_by_id(x) %}{% if m %}<img src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="">{% endif %}{% endif %}
+        <label><input type="checkbox" name="keep" value="{{ x }}" checked> keep</label></figure>{% endfor %}</div>
+    <label class="field"><span>Add photos</span><input type="file" name="photos" accept="image/*" multiple></label>
+  {% endif %}
+  <div class="form-actions">
+    <button class="btn" name="action" value="save">Save</button>
+    {% if b.versions %}<button class="btn btn--ghost" name="action" value="undo">Undo last change</button>{% endif %}
+    {% if not b.is_default %}<button class="btn btn--ghost" name="action" value="reset" data-confirm="Go back to the original text?">Back to original</button>{% endif %}
+  </div>
+</form>
+{% endblock %}

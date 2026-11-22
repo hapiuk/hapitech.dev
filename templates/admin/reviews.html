@@ -1,0 +1,28 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import empty, review_card with context %}
+{% block title %}Reviews{% endblock %}
+{% block content %}
+<div class="page-top">
+  <div><h1>Reviews</h1><p>Every client's reviews. Reported ones wait here for your decision and stay visible until you act.</p></div>
+  <a class="btn btn--sm" href="{{ url_for('admin.review_new') }}">Add a review by hand</a>
+</div>
+<form class="row" style="margin-bottom:16px">
+  <nav class="subnav" style="margin:0;border:0">
+    {% for s, label in [('reported','Reported'),('published','Published'),('removed','Removed'),('all','All')] %}
+      <a href="{{ url_for('admin.reviews', status=s, client=client) }}" {% if status == s %}aria-current="page"{% endif %}>{{ label }}{% if counts.get(s) %} ({{ counts[s] }}){% endif %}</a>
+    {% endfor %}
+  </nav>
+  <input type="hidden" name="status" value="{{ status }}">
+  <select name="client" data-autosubmit style="margin-left:auto;width:auto" class="field">
+    <option value="">All clients</option>{% for c in clients %}<option value="{{ c.slug }}" {{ 'selected' if client == c.slug }}>{{ c.name }}</option>{% endfor %}
+  </select>
+</form>
+{% macro admin_actions(r) %}
+  <form method="post" action="{{ url_for('admin.review_set', rid=r.id) }}" class="review__actions">
+    <input type="hidden" name="back" value="{{ request.full_path }}">
+    {% if r.status != 'published' %}<button class="btn btn--ghost btn--sm" name="action" value="publish">{{ 'Keep it (dismiss report)' if r.status == 'reported' else 'Show it' }}</button>{% endif %}
+    {% if r.status != 'removed' %}<button class="btn btn--danger btn--sm" name="action" value="remove" data-confirm="Hide this review from the public? Only for fake, abusive or off-topic reviews.">Remove</button>{% endif %}
+  </form>
+{% endmacro %}
+{% for r in rows %}{{ review_card(r, actions=admin_actions, show_client=true) }}{% else %}{{ empty('Nothing here', 'No reviews match this filter.') }}{% endfor %}
+{% endblock %}

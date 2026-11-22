@@ -1,0 +1,19 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import status_badge, empty with context %}
+{% block title %}Benchmark runs{% endblock %}
+{% block content %}
+<div class="page-top"><div><h1>Benchmark runs</h1><p>Drafts are private. Published runs appear at <a href="/lab" target="_blank">/lab</a> and in AI news.</p></div>
+  <a class="btn btn--sm" href="{{ url_for('admin.bench_run_new') }}">Upload results</a></div>
+<nav class="subnav">{% for s, label in [('all','All'),('draft','Drafts'),('published','Published'),('withdrawn','Withdrawn')] %}
+  <a href="{{ url_for('admin.bench_runs', status=s) }}" {% if status == s %}aria-current="page"{% endif %}>{{ label }}{% if s != 'all' and counts.get(s) %} ({{ counts[s] }}){% endif %}</a>{% endfor %}</nav>
+<section class="card card--flush">{% if rows %}<div class="table-wrap"><table class="table">
+  <thead><tr><th>Test</th><th>Model</th><th class="num">Attempts</th><th class="num">Passed</th><th class="num">Decode tok/s</th><th class="num">First token</th><th>Run</th><th>Status</th></tr></thead>
+  <tbody>{% for r in rows %}{% set pr = r.pass_rate %}
+    <tr><td><a class="rowlink" href="{{ url_for('admin.bench_run', rid=r.id) }}">{{ r.prompt.name }}</a><div class="small muted mono">{{ r.prompt.slug }} v{{ r.prompt.version }}</div></td>
+      <td>{{ r.model.display_name }}</td><td class="num">{{ r.results|length }}</td>
+      <td class="num">{{ '%d%%' % (pr * 100) if pr is not none else '—' }}</td>
+      <td class="num">{{ '%.0f' % r.avg('decode_tps') if r.avg('decode_tps') else '—' }}</td>
+      <td class="num">{{ '%.0f ms' % r.avg('ttft_ms') if r.avg('ttft_ms') else '—' }}</td>
+      <td class="small muted">{{ r.started_at | ukdate if r.started_at else '' }}</td><td>{{ status_badge(r.status) }}</td></tr>
+  {% endfor %}</tbody></table></div>{% else %}<div style="padding:22px">{{ empty('No runs here') }}</div>{% endif %}</section>
+{% endblock %}

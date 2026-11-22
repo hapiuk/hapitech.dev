@@ -1,0 +1,15 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import empty with context %}
+{% block title %}Review requests{% endblock %}
+{% block content %}
+<div class="page-top"><div><h1>Review requests</h1><p>Who you've asked, and who's left a review.</p></div><a class="btn btn--sm" href="{{ url_for('portal.ask') }}">Ask someone</a></div>
+<section class="card card--flush">{% if rows %}<div class="table-wrap"><table class="table">
+  <thead><tr><th>Customer</th><th>Job</th><th>Sent</th><th>Status</th><th></th></tr></thead>
+  <tbody>{% for r in rows %}
+    <tr><td><strong>{{ r.customer_name }}</strong><div class="small muted">{{ r.contact or '' }}</div></td><td class="small">{{ r.job_ref or '' }}</td>
+      <td class="small muted">{{ r.created_at | ago }} · {{ r.sent_via }}</td>
+      <td>{% if r.state == 'done' %}<span class="badge badge--ok">Reviewed ✓</span>{% elif r.state == 'opened' %}<span class="badge badge--acc">Opened</span>{% else %}<span class="badge">Sent</span>{% endif %}
+        {% if r.reminder_sent_at %}<span class="small muted">reminded</span>{% endif %}</td>
+      <td class="right">{% if r.state != 'done' and r.created_at < stale %}<a class="btn btn--ghost btn--sm" href="{{ url_for('portal.ask_send', rid=r.id) }}">Send a reminder</a>{% elif r.state != 'done' %}<a class="btn btn--ghost btn--sm" href="{{ url_for('portal.ask_send', rid=r.id) }}">Resend</a>{% endif %}</td></tr>
+  {% endfor %}</tbody></table></div>{% else %}<div style="padding:22px">{{ empty('No requests yet', 'Finish a job and tap "Ask for a review".') }}</div>{% endif %}</section>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "site/base.html" %}
+{% block title %}{{ r.model.display_name }}: {{ r.prompt.name }} | HapiTech Lab{% endblock %}
+{% block meta %}<meta name="description" content="{{ r.summary or (r.model.display_name ~ ' on the ' ~ r.prompt.name ~ ' test.') }}">{% endblock %}
+{% block content %}
+<article class="read"><div class="wrap read__wrap">
+  <a class="read__back" href="{{ url_for('lab.index') }}">← All Lab results</a>
+  <div class="news-card__meta"><span class="src src--local">HapiTech Lab</span>{% if r.published_at %}<time>{{ r.published_at | ukdate }}</time>{% endif %}</div>
+  <h1 class="read__title">{{ r.model.display_name }}: {{ r.prompt.name }}</h1>
+  {% if r.summary %}<p class="read__lede">{{ r.summary }}</p>{% endif %}
+  {% set pr = r.pass_rate %}
+  <div class="lab-stats">
+    <div><strong>{{ '%d%%' % (pr * 100) if pr is not none else '—' }}</strong><span>passed ({{ r.results|length }} attempt{{ '' if r.results|length == 1 else 's' }})</span></div>
+    <div><strong>{{ '%.0f' % r.avg('decode_tps') if r.avg('decode_tps') else '—' }}</strong><span>tokens / second</span></div>
+    <div><strong>{{ '%.2f s' % (r.avg('ttft_ms') / 1000) if r.avg('ttft_ms') else '—' }}</strong><span>to first token</span></div>
+    <div><strong>{{ '{:,}'.format(r.context_length) if r.context_length else '—' }}</strong><span>context window</span></div>
+  </div>
+  {% if r.prompt.description %}<h2 class="lab-h2">The task</h2><p class="read__lede" style="margin-top:8px">{{ r.prompt.description }}</p>{% endif %}
+  {% if r.prompt.pass_criteria %}<p class="muted" style="margin-top:8px"><strong>Pass if:</strong> {{ r.prompt.pass_criteria }}</p>{% endif %}
+  <details class="lab-details"><summary>The exact prompt</summary><pre class="prose"><code>{{ r.prompt.prompt_text }}</code></pre></details>
+  {% if r.artefact_path %}
+    <h2 class="lab-h2">What it built</h2>
+    <iframe class="lab-frame" src="{{ url_for('lab.artefact', rid=r.id) }}" sandbox="allow-scripts" title="Artefact produced by {{ r.model.display_name }}" loading="lazy"></iframe>
+  {% endif %}
+  <h2 class="lab-h2">The model</h2>
+  <p class="read__lede" style="margin-top:8px">{{ r.model.blurb or r.model.display_name }}</p>
+  {% if r.model.source_url %}<p style="margin-top:8px"><a class="post__src" href="{{ r.model.source_url }}" target="_blank" rel="noopener">Model page ↗</a></p>{% endif %}
+  <div class="read__credit"><p>Tested by HapiTech on our own hardware. Want local AI that keeps your data in the building?</p><a class="btn" href="/#contact">Talk to us</a></div>
+</div></article>
+{% endblock %}

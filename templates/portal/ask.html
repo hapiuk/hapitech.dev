@@ -1,0 +1,13 @@
+{% extends "app/base.html" %}
+{% block title %}Ask for a review{% endblock %}
+{% block content %}
+{% include "portal/_trial.html" %}
+<div class="page-top"><div><h1>Job done? 🎉</h1><p>Ask while you're still there. Most people say yes on the spot.</p></div></div>
+<form method="post" class="card stack" style="max-width:560px">
+  <label class="field"><span>Customer's first name</span><input name="customer_name" value="{{ f.get('customer_name','') }}" autocomplete="off" autocapitalize="words" required autofocus></label>
+  <label class="field"><span>Their mobile or email <small>optional, for a text or email</small></span><input name="contact" value="{{ f.get('contact','') }}" inputmode="tel" autocomplete="off" placeholder="07… or name@…"></label>
+  <label class="field"><span>What was the job? <small>optional</small></span><input name="job_ref" value="{{ f.get('job_ref','') }}" placeholder="e.g. Wardrobe assembly"></label>
+  <button class="btn btn--lg btn--block" type="submit">Next: choose how to send</button>
+</form>
+<p class="small muted" style="margin-top:14px"><a href="{{ url_for('portal.requests_list') }}">See requests you've sent →</a></p>
+{% endblock %}

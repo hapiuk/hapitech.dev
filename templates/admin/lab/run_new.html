@@ -1,0 +1,26 @@
+{% extends "app/base.html" %}
+{% block title %}Upload benchmark results{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ url_for('admin.bench_runs') }}">Benchmark runs</a> / Upload</p>
+<div class="page-top"><div><h1>Upload results</h1><p>Each upload becomes one or more <strong>draft</strong> runs. Nothing goes public until you press Publish.</p></div></div>
+<div class="grid grid--side">
+  <form method="post" enctype="multipart/form-data" class="card stack">
+    <label class="field"><span>Results file <small>.jsonl from hapitech-benchmark (one record per line)</small></span><input type="file" name="file" accept=".jsonl,.json,.txt"></label>
+    <p class="small muted">or paste the lines:</p>
+    <label class="field"><textarea name="jsonl" class="code" placeholder='{"ts": "…", "test_id": "02-tool-calling", "model": "unsloth/…", …}'>{{ jsonl }}</textarea></label>
+    <div><button class="btn">Check and create drafts</button></div>
+  </form>
+  <aside class="card">
+    <div class="card__head"><h3>How to post a benchmark result</h3></div>
+    <ol class="stack small" style="list-style:decimal;padding-left:18px">
+      <li>Run the test through Hermes as usual: <span class="mono">hapitech-model-tester</span> sends the prompt to the target profile while <span class="mono">capture_telemetry.py</span> records the hardware.</li>
+      <li>When you've approved the result, <span class="mono">hapitech-benchmark</span> writes the JSONL record (same format as before).</li>
+      <li>Upload that file here. The test ID must match a prompt, and the model must match a model ID (close names like <span class="mono">Qwen3.8-27B-UD-IQ3_XXS</span> are matched automatically).</li>
+      <li>Open the draft and check pass/fail, tokens per second and time to first token. Add a one-line summary in plain English.</li>
+      <li>Built something (like the game from prompts 06/07)? Attach the HTML on the run page. It plays in a sandbox.</li>
+      <li>Press <strong>Publish</strong>. It appears on <a href="/lab" target="_blank">/lab</a> and in AI news as "HapiTech Lab".</li>
+      <li>Wrong numbers? <strong>Withdraw</strong> hides it straight away and keeps the record.</li>
+    </ol>
+  </aside>
+</div>
+{% endblock %}

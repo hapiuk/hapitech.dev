@@ -1,0 +1,31 @@
+{% extends "app/base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<div class="page-top"><div><h1>Settings</h1></div></div>
+<div class="grid grid--2">
+  <section class="card">
+    <div class="card__head"><h2>Your password</h2></div>
+    <form method="post" class="stack">
+      <input type="hidden" name="action" value="password">
+      <input type="email" name="email" value="{{ current_user.email }}" autocomplete="username" hidden>
+      <label class="field"><span>Current password</span><input type="password" name="current" autocomplete="current-password" required></label>
+      <label class="field"><span>New password <small>(12+ characters)</small></span><input type="password" name="new" autocomplete="new-password" minlength="12" required></label>
+      <label class="field"><span>Again</span><input type="password" name="new2" autocomplete="new-password" minlength="12" required></label>
+      <div><button class="btn btn--sm">Change password</button></div>
+    </form>
+  </section>
+  <div>
+    <section class="card">
+      <div class="card__head"><h2>Email</h2><span class="badge {{ 'badge--ok' if mail_mode == 'smtp' else 'badge--warn' }}">{{ 'Sending for real' if mail_mode == 'smtp' else 'Log only (local)' }}</span></div>
+      <p class="small muted">{% if mail_mode == 'smtp' %}Emails go out through your SMTP account.{% else %}Emails are written to <span class="mono">instance/mail_outbox/</span>, so nobody gets emailed while testing.{% endif %}</p>
+      <form method="post" style="margin-top:12px"><input type="hidden" name="action" value="test-email"><button class="btn btn--ghost btn--sm">Send me a test email</button></form>
+    </section>
+    <section class="card">
+      <div class="card__head"><h2>AI news feeds</h2><span class="small muted">refreshed {{ updated or 'never' }}</span></div>
+      <ul class="list">{% for f in feeds %}
+        <li><span>{{ f.name }}</span><span>{% if news.errors.get(f.id) %}<span class="badge badge--err">{{ news.errors[f.id] }}</span>{% endif %} <span class="small muted">{{ per_source.get(f.id, 0) }} items</span></span></li>
+      {% endfor %}</ul>
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -138,6 +138,109 @@
     obs.observe(more);
   }
 
+  /* ---------- login modal + full login page ---------- */
+  function csrf() {
+    var m = document.querySelector('meta[name="csrf-token"]');
+    return m ? m.getAttribute("content") : "";
+  }
+  function postJSON(url, data) {
+    return fetch(url, {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf() },
+      body: JSON.stringify(data)
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; });
+    });
+  }
+
+  function initLogin(root) {
+    var msg = root.querySelector("[data-login-msg]");
+    var nextUrl = root.getAttribute("data-next") || "";
+    function say(t, kind) { msg.textContent = t || ""; msg.className = "login__msg" + (kind ? " is-" + kind : ""); }
+    function show(name) {
+      root.querySelectorAll("[data-login-pane]").forEach(function (p) { p.hidden = p.getAttribute("data-login-pane") !== name; });
+      root.querySelectorAll(".login__tab").forEach(function (t) {
+        t.setAttribute("aria-selected", t.getAttribute("data-login-tab") === name ? "true" : "false");
+      });
+      root.querySelector(".login__tabs").hidden = name === "forgot";
+      say("");
+      var first = root.querySelector('[data-login-pane="' + name + '"] input:not([hidden])');
+      if (first) setTimeout(function () { first.focus(); }, 30);
+    }
+    root.querySelectorAll("[data-login-tab]").forEach(function (b) {
+      b.addEventListener("click", function () { show(b.getAttribute("data-login-tab")); });
+    });
+    function busy(form, on) {
+      form.querySelectorAll("button[type=submit]").forEach(function (b) { b.disabled = on; });
+    }
+    function go(d) { window.location.href = d.redirect || "/"; }
+    var q = nextUrl ? "?next=" + encodeURIComponent(nextUrl) : "";
+
+    var pw = root.querySelector('[data-login-pane="password"]');
+    pw.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (!pw.email.value.trim() || !pw.password.value) { say("Enter your email and password.", "err"); return; }
+      busy(pw, true); say("Logging in…");
+      postJSON("/auth/login" + q, { email: pw.email.value.trim(), password: pw.password.value, remember: pw.remember.checked })
+        .then(function (d) { if (d.ok) { say("Welcome back. Taking you to your dashboard…", "ok"); go(d); } else { say(d.message || "Couldn't log in.", "err"); busy(pw, false); } })
+        .catch(function () { say("Network problem. Please try again.", "err"); busy(pw, false); });
+    });
+
+    var code = root.querySelector('[data-login-pane="code"]');
+    var stepEmail = code.querySelector('[data-code-step="email"]');
+    var stepVerify = code.querySelector('[data-code-step="verify"]');
+    code.addEventListener("submit", function (e) {
+      e.preventDefault();
+      busy(code, true);
+      if (!stepEmail.hidden) {
+        var em = code.email.value.trim();
+        if (!em) { say("Enter your email address.", "err"); busy(code, false); return; }
+        say("Sending…");
+        postJSON("/auth/code/request", { email: em }).then(function (d) {
+          busy(code, false);
+          if (d.ok) { stepEmail.hidden = true; stepVerify.hidden = false; say(d.message, "ok"); code.code.focus(); }
+          else say(d.message || "Couldn't send a code.", "err");
+        }).catch(function () { busy(code, false); say("Network problem. Please try again.", "err"); });
+      } else {
+        say("Checking…");
+        postJSON("/auth/code/verify" + q, { code: code.code.value }).then(function (d) {
+          if (d.ok) { say("Welcome back. Taking you to your dashboard…", "ok"); go(d); }
+          else { busy(code, false); say(d.message || "That code didn't work.", "err"); }
+        }).catch(function () { busy(code, false); say("Network problem. Please try again.", "err"); });
+      }
+    });
+    code.querySelector("[data-code-restart]").addEventListener("click", function () {
+      stepEmail.hidden = false; stepVerify.hidden = true; code.code.value = ""; say("");
+    });
+
+    var fg = root.querySelector('[data-login-pane="forgot"]');
+    fg.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (!fg.email.value.trim()) { say("Enter your email address.", "err"); return; }
+      busy(fg, true);
+      postJSON("/auth/forgot", { email: fg.email.value.trim() }).then(function (d) {
+        busy(fg, false); say(d.message || "Done.", d.ok ? "ok" : "err");
+      }).catch(function () { busy(fg, false); say("Network problem. Please try again.", "err"); });
+    });
+    return { show: show };
+  }
+
+  document.querySelectorAll("[data-login-root]").forEach(function (root) { root._login = initLogin(root); });
+  var modal = document.getElementById("loginModal");
+  if (modal && typeof modal.showModal === "function") {
+    document.querySelectorAll("a[data-login]").forEach(function (a) {
+      a.addEventListener("click", function (e) {
+        e.preventDefault();
+        if (typeof closeMenu === "function") closeMenu();
+        modal.showModal();
+        var root = modal.querySelector("[data-login-root]");
+        if (root && root._login) root._login.show("password");
+      });
+    });
+    modal.querySelector("[data-modal-close]").addEventListener("click", function () { modal.close(); });
+    modal.addEventListener("click", function (e) { if (e.target === modal) modal.close(); });   /* backdrop */
+  }
+
   /* ---------- contact form (POST /contact, JSON) ----------
      The endpoint takes name / email / message; optional fields are folded into the message. */
   var form = document.getElementById("contactForm");
@@ -174,7 +277,7 @@
     btn.disabled = true; btn.textContent = "Sending…"; say("");
     fetch("/contact", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf() },
       credentials: "same-origin",
       body: JSON.stringify({
         name: required.name.value.trim(),

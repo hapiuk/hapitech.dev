@@ -1,0 +1,50 @@
+{# templates/auth/_form.html — the login UI, shared by the modal and the full /login page.
+   Behaviour lives in static/js/site.js (initLogin). #}
+<div class="login" data-login-root data-next="{{ next or '' }}">
+  <div class="login__tabs" role="tablist" aria-label="How do you want to log in?">
+    <button type="button" role="tab" class="login__tab" aria-selected="true" data-login-tab="password">Password</button>
+    <button type="button" role="tab" class="login__tab" aria-selected="false" data-login-tab="code">Email me a code</button>
+  </div>
+
+  <form class="login__pane" data-login-pane="password" novalidate>
+    <label class="field"><span>Email</span>
+      <input type="email" name="email" autocomplete="username" required>
+    </label>
+    <label class="field"><span>Password</span>
+      <input type="password" name="password" autocomplete="current-password" required>
+    </label>
+    <div class="login__row">
+      <label class="check"><input type="checkbox" name="remember" value="1"> <span>Keep me logged in</span></label>
+      <button type="button" class="linkish" data-login-tab="forgot">Forgot password?</button>
+    </div>
+    <button type="submit" class="btn login__submit">Log in</button>
+  </form>
+
+  <form class="login__pane" data-login-pane="code" hidden novalidate>
+    <div data-code-step="email">
+      <label class="field"><span>Email</span>
+        <input type="email" name="email" autocomplete="username" required>
+      </label>
+      <p class="login__hint">We'll email you a 6-digit code. No password needed.</p>
+      <button type="submit" class="btn login__submit">Send me a code</button>
+    </div>
+    <div data-code-step="verify" hidden>
+      <label class="field"><span>6-digit code</span>
+        <input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]*" maxlength="7" class="login__code">
+      </label>
+      <button type="submit" class="btn login__submit">Log in</button>
+      <button type="button" class="linkish" data-code-restart>Use a different email</button>
+    </div>
+  </form>
+
+  <form class="login__pane" data-login-pane="forgot" hidden novalidate>
+    <p class="login__hint">Enter your email and we'll send you a link to choose a new password.</p>
+    <label class="field"><span>Email</span>
+      <input type="email" name="email" autocomplete="username" required>
+    </label>
+    <button type="submit" class="btn login__submit">Send reset link</button>
+    <button type="button" class="linkish" data-login-tab="password">Back to log in</button>
+  </form>
+
+  <p class="login__msg" role="status" aria-live="polite" data-login-msg></p>
+</div>

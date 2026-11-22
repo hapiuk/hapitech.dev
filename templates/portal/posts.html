@@ -1,0 +1,14 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import empty, status_badge with context %}
+{% block title %}Posts{% endblock %}
+{% block content %}
+<div class="page-top"><div><h1>Posts</h1><p>Show off finished jobs. Posts with the town name help local people find you.</p></div><a class="btn btn--sm" href="{{ url_for('portal.post_edit') }}">New post</a></div>
+{% if rows %}
+<div class="grid grid--3">{% for p in rows %}{% set ph = p.photos %}
+  <a class="card" href="{{ url_for('portal.post_edit', pid=p.id) }}" style="display:block">
+    {% if ph %}<img src="{{ url_for('reviews_public.media_file', path=ph[0].file_path) }}" alt="" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;margin-bottom:12px" loading="lazy">{% endif %}
+    <strong>{{ p.title }}</strong>
+    <p class="small muted" style="margin-top:4px">{{ status_badge(p.status) }} {{ (p.published_at or p.updated_at) | ago }}{% if p.town %} · {{ p.town }}{% endif %}</p>
+  </a>{% endfor %}</div>
+{% else %}{{ empty('No posts yet', 'Take a couple of photos at your next job and post them here.') }}{% endif %}
+{% endblock %}

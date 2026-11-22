@@ -1,0 +1,98 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import stat, status_badge, empty with context %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+<div class="page-top">
+  <div>
+    <h1>{{ greeting }}, {{ (current_user.name or 'Aaron').split()[0] }}.</h1>
+    <p>{{ today.strftime('%A %-d %B') }} · {{ clients|length }} active client{{ '' if clients|length == 1 else 's' }}</p>
+  </div>
+  <div class="page-top__actions">
+    <a class="btn btn--ghost btn--sm" href="{{ url_for('admin.bench_run_new') }}">Upload benchmark</a>
+    <a class="btn btn--sm" href="{{ url_for('admin.client_new') }}">Add client</a>
+  </div>
+</div>
+
+<div class="grid grid--4">
+  {{ stat('Paid this month', paid_month | gbp) }}
+  {{ stat('Recurring / month', mrr | gbp, 'from active subscriptions') }}
+  {{ stat('Overdue', overdue|length, 'subscription payments', warn=overdue|length > 0) }}
+  {{ stat('New reviews', new_reviews, 'this month · ' ~ open_requests ~ ' requests waiting') }}
+</div>
+
+<div class="grid grid--side" style="margin-top:16px">
+  <div>
+    <section class="card">
+      <div class="card__head"><h2>Needs attention</h2></div>
+      {% if not overdue and not unpaid_jobs and not due_soon and not changes %}
+        {{ empty('All clear', 'No overdue payments, unpaid jobs or open change requests.') }}
+      {% else %}
+      <ul class="list">
+        {% for s in overdue %}
+        <li><span><strong>{{ s.account.name }}</strong> · {{ s.title }} <span class="badge badge--err">Overdue since {{ s.next_due | ukdate }}</span></span>
+          <a class="btn btn--ghost btn--sm" href="{{ url_for('admin.client', slug=s.account.slug, tab='money') }}">Record payment</a></li>
+        {% endfor %}
+        {% for j in unpaid_jobs %}
+        <li><span><strong>{{ j.account.name }}</strong> · {{ j.title }} <span class="badge badge--warn">Done, {{ (j.price_gbp - j.paid_gbp) | gbp }} unpaid</span></span>
+          <a class="btn btn--ghost btn--sm" href="{{ url_for('admin.client', slug=j.account.slug, tab='money') }}">Record payment</a></li>
+        {% endfor %}
+        {% for s in due_soon %}
+        <li><span><strong>{{ s.account.name }}</strong> · {{ s.title }} · {{ s.amount_gbp | gbp }}</span><span class="muted small">Due {{ s.next_due | ukdate }}</span></li>
+        {% endfor %}
+        {% for c in changes %}
+        <li><span><strong>{{ c.account.name }}</strong> asked: {{ c.body[:90] }}{% if c.body|length > 90 %}…{% endif %}</span>
+          <a class="btn btn--ghost btn--sm" href="{{ url_for('admin.change_requests') }}">Open</a></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <div class="card__head"><h2>Jobs on the go</h2></div>
+      {% if active_jobs %}
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>Job</th><th>Client</th><th>Status</th><th>Due</th><th class="num">Price</th></tr></thead>
+        <tbody>
+        {% for j in active_jobs %}
+          <tr><td><a class="rowlink" href="{{ url_for('admin.client', slug=j.account.slug, tab='jobs') }}">{{ j.title }}</a></td>
+            <td>{{ j.account.name }}</td><td>{{ status_badge(j.status) }}</td>
+            <td>{{ j.due_date | ukdate or '—' }}</td><td class="num">{{ j.price_gbp | gbp }}</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+      {% else %}{{ empty('No active jobs', 'Booked and in-progress jobs show here.') }}{% endif %}
+    </section>
+  </div>
+
+  <div>
+    <section class="card">
+      <div class="card__head"><h2>Sites</h2><span class="small muted" id="siteStamp">checking…</span></div>
+      <ul class="list" id="sites"><li class="muted small">Checking each site…</li></ul>
+    </section>
+    <section class="card">
+      <div class="card__head"><h2>HapiTech Lab</h2><a href="{{ url_for('admin.bench_runs') }}">All runs</a></div>
+      {% if latest_run %}
+        <p><strong>{{ latest_run.model.display_name }}</strong> · {{ latest_run.prompt.name }}</p>
+        <p class="small muted">{{ status_badge(latest_run.status) }} {{ latest_run.created_at | ago }}</p>
+        <a class="btn btn--ghost btn--sm" style="margin-top:12px" href="{{ url_for('admin.bench_run', rid=latest_run.id) }}">Open run</a>
+      {% else %}{{ empty('No runs yet', 'Upload a result file to get started.') }}{% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+fetch("{{ url_for('admin.site_status') }}", {credentials: "same-origin"}).then(function (r) { return r.json(); }).then(function (d) {
+  var ul = document.getElementById("sites"); ul.innerHTML = "";
+  (d.sites || []).forEach(function (s) {
+    var li = document.createElement("li");
+    var cert = s.cert_days == null ? "" : (s.cert_days < 14 ? '<span class="badge badge--err">SSL ' + s.cert_days + 'd</span>' : '<span class="badge">SSL ' + s.cert_days + 'd</span>');
+    li.className = "site-row";
+    li.innerHTML = '<span class="badge ' + (s.up ? 'badge--ok">Up' : 'badge--err">Down') + '</span>' +
+      '<a class="site-row__host" href="https://' + s.host + '" target="_blank" rel="noopener">' + s.host + '</a>' +
+      '<span class="site-row__meta small muted">' + (s.ms != null ? s.ms + ' ms ' : '') + cert + '</span>';
+    ul.appendChild(li);
+  });
+  document.getElementById("siteStamp").textContent = "just now";
+}).catch(function () { document.getElementById("sites").innerHTML = '<li class="muted small">Couldn\'t check sites.</li>'; });
+</script>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "app/base.html" %}
+{% block title %}{{ 'Edit ' ~ p.name if p else 'New prompt' }}{% endblock %}
+{% block content %}
+{% set src = f or p %}
+<p class="crumbs"><a href="{{ url_for('admin.bench_prompts') }}">Prompts</a>{% if p %} / <a href="{{ url_for('admin.bench_prompt', slug=p.slug) }}">{{ p.slug }}</a>{% endif %}</p>
+<div class="page-top"><div><h1>{{ 'Edit ' ~ p.name if p else 'New prompt' }}</h1>{% if p %}<p>Saving creates version {{ p.version + 1 }}. Version {{ p.version }} and its runs stay as they are.</p>{% endif %}</div></div>
+<form method="post" class="card form-grid">
+  {% if not p %}<label class="field"><span>ID <small>e.g. 08-invoice-extraction</small></span><input name="slug" class="mono" value="{{ src.get('slug','') if f else '' }}" required></label>{% endif %}
+  <label class="field {{ 'full' if p }}"><span>Name</span><input name="name" value="{{ (src.get('name') if f else (p.name if p else '')) or '' }}" required></label>
+  <label class="field"><span>Category</span><input name="category" value="{{ (src.get('category') if f else (p.category if p else '')) or '' }}"></label>
+  <label class="field"><span>Kind</span><input name="kind" value="{{ (src.get('kind') if f else (p.kind if p else '')) or '' }}"></label>
+  <label class="field"><span>Grading</span><select name="grading">{% set gv = (src.get('grading') if f else (p.grading if p else 'automatic')) %}{% for gr in ['automatic','manual','mixed'] %}<option {{ 'selected' if gv == gr }}>{{ gr }}</option>{% endfor %}</select></label>
+  <label class="field"><span>Max tokens</span><input name="max_tokens" inputmode="numeric" value="{{ (src.get('max_tokens') if f else (p.max_tokens if p else '')) or '' }}"></label>
+  <label class="field"><span>Repeats</span><input name="repeats" inputmode="numeric" value="{{ (src.get('repeats') if f else (p.repeats if p else 1)) or '' }}"></label>
+  <label class="field full"><span>Description <small>what it tests, in plain English</small></span><textarea name="description" rows="2">{{ (src.get('description') if f else (p.description if p else '')) or '' }}</textarea></label>
+  <label class="field full"><span>Prompt text</span><textarea name="prompt_text" class="code" required>{{ (src.get('prompt_text') if f else (p.prompt_text if p else '')) or '' }}</textarea></label>
+  <label class="field full"><span>Pass criteria</span><textarea name="pass_criteria" rows="2">{{ (src.get('pass_criteria') if f else (p.pass_criteria if p else '')) or '' }}</textarea></label>
+  <label class="field full"><span>Other settings <small>JSON object (fixture paths, context sizes, schema…)</small></span><textarea name="config" class="code" style="min-height:120px">{{ (src.get('config') if f else (p.config if p else '{}')) or '{}' }}</textarea></label>
+  {% if p %}<label class="field full"><span>What changed? <small>shown in the version history</small></span><input name="changelog" value="{{ src.get('changelog','') if f else '' }}"></label>{% endif %}
+  <div class="form-actions full"><button class="btn">{{ 'Save as version ' ~ (p.version + 1) if p else 'Create prompt' }}</button></div>
+</form>
+{% endblock %}

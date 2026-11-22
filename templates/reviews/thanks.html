@@ -1,0 +1,33 @@
+{% extends "reviews/_base.html" %}
+{% block title %}Thank you | {{ a.name }}{% endblock %}
+{% block meta %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<div class="rv__card rv__thanks">
+  <p class="rv__big">🙏</p>
+  <h1 class="rv__title">{{ 'Thanks, you already left a review!' if already else 'Thank you, ' ~ (review.author_name.split()[0] if review else '') ~ '!' }}</h1>
+  <p class="rv__sub">{{ a.first_name }} really appreciates it. Your review will show on {{ a.domain or 'their website' }} shortly.</p>
+  {% if review and a.google_profile_url %}
+  <div class="rv__google">
+    <p><strong>Got 30 more seconds?</strong> Posting the same review on Google helps local people find {{ a.first_name }}.</p>
+    {% if review.body %}
+    <div class="copy"><textarea id="rvText" rows="3" readonly>{{ review.body }}</textarea></div>
+    <button class="btn btn--ghost" type="button" id="copyBtn">Copy my review</button>
+    {% endif %}
+    <a class="btn" href="{{ a.google_profile_url }}" target="_blank" rel="noopener">Post it on Google</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var b = document.getElementById("copyBtn"), t = document.getElementById("rvText");
+  if (!b || !t) return;
+  b.addEventListener("click", function () {
+    var done = function () { b.textContent = "Copied. Now paste it on Google"; };
+    if (navigator.clipboard) navigator.clipboard.writeText(t.value).then(done, function () { t.select(); });
+    else { t.select(); try { document.execCommand("copy"); done(); } catch (e) {} }
+  });
+})();
+</script>
+{% endblock %}

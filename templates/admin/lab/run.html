@@ -1,0 +1,70 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import status_badge with context %}
+{% block title %}{{ run.model.display_name }} · {{ run.prompt.name }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ url_for('admin.bench_runs') }}">Benchmark runs</a> / #{{ run.id }}</p>
+<div class="page-top">
+  <div><h1>{{ run.model.display_name }}: {{ run.prompt.name }}</h1>
+    <p>{{ status_badge(run.status) }} · <a href="{{ url_for('admin.bench_prompt', slug=run.prompt.slug, v=run.prompt.version) }}">{{ run.prompt.slug }} v{{ run.prompt.version }}</a>{% if run.started_at %} · run {{ run.started_at | ukdate('%-d %b %Y %H:%M') }}{% endif %}{% if run.source_file %} · from <span class="mono">{{ run.source_file }}</span>{% endif %}</p></div>
+  <form method="post" class="page-top__actions">
+    {% if run.status == 'published' %}
+      <a class="btn btn--ghost btn--sm" href="{{ url_for('lab.run', rid=run.id) }}" target="_blank">View public page ↗</a>
+      <button class="btn btn--danger btn--sm" name="action" value="withdraw" data-confirm="Hide this run from the public pages?">Withdraw</button>
+    {% else %}
+      {% if run.status == 'draft' %}<button class="btn btn--danger btn--sm" name="action" value="delete" data-confirm="Delete this draft?">Delete draft</button>{% endif %}
+      {% if run.status == 'withdrawn' %}<button class="btn btn--ghost btn--sm" name="action" value="draft">Back to draft</button>{% endif %}
+      <button class="btn btn--sm" name="action" value="publish">Publish</button>
+    {% endif %}
+  </form>
+</div>
+
+<div class="grid grid--4">
+  {% set pr = run.pass_rate %}
+  <div class="stat"><p class="stat__label">Passed</p><p class="stat__value">{{ '%d%%' % (pr * 100) if pr is not none else '—' }}</p><p class="stat__sub">{{ run.results|length }} attempt{{ '' if run.results|length == 1 else 's' }}</p></div>
+  <div class="stat"><p class="stat__label">Decode speed</p><p class="stat__value">{{ '%.0f' % run.avg('decode_tps') if run.avg('decode_tps') else '—' }}</p><p class="stat__sub">tokens / second (avg)</p></div>
+  <div class="stat"><p class="stat__label">Prompt processing</p><p class="stat__value">{{ '{:,.0f}'.format(run.avg('prefill_tps')) if run.avg('prefill_tps') else '—' }}</p><p class="stat__sub">tokens / second (avg)</p></div>
+  <div class="stat"><p class="stat__label">First token</p><p class="stat__value">{{ '{:,.0f}'.format(run.avg('ttft_ms')) if run.avg('ttft_ms') else '—' }}</p><p class="stat__sub">ms (avg)</p></div>
+</div>
+
+<form method="post" class="grid grid--side" style="margin-top:16px">
+  <input type="hidden" name="action" value="save">
+  <section class="card card--flush">
+    <div class="card__head"><h2>Attempts</h2><span class="small muted">Correct a grade if the automatic check got it wrong</span></div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>#</th><th>Result</th><th class="num">Prompt tok</th><th class="num">Output tok</th><th class="num">tok/s</th><th class="num">First token</th><th class="num">Total</th></tr></thead>
+      <tbody>{% for r in run.results %}
+        <tr><td>{{ r.repeat_n }}</td>
+          <td><select name="passed_{{ r.id }}" style="width:auto;padding:6px 30px 6px 10px">
+            {% for k, v in [('yes','Pass'),('no','Fail'),('unknown','Not graded')] %}<option value="{{ k }}" {{ 'selected' if {True:'yes',False:'no'}.get(r.passed,'unknown') == k }}>{{ v }}</option>{% endfor %}</select></td>
+          <td class="num">{{ '{:,}'.format(r.prompt_tokens) if r.prompt_tokens else '—' }}</td><td class="num">{{ r.completion_tokens or '—' }}</td>
+          <td class="num">{{ '%.1f' % r.decode_tps if r.decode_tps else '—' }}</td><td class="num">{{ '%.0f ms' % r.ttft_ms if r.ttft_ms else '—' }}</td>
+          <td class="num">{{ '%.1f s' % r.total_seconds if r.total_seconds else '—' }}</td></tr>
+      {% endfor %}</tbody></table></div>
+  </section>
+  <div>
+    <section class="card stack">
+      <label class="field"><span>Public summary <small>one or two plain-English lines</small></span><textarea name="summary" rows="4" placeholder="e.g. Gemma answered every tool-calling step correctly and in order, at ~140 tokens/sec.">{{ run.summary or '' }}</textarea></label>
+      <label class="field"><span>Private notes</span><textarea name="notes" rows="3">{{ run.notes or '' }}</textarea></label>
+      <div><button class="btn btn--sm">Save</button></div>
+    </section>
+  </div>
+</form>
+
+<div class="grid grid--2" style="margin-top:16px">
+  <section class="card">
+    <div class="card__head"><h3>Artefact</h3>{% if run.artefact_path %}<span class="badge badge--ok">Attached</span>{% endif %}</div>
+    <p class="small muted">An HTML file the model produced (a game, a page). It's shown in a sandbox that can't touch the site.</p>
+    <form method="post" enctype="multipart/form-data" class="row" style="margin-top:12px">
+      <input type="hidden" name="action" value="artefact"><input type="file" name="artefact" accept=".html,.htm" class="field" style="flex:1">
+      <button class="btn btn--ghost btn--sm">Attach</button>
+    </form>
+  </section>
+  <section class="card">
+    <div class="card__head"><h3>Setup</h3></div>
+    <dl class="kv small"><dt>Context</dt><dd>{{ '{:,}'.format(run.context_length) if run.context_length else '—' }}</dd>
+      <dt>Hardware</dt><dd>{{ raw_first.get('hardware_profile') or run.model.hardware_profile or '—' }}</dd>
+      <dt>Quant</dt><dd>{{ raw_first.get('quant') or run.model.quant or '—' }}</dd></dl>
+    {% if raw_first %}<details class="fold"><summary class="small">First record (raw)</summary><pre class="block">{{ raw_first | tojson(indent=1) }}</pre></details>{% endif %}
+  </section>
+</div>
+{% endblock %}

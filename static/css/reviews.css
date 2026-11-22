@@ -1,0 +1,51 @@
+/* Client-branded customer pages: review form, thanks, business review page. --brand set per client. */
+body.rv{background:#f4f2ee;color:#16181d;min-height:100dvh;display:flex;flex-direction:column}
+.rv__head{display:flex;align-items:center;gap:12px;padding:18px 16px;max-width:620px;width:100%;margin:0 auto}
+.rv__logo{width:44px;height:44px;border-radius:12px;object-fit:cover;border:1px solid rgba(0,0,0,.08);background:#fff}
+.rv__name{font-weight:700;font-size:1.08rem;line-height:1.2}
+.rv__trade{font-size:.86rem;color:#5b6070}
+.rv__main{flex:1;width:100%;max-width:620px;margin:0 auto;padding:0 16px 32px;display:grid;gap:12px;align-content:start}
+.rv__card{padding:26px 22px;border-radius:20px;background:#fff;border:1px solid rgba(0,0,0,.07);box-shadow:0 1px 2px rgba(0,0,0,.04),0 12px 30px -18px rgba(0,0,0,.25);display:grid;gap:16px}
+.rv__title{font-size:clamp(1.45rem,5vw,1.85rem);letter-spacing:-.03em;line-height:1.15}
+.rv__sub{color:#5b6070;margin-top:-8px}
+.rv__sub a,.rv__meta a,.rv__fine a,.rv__foot a{color:var(--brand);font-weight:600}
+.rv .field input,.rv .field textarea{background:#f7f6f3;border-color:rgba(0,0,0,.14);color:#16181d}
+.rv .field > span{color:#16181d}
+.rv .field em{font-style:normal;font-weight:400;color:#7a7f89}
+.rv .btn{background:var(--brand);border-color:var(--brand);color:#fff}
+.rv .btn:hover{filter:brightness(1.08);background:var(--brand);border-color:var(--brand)}
+.rv .btn--ghost{background:transparent;color:#16181d;border-color:rgba(0,0,0,.18)}
+.rv .btn--ghost:hover{background:#f4f2ee;filter:none;border-color:#16181d;color:#16181d}
+.rv__submit{width:100%;min-height:56px;font-size:1.08rem}
+
+/* stars: DOM order 5..1, displayed 1..5 */
+.rv__stars{display:flex;flex-direction:row-reverse;justify-content:center;gap:6px;border:0;padding:4px 0}
+.rv__stars input{position:absolute;opacity:0;width:1px;height:1px}
+.rv__stars label{font-size:clamp(2.6rem,12vw,3.2rem);line-height:1;color:#d9d5ce;cursor:pointer;transition:transform .12s,color .12s;padding:2px}
+.rv__stars label:hover,.rv__stars label:hover ~ label,.rv__stars input:checked ~ label{color:#f5a623}
+.rv__stars label:active{transform:scale(.9)}
+.rv__stars input:focus-visible + label{outline:2px solid var(--brand);outline-offset:2px;border-radius:8px}
+.rv__rating-word{text-align:center;font-weight:700;min-height:1.4em;margin-top:-10px;color:#16181d}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.rv__fine{font-size:.8rem;color:#7a7f89;text-align:center}
+
+.rv__thanks{text-align:center;justify-items:center}
+.rv__big{font-size:3rem;line-height:1}
+.rv__google{display:grid;gap:10px;width:100%;padding:18px;border-radius:16px;background:#f7f6f3;text-align:left}
+.rv__google textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.12);font-size:.9rem;resize:none;background:#fff}
+.rv__google .btn{width:100%}
+
+.rv__score{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:1.05rem}
+.rv__score-n{font-size:2.2rem;font-weight:700;letter-spacing:-.03em}
+.rv__review{gap:8px}
+.rv__review-top{display:flex;justify-content:space-between;gap:10px}
+.rv__meta{font-size:.82rem;color:#7a7f89}
+.rv__text{white-space:pre-wrap}
+.rv .stars{color:#f5a623;letter-spacing:1px}
+.rv .stars__off{color:#d9d5ce}
+.rv .review__photos{display:flex;gap:8px;flex-wrap:wrap}
+.rv .review__photos img{width:88px;height:88px;object-fit:cover;border-radius:10px}
+.rv .review__reply{padding:12px 14px;border-radius:10px;background:#f7f6f3;border-left:3px solid var(--brand);font-size:.92rem}
+.rv .review__reply strong{display:block;font-size:.8rem;color:#7a7f89;margin-bottom:4px}
+.rv__foot{padding:20px 16px 28px;text-align:center;font-size:.8rem;color:#7a7f89}
+.rv .login__msg.is-err{color:#dc2626}

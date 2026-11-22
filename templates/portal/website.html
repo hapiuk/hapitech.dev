@@ -1,0 +1,22 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import empty with context %}
+{% block title %}My website{% endblock %}
+{% block content %}
+<div class="page-top"><div><h1>My website</h1><p>Change your prices, services, photos and details. Changes show on your site within 10 minutes.</p></div>
+  <a class="btn btn--ghost btn--sm" href="{{ url_for('portal.help') }}">Need something bigger?</a></div>
+{% if groups %}
+  {% for group, blocks in groups.items() %}
+  <section class="card">
+    <div class="card__head"><h2>{{ group }}</h2></div>
+    <ul class="list">{% for b in blocks %}
+      <li id="b{{ b.id }}"><span><strong>{{ b.label }}</strong><br><span class="small muted">
+        {% set d = b.data %}{% if b.type in ('text','longtext','price') %}{{ d[:110] }}{% if d|length > 110 %}…{% endif %}{% elif b.type == 'list' %}{{ d|join(' · ') }}{% elif b.type == 'images' %}{{ d|length }} photo{{ '' if d|length == 1 else 's' }}{% elif b.type == 'hours' %}{{ d|map('join', ' ')|join(' · ') }}{% endif %}
+        {% if not b.is_default %} <span class="badge badge--acc">Edited</span>{% endif %}</span></span>
+        <a class="btn btn--ghost btn--sm" href="{{ url_for('portal.block_edit', bid=b.id) }}">Edit</a></li>
+    {% endfor %}</ul>
+  </section>
+  {% endfor %}
+{% else %}
+  {{ empty('Not set up yet', 'HapiTech is connecting your website. Editable sections will appear here soon.') }}
+{% endif %}
+{% endblock %}

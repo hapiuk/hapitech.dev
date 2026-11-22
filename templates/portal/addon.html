@@ -1,0 +1,23 @@
+{% extends "app/base.html" %}
+{% block title %}Reviews & Updates{% endblock %}
+{% block content %}
+<section class="hello">
+  <h1>Get more reviews, the easy way</h1>
+  <p>Finish a job, tap one button, and your customer gets a text from your own phone asking for a review, a bit like Uber asks for a rating. Reviews appear on your website automatically.</p>
+</section>
+<div class="grid grid--3">
+  <div class="card"><h3>📱 Ask at the door</h3><p class="small muted" style="margin-top:6px">Text, WhatsApp, email or a QR code, sent from your own number, so customers know it's you.</p></div>
+  <div class="card"><h3>⭐ Reviews on your site</h3><p class="small muted" style="margin-top:6px">New reviews show on your website within minutes. Reply to them from here.</p></div>
+  <div class="card"><h3>📸 Post your work</h3><p class="small muted" style="margin-top:6px">Add photos of finished jobs and update your prices and services yourself.</p></div>
+</div>
+<section class="card card--accent" style="margin-top:16px">
+  {% if addon and addon.status == 'trial' %}
+    <h2>Your free trial has ended</h2>
+    <p class="muted" style="margin-top:6px">Your reviews are still on your website. To keep asking for new ones and posting updates, ask Aaron to switch Reviews &amp; Updates on.</p>
+  {% else %}
+    <h2>Try it free for 30 days</h2>
+    <p class="muted" style="margin-top:6px">No card needed. Anything you collect in the trial stays on your website.</p>
+  {% endif %}
+  <a class="btn" style="margin-top:14px" href="{{ url_for('portal.help') }}">Ask Aaron to switch it on</a>
+</section>
+{% endblock %}

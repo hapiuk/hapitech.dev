@@ -1,0 +1,19 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import status_badge with context %}
+{% block title %}Help & changes{% endblock %}
+{% block content %}
+<div class="page-top"><div><h1>Help &amp; changes</h1><p>Anything you can't change yourself, like a new page or a new design, just ask.</p></div></div>
+<div class="grid grid--side">
+  <form method="post" class="card stack">
+    <label class="field"><span>What would you like changed?</span><textarea name="body" rows="6" required placeholder="e.g. Can we add a page for kitchen fitting with these photos…"></textarea></label>
+    <div><button class="btn">Send to HapiTech</button></div>
+  </form>
+  <aside class="card">
+    <div class="card__head"><h3>Talk to Aaron</h3></div>
+    <p class="small"><a href="mailto:aaron@hapitech.dev">aaron@hapitech.dev</a></p>
+    {% if rows %}<hr class="hr"><p class="small muted" style="margin-bottom:8px">Your requests</p>
+    <ul class="list">{% for r in rows %}<li class="small"><span>{{ r.body[:70] }}{% if r.body|length > 70 %}…{% endif %}</span>{{ status_badge(r.status) }}</li>{% endfor %}</ul>{% endif %}
+  </aside>
+</div>
+<p class="small muted" style="margin-top:16px"><a href="{{ url_for('portal.account') }}">Change your password →</a></p>
+{% endblock %}

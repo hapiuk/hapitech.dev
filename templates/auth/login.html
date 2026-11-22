@@ -1,0 +1,15 @@
+{# templates/auth/login.html — full-page login (no-JS fallback, and where protected pages redirect). #}
+{% extends "site/base.html" %}
+{% block title %}Log in | HapiTech{% endblock %}
+{% block meta %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<section class="auth-page">
+  <div class="auth-card">
+    <img class="modal__logo" src="{{ url_for('static', filename='media/logo.png') }}" alt="" width="28" height="32">
+    <h1 class="modal__title">Log in</h1>
+    <p class="modal__sub">For HapiTech clients. You'll go straight to your dashboard.</p>
+    {% include "auth/_form.html" %}
+    <noscript><p class="login__msg is-err">Logging in needs JavaScript switched on.</p></noscript>
+  </div>
+</section>
+{% endblock %}

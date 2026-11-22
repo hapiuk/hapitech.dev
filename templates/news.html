@@ -34,7 +34,7 @@
         <ul class="latest__row">
           {% for item in latest %}
           <li>
-            <a class="latest__card" href="{{ url_for('news.news_article', item_id=item.id) }}">
+            <a class="latest__card" href="{{ item.link if item.internal else url_for('news.news_article', item_id=item.id) }}">
               {% if item.image %}<img src="{{ item.image }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% else %}<span class="latest__ph" aria-hidden="true">{{ item.source[:1] }}</span>{% endif %}
               <span class="latest__src">{{ item.source }}{% if item.date %} · {{ item.date | news_date }}{% endif %}</span>
               <span class="latest__title">{{ item.title }}</span>

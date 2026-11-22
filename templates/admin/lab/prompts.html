@@ -1,0 +1,13 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import empty with context %}
+{% block title %}Prompts{% endblock %}
+{% block content %}
+<div class="page-top"><div><h1>Prompts</h1><p>Every benchmark task, versioned. Editing creates a new version, and old runs keep the version they used.</p></div>
+  <a class="btn btn--sm" href="{{ url_for('admin.bench_prompt_edit') }}">New prompt</a></div>
+<section class="card card--flush">{% if rows %}<div class="table-wrap"><table class="table">
+  <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Grading</th><th class="num">Version</th><th class="num">Runs</th></tr></thead>
+  <tbody>{% for p in rows %}
+    <tr><td class="mono small">{{ p.slug }}</td><td><a class="rowlink" href="{{ url_for('admin.bench_prompt', slug=p.slug) }}">{{ p.name }}</a><div class="small muted">{{ (p.description or '')[:110] }}{% if (p.description or '')|length > 110 %}…{% endif %}</div></td>
+      <td>{{ (p.category or '—').replace('_',' ') }}</td><td>{{ p.grading or '—' }}</td><td class="num">v{{ p.version }}</td><td class="num">{{ run_counts.get(p.slug, 0) }}</td></tr>
+  {% endfor %}</tbody></table></div>{% else %}<div style="padding:22px">{{ empty('No prompts yet') }}</div>{% endif %}</section>
+{% endblock %}

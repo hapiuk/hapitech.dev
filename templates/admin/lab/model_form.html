@@ -1,0 +1,23 @@
+{% extends "app/base.html" %}
+{% block title %}{{ m.display_name or 'Add model' }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ url_for('admin.bench_models') }}">Models</a> / {{ m.display_name or 'New' }}</p>
+<div class="page-top"><h1>{{ m.display_name or 'Add a model' }}</h1></div>
+<form method="post" class="card form-card form-grid">
+  <label class="field full"><span>Model ID <small>e.g. unsloth/Qwen3.8-27B-GGUF. Result files are matched to this</small></span><input name="slug" value="{{ m.slug or '' }}" required class="mono"></label>
+  <label class="field"><span>Display name</span><input name="display_name" value="{{ m.display_name or '' }}" required></label>
+  <label class="field"><span>Maintainer</span><input name="maintainer" value="{{ m.maintainer or '' }}"></label>
+  <label class="field"><span>Quant</span><input name="quant" value="{{ m.quant or '' }}"></label>
+  <label class="field"><span>File size (bytes)</span><input name="file_size_bytes" value="{{ m.file_size_bytes or '' }}" inputmode="numeric"></label>
+  <label class="field"><span>Native context (tokens)</span><input name="native_ctx" value="{{ m.native_ctx or '' }}" inputmode="numeric"></label>
+  <label class="field"><span>Hardware profile</span><input name="hardware_profile" value="{{ m.hardware_profile or '' }}"></label>
+  <label class="field"><span>Vision</span><select name="supports_vision">{% for k, v in [('', 'Unknown'), ('yes','Yes'), ('no','No')] %}<option value="{{ k }}" {{ 'selected' if {True:'yes',False:'no'}.get(m.supports_vision,'') == k }}>{{ v }}</option>{% endfor %}</select></label>
+  <label class="field"><span>Tool calling</span><select name="supports_tools">{% for k, v in [('', 'Unknown'), ('yes','Yes'), ('no','No')] %}<option value="{{ k }}" {{ 'selected' if {True:'yes',False:'no'}.get(m.supports_tools,'') == k }}>{{ v }}</option>{% endfor %}</select></label>
+  <label class="field"><span>Status</span><select name="status">{% for s in ['active','candidate','blocked','retired'] %}<option {{ 'selected' if m.status == s }}>{{ s }}</option>{% endfor %}</select></label>
+  <label class="field"><span>Role</span><input name="role" value="{{ m.role or '' }}"></label>
+  <label class="field full"><span>Source URL</span><input name="source_url" value="{{ m.source_url or '' }}"></label>
+  <label class="field full"><span>Public blurb <small>plain English, shown on the results page</small></span><textarea name="blurb" rows="3">{{ m.blurb or '' }}</textarea></label>
+  <label class="field full"><span>Private notes</span><textarea name="notes" rows="3">{{ m.notes or '' }}</textarea></label>
+  <div class="form-actions full"><button class="btn">Save</button></div>
+</form>
+{% endblock %}

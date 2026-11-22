@@ -1,0 +1,50 @@
+{# templates/app/_macros.html — small shared pieces for admin + portal. #}
+{% macro stat(label, value, sub=None, warn=False) -%}
+<div class="stat{% if warn %} stat--warn{% endif %}">
+  <p class="stat__label">{{ label }}</p>
+  <p class="stat__value">{{ value }}</p>
+  {% if sub %}<p class="stat__sub">{{ sub }}</p>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro status_badge(s) -%}
+{% set map = {
+  'active':'ok','published':'ok','done':'ok','paid':'ok','completed':'ok',
+  'trial':'warn','draft':'warn','quote':'warn','reported':'warn','doing':'acc','in_progress':'acc','booked':'acc','new':'acc',
+  'paused':'','candidate':'','withdrawn':'err','removed':'err','cancelled':'err','archived':'','blocked':'err','retired':''} %}
+<span class="badge badge--{{ map.get(s, '') }}">{{ (s or '').replace('_', ' ') | capitalize }}</span>
+{%- endmacro %}
+
+{% macro empty(title, text='') -%}
+<div class="empty-state"><strong>{{ title }}</strong>{{ text }}</div>
+{%- endmacro %}
+
+{% macro review_card(r, actions=None, show_client=False) -%}
+<article class="review" id="r{{ r.id }}">
+  <div class="review__top">
+    <div class="review__who">
+      <strong>{{ r.author_name }}</strong>
+      <div class="review__meta">
+        {{ r.rating | stars }}
+        {% if r.reviewed_at %}<span>{{ r.reviewed_at | ukdate }}</span>{% endif %}
+        <span class="badge">{% if r.source_url and r.source != 'hapitech' %}<a href="{{ r.source_url }}" target="_blank" rel="noopener">via {{ r.source_label }} ↗</a>{% else %}via {{ r.source_label }}{% endif %}</span>
+        {% if r.verified %}<span class="badge badge--ok">Verified customer</span>{% endif %}
+        {% if r.status != 'published' %}{{ status_badge(r.status) }}{% endif %}
+        {% if show_client %}<span class="badge badge--acc">{{ r.account.name }}</span>{% endif %}
+      </div>
+    </div>
+  </div>
+  {% if r.body %}<p class="review__body">{{ r.body }}</p>{% endif %}
+  {% set photos = r.photos | fromjson %}
+  {% if photos %}
+  <div class="review__photos">
+    {% for pid in photos %}{% set m = media_by_id(pid) %}{% if m %}
+      <a href="{{ url_for('reviews_public.media_file', path=m.file_path) }}" target="_blank"><img src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="{{ m.alt or '' }}" loading="lazy"></a>
+    {% endif %}{% endfor %}
+  </div>
+  {% endif %}
+  {% if r.status == 'reported' and r.report_reason %}<p class="small muted" style="margin-top:8px">Reported: “{{ r.report_reason }}”</p>{% endif %}
+  {% if r.reply %}<div class="review__reply"><strong>Reply from {{ r.account.name }}</strong>{{ r.reply.body }}</div>{% endif %}
+  {% if actions %}{{ actions(r) }}{% endif %}
+</article>
+{%- endmacro %}

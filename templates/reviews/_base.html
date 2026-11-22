@@ -1,0 +1,27 @@
+{# templates/reviews/_base.html — client-branded pages customers see (review form, review page).
+   Branded as the client's business; HapiTech is credited quietly in the footer. #}
+<!doctype html>
+<html lang="en-GB" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}{{ a.name }}{% endblock %}</title>
+  {% block meta %}{% endblock %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/reviews.css') }}">
+  <style>:root{--brand:{{ a.brand_colour or '#2563eb' }}}</style>
+</head>
+<body class="site rv">
+  <header class="rv__head">
+    {% if a.logo_path %}<img class="rv__logo" src="{{ url_for('static', filename=a.logo_path) }}" alt="" width="44" height="44">{% endif %}
+    <div><p class="rv__name">{{ a.name }}</p>{% if a.trade %}<p class="rv__trade">{{ a.trade }}{% if a.town %} · {{ a.town }}{% endif %}</p>{% endif %}</div>
+  </header>
+  <main class="rv__main">{% block content %}{% endblock %}</main>
+  <footer class="rv__foot">
+    {% if a.domain %}<a href="https://{{ a.domain }}">{{ a.domain }}</a> · {% endif %}
+    Reviews collected by <a href="https://hapitech.dev">HapiTech</a> · <a href="/privacy">Privacy</a>
+  </footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

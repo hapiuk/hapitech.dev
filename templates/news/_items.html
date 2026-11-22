@@ -7,7 +7,8 @@
     <span class="src{% if item.cat == 'local' %} src--local{% endif %}">{{ item.source }}</span>
     {% if item.date %}<time datetime="{{ item.date }}">{{ item.date | news_date }}</time>{% endif %}
   </div>
-  <h2 class="post__title"><a href="{{ url_for('news.news_article', item_id=item.id) }}">{{ item.title }}</a></h2>
+  {% set here = item.link if item.internal else url_for('news.news_article', item_id=item.id) %}
+  <h2 class="post__title"><a href="{{ here }}">{{ item.title }}</a></h2>
 
   {% if item.content %}
     <div class="prose post__body" data-clamp>{{ item.content | safe }}</div>
@@ -22,8 +23,12 @@
   {% endif %}
 
   <footer class="post__foot">
-    <p>{% if item.content %}Full text from {{ item.source }}'s public feed{% else %}Summary from {{ item.source }}{% endif %}</p>
+    <p>{% if item.internal %}Our own test, run on our hardware{% elif item.content %}Full text from {{ item.source }}'s public feed{% else %}Summary from {{ item.source }}{% endif %}</p>
+    {% if item.internal %}
+    <a class="post__src" href="{{ item.link }}">See the full results →</a>
+    {% else %}
     <a class="post__src" href="{{ item.link }}" target="_blank" rel="noopener">Read on {{ item.source }} <span aria-hidden="true">↗</span></a>
+    {% endif %}
   </footer>
 </article>
 {% endfor %}

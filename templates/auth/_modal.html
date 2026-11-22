@@ -1,0 +1,10 @@
+{# templates/auth/_modal.html — login pop-up opened by any [data-login] link. #}
+<dialog class="modal" id="loginModal" aria-labelledby="loginTitle">
+  <div class="modal__card">
+    <button type="button" class="modal__close" data-modal-close aria-label="Close">×</button>
+    <img class="modal__logo" src="{{ url_for('static', filename='media/logo.png') }}" alt="" width="28" height="32">
+    <h2 id="loginTitle" class="modal__title">Log in</h2>
+    <p class="modal__sub">For HapiTech clients. You'll go straight to your dashboard.</p>
+    {% with next=None %}{% include "auth/_form.html" %}{% endwith %}
+  </div>
+</dialog>

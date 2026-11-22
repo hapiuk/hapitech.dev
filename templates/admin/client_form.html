@@ -1,0 +1,26 @@
+{% extends "app/base.html" %}
+{% block title %}{{ 'Edit ' ~ a.name if a else 'Add client' }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ url_for('admin.clients') }}">Clients</a>{% if a %} / <a href="{{ url_for('admin.client', slug=a.slug) }}">{{ a.name }}</a>{% endif %}</p>
+<div class="page-top"><h1>{{ 'Edit details' if a else 'Add a client' }}</h1></div>
+<form method="post" class="card form-card">
+  <div class="form-grid">
+    <label class="field full"><span>Business name</span><input name="name" value="{{ a.name if a else '' }}" required></label>
+    <label class="field"><span>Website domain <small>e.g. rolandshandyman.co.uk</small></span><input name="domain" value="{{ a.domain or '' if a else '' }}"></label>
+    <label class="field"><span>Trade / what they do</span><input name="trade" value="{{ a.trade or '' if a else '' }}"></label>
+    <label class="field"><span>Contact name</span><input name="contact_name" value="{{ a.contact_name or '' if a else '' }}"></label>
+    <label class="field"><span>Town / area</span><input name="town" value="{{ a.town or '' if a else '' }}"></label>
+    <label class="field"><span>Email</span><input type="email" name="contact_email" value="{{ a.contact_email or '' if a else '' }}"></label>
+    <label class="field"><span>Phone</span><input name="contact_phone" value="{{ a.contact_phone or '' if a else '' }}"></label>
+    <label class="field full"><span>Google review link <small>the "write a review" link from their Google Business Profile</small></span><input name="google_profile_url" value="{{ a.google_profile_url or '' if a else '' }}" placeholder="https://g.page/r/…/review"></label>
+    <label class="field"><span>Logo <small>path under /static, e.g. media/clients/rayg.png</small></span><input name="logo_path" value="{{ a.logo_path or '' if a else '' }}"></label>
+    <label class="field"><span>Brand colour</span><input name="brand_colour" value="{{ a.brand_colour or '' if a else '' }}" placeholder="#f97316"></label>
+    {% if a %}
+    <label class="field"><span>Status</span>
+      <select name="status">{% for s in ['active','paused','archived'] %}<option value="{{ s }}" {{ 'selected' if a.status == s }}>{{ s|capitalize }}</option>{% endfor %}</select></label>
+    {% endif %}
+    <label class="field full"><span>Notes <small>private</small></span><textarea name="notes" rows="4">{{ a.notes or '' if a else '' }}</textarea></label>
+  </div>
+  <div class="form-actions"><button class="btn" type="submit">Save</button><a class="btn btn--ghost" href="{{ url_for('admin.client', slug=a.slug) if a else url_for('admin.clients') }}">Cancel</a></div>
+</form>
+{% endblock %}

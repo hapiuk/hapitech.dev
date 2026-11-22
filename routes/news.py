@@ -20,6 +20,14 @@ def _news_date(iso):
 def _filtered(cat):
     data = get_news()
     items = data.get("items", [])
+    try:   # HapiTech Lab results join the feed as a first-party source
+        from routes.lab import lab_news_items
+        lab = lab_news_items()
+        if lab:
+            items = sorted(items + lab, key=lambda x: x.get("date") or "", reverse=True)
+            data = {**data, "items": items}
+    except Exception as exc:
+        print(f"[NEWS_LAB_ERROR] {exc}")
     if cat in CATEGORIES:
         items = [i for i in items if i.get("cat") == cat]
     return data, items

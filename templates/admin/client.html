@@ -1,0 +1,227 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import stat, status_badge, empty, review_card with context %}
+{% block title %}{{ a.name }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ url_for('admin.clients') }}">Clients</a> / {{ a.name }}</p>
+<div class="page-top">
+  <div>
+    <h1>{{ a.name }}</h1>
+    <p>{{ a.trade or 'Client' }}{% if a.town %} · {{ a.town }}{% endif %}{% if a.domain %} · <a href="https://{{ a.domain }}" target="_blank" rel="noopener">{{ a.domain }} ↗</a>{% endif %}</p>
+  </div>
+  <div class="page-top__actions">
+    <a class="btn btn--ghost btn--sm" href="{{ url_for('admin.view_portal', slug=a.slug) }}">View their dashboard</a>
+    <a class="btn btn--ghost btn--sm" href="{{ url_for('reviews_public.business', slug=a.slug) }}" target="_blank">Review page ↗</a>
+    <a class="btn btn--sm" href="{{ url_for('admin.client_edit', slug=a.slug) }}">Edit details</a>
+  </div>
+</div>
+
+<nav class="subnav" aria-label="Client sections">
+  {% for key, label in [('overview','Overview'),('jobs','Jobs'),('money','Money'),('users','Logins'),('reviews','Reviews'),('site','Website')] %}
+    <a href="{{ url_for('admin.client', slug=a.slug, tab=key) }}" {% if tab == key %}aria-current="page"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>
+
+{% if tab == 'overview' %}
+<div class="grid grid--4">
+  {{ stat('Paid to date', stats.paid | gbp) }}
+  {{ stat('Recurring / month', stats.mrr | gbp) }}
+  {{ stat('Reviews', stats.reviews, ('%.1f★ average' % stats.avg) if stats.avg else 'none yet') }}
+  {{ stat('Review requests', stats.requests, 'sent from their dashboard') }}
+</div>
+<div class="grid grid--side" style="margin-top:16px">
+  <section class="card">
+    <div class="card__head"><h2>Notes</h2></div>
+    <form method="post" action="{{ url_for('admin.note_add', slug=a.slug) }}" class="stack">
+      <label class="field"><span class="small muted">Add a note (calls, decisions, what's next)</span><textarea name="body" rows="3" required></textarea></label>
+      <div><button class="btn btn--sm" type="submit">Add note</button></div>
+    </form>
+    <hr class="hr">
+    {% if a.notes_log %}
+    <ul class="timeline">
+      {% for n in a.notes_log %}<li><p>{{ n.body }}</p><p class="small muted">{{ n.author.name if n.author else 'System' }} · {{ n.created_at | ago }}</p></li>{% endfor %}
+    </ul>
+    {% else %}<p class="muted small">No notes yet.</p>{% endif %}
+  </section>
+  <div>
+    {% set ad = a.addon() %}
+    <section class="card {% if ad and ad.is_enabled %}card--accent{% endif %}">
+      <div class="card__head"><h3>Reviews &amp; Updates add-on</h3>{% if ad %}{{ status_badge(ad.status) }}{% endif %}</div>
+      <p class="small muted">Their dashboard: review requests, review inbox, posts and website edits.</p>
+      {% if ad and ad.status == 'trial' %}<p class="small" style="margin-top:8px">Trial {{ 'ends' if ad.is_enabled else 'ended' }} {{ ad.trial_ends_at | ukdate }}{% if ad.trial_days_left %} ({{ ad.trial_days_left }} days left){% endif %}.</p>{% endif %}
+      <form method="post" action="{{ url_for('admin.addon_set', slug=a.slug) }}" class="row" style="margin-top:14px">
+        <input type="hidden" name="days" value="30">
+        <button class="btn btn--ghost btn--sm" name="status" value="trial">{{ 'Restart' if ad else 'Start' }} 30-day trial</button>
+        <button class="btn btn--sm" name="status" value="active">Turn on (paid)</button>
+        {% if ad %}<button class="btn btn--ghost btn--sm" name="status" value="paused">Pause</button>{% endif %}
+      </form>
+    </section>
+    <section class="card">
+      <div class="card__head"><h3>Contact</h3></div>
+      <dl class="kv">
+        <dt>Name</dt><dd>{{ a.contact_name or '—' }}</dd>
+        <dt>Email</dt><dd>{% if a.contact_email %}<a href="mailto:{{ a.contact_email }}">{{ a.contact_email }}</a>{% else %}—{% endif %}</dd>
+        <dt>Phone</dt><dd>{% if a.contact_phone %}<a href="tel:{{ a.contact_phone }}">{{ a.contact_phone }}</a>{% else %}—{% endif %}</dd>
+        <dt>Google</dt><dd>{% if a.google_profile_url %}<a href="{{ a.google_profile_url }}" target="_blank" rel="noopener">Review link ↗</a>{% else %}—{% endif %}</dd>
+      </dl>
+      {% if a.notes %}<hr class="hr"><p class="small" style="white-space:pre-wrap">{{ a.notes }}</p>{% endif %}
+    </section>
+  </div>
+</div>
+
+{% elif tab == 'jobs' %}
+<section class="card">
+  <div class="card__head"><h2>Add a job or quote</h2></div>
+  <form method="post" action="{{ url_for('admin.job_save', slug=a.slug) }}" class="form-grid">
+    <label class="field full"><span>Title</span><input name="title" required placeholder="e.g. Add a gallery page"></label>
+    <label class="field"><span>Type</span><select name="type">{% for k, v in job_types %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></label>
+    <label class="field"><span>Status</span><select name="status">{% for k, v in job_statuses %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></label>
+    <label class="field"><span>Price (£)</span><input name="price_gbp" inputmode="decimal" placeholder="0"></label>
+    <label class="field"><span>Due</span><input type="date" name="due_date"></label>
+    <label class="field full"><span>Notes</span><textarea name="notes" rows="2"></textarea></label>
+    <div class="form-actions full"><button class="btn btn--sm" type="submit">Add job</button></div>
+  </form>
+</section>
+<section class="card">
+  <div class="card__head"><h2>Jobs</h2></div>
+  {% if a.jobs %}
+    {% for j in a.jobs %}
+    <details class="fold" {% if loop.first and j.status in ('quote','booked','in_progress') %}open{% endif %}>
+      <summary>{{ j.title }} · {{ status_badge(j.status) }} · {{ j.price_gbp | gbp }}{% if j.is_paid %} <span class="badge badge--ok">Paid</span>{% elif j.paid_gbp %} <span class="badge badge--warn">{{ j.paid_gbp | gbp }} paid</span>{% endif %}</summary>
+      <form method="post" action="{{ url_for('admin.job_save', slug=a.slug, job_id=j.id) }}" class="form-grid" style="margin-bottom:18px">
+        <label class="field full"><span>Title</span><input name="title" value="{{ j.title }}" required></label>
+        <label class="field"><span>Type</span><select name="type">{% for k, v in job_types %}<option value="{{ k }}" {{ 'selected' if j.type == k }}>{{ v }}</option>{% endfor %}</select></label>
+        <label class="field"><span>Status</span><select name="status">{% for k, v in job_statuses %}<option value="{{ k }}" {{ 'selected' if j.status == k }}>{{ v }}</option>{% endfor %}</select></label>
+        <label class="field"><span>Price (£)</span><input name="price_gbp" value="{{ '%.2f' % j.price_gbp }}" inputmode="decimal"></label>
+        <label class="field"><span>Due</span><input type="date" name="due_date" value="{{ j.due_date or '' }}"></label>
+        <label class="field full"><span>Notes</span><textarea name="notes" rows="2">{{ j.notes or '' }}</textarea></label>
+        <div class="form-actions full">
+          <button class="btn btn--sm" type="submit">Save</button>
+          <button class="btn btn--danger btn--sm" name="action" value="delete" data-confirm="Delete this job? Payments stay recorded.">Delete</button>
+        </div>
+      </form>
+    </details>
+    {% endfor %}
+  {% else %}{{ empty('No jobs yet') }}{% endif %}
+</section>
+
+{% elif tab == 'money' %}
+<div class="grid grid--2">
+  <section class="card">
+    <div class="card__head"><h2>Record a payment</h2></div>
+    <form method="post" action="{{ url_for('admin.payment_add', slug=a.slug) }}" class="form-grid">
+      <label class="field"><span>Amount (£)</span><input name="amount_gbp" inputmode="decimal" required></label>
+      <label class="field"><span>Date</span><input type="date" name="paid_at" value="{{ today }}"></label>
+      <label class="field"><span>For job</span><select name="job_id"><option value="">—</option>{% for j in a.jobs %}<option value="{{ j.id }}">{{ j.title }}</option>{% endfor %}</select></label>
+      <label class="field"><span>For subscription</span><select name="subscription_id"><option value="">—</option>{% for s in a.subscriptions %}<option value="{{ s.id }}">{{ s.title }}</option>{% endfor %}</select></label>
+      <label class="field"><span>Method</span><select name="method">{% for m in ['bank','cash','card','other'] %}<option>{{ m }}</option>{% endfor %}</select></label>
+      <label class="field"><span>Reference</span><input name="ref"></label>
+      <label class="check full"><input type="checkbox" name="advance" value="1" checked> <span>Move the subscription's next due date on</span></label>
+      <div class="form-actions full"><button class="btn btn--sm" type="submit">Record payment</button></div>
+    </form>
+  </section>
+  <section class="card">
+    <div class="card__head"><h2>Subscriptions</h2></div>
+    {% for s in a.subscriptions %}
+    <details class="fold">
+      <summary>{{ s.title }} · {{ s.amount_gbp | gbp }}/{{ 'yr' if s.interval == 'yearly' else 'mo' }} · {{ status_badge(s.status) }}{% if s.next_due %} <span class="small muted">next {{ s.next_due | ukdate }}</span>{% endif %}</summary>
+      <form method="post" action="{{ url_for('admin.sub_save', slug=a.slug, sub_id=s.id) }}" class="form-grid" style="margin-bottom:16px">
+        <label class="field full"><span>Title</span><input name="title" value="{{ s.title }}"></label>
+        <label class="field"><span>Amount (£)</span><input name="amount_gbp" value="{{ '%.2f' % s.amount_gbp }}"></label>
+        <label class="field"><span>Every</span><select name="interval"><option value="monthly" {{ 'selected' if s.interval == 'monthly' }}>Month</option><option value="yearly" {{ 'selected' if s.interval == 'yearly' }}>Year</option></select></label>
+        <label class="field"><span>Next due</span><input type="date" name="next_due" value="{{ s.next_due or '' }}"></label>
+        <label class="field"><span>Status</span><select name="status">{% for st in ['active','paused','cancelled'] %}<option {{ 'selected' if s.status == st }}>{{ st }}</option>{% endfor %}</select></label>
+        <div class="form-actions full"><button class="btn btn--sm">Save</button><button class="btn btn--danger btn--sm" name="action" value="delete" data-confirm="Remove this subscription?">Remove</button></div>
+      </form>
+    </details>
+    {% endfor %}
+    <details class="fold" {% if not a.subscriptions %}open{% endif %}>
+      <summary>+ Add a subscription</summary>
+      <form method="post" action="{{ url_for('admin.sub_save', slug=a.slug) }}" class="form-grid">
+        <label class="field full"><span>Title</span><input name="title" placeholder="Hosting & maintenance" required></label>
+        <label class="field"><span>Amount (£)</span><input name="amount_gbp" required></label>
+        <label class="field"><span>Every</span><select name="interval"><option value="monthly">Month</option><option value="yearly">Year</option></select></label>
+        <label class="field"><span>Next due</span><input type="date" name="next_due"></label>
+        <div class="form-actions full"><button class="btn btn--sm">Add</button></div>
+      </form>
+    </details>
+  </section>
+</div>
+<section class="card">
+  <div class="card__head"><h2>Payments</h2><span class="muted small">Total {{ stats.paid | gbp }}</span></div>
+  {% if a.payments %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Date</th><th>For</th><th>Method</th><th>Ref</th><th class="num">Amount</th><th></th></tr></thead>
+    <tbody>{% for p in a.payments %}
+      <tr><td>{{ p.paid_at | ukdate }}</td><td>{{ p.job.title if p.job else (p.subscription.title if p.subscription else '—') }}</td>
+        <td>{{ p.method or '' }}</td><td class="small muted">{{ p.ref or '' }}</td><td class="num">{{ p.amount_gbp | gbp(true) }}</td>
+        <td class="right"><form method="post" action="{{ url_for('admin.payment_delete', slug=a.slug, pid=p.id) }}" class="inline-form"><button class="btn btn--danger btn--sm" data-confirm="Delete this payment record?">Delete</button></form></td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}{{ empty('No payments recorded') }}{% endif %}
+</section>
+
+{% elif tab == 'users' %}
+<div class="grid grid--2">
+  <section class="card">
+    <div class="card__head"><h2>Invite someone</h2></div>
+    <p class="small muted" style="margin-bottom:14px">They get an email with a link to choose their password, then log in from "Client login" on hapitech.dev.</p>
+    <form method="post" action="{{ url_for('admin.user_invite', slug=a.slug) }}" class="stack">
+      <label class="field"><span>Name</span><input name="name" value="{{ a.contact_name or '' }}"></label>
+      <label class="field"><span>Email</span><input type="email" name="email" value="{{ a.contact_email or '' }}" required></label>
+      <div><button class="btn btn--sm" type="submit">Send invite</button></div>
+    </form>
+  </section>
+  <section class="card">
+    <div class="card__head"><h2>Who can log in</h2></div>
+    {% if a.users %}
+    <ul class="list">{% for u in a.users %}
+      <li><span><strong>{{ u.name or u.email }}</strong><br><span class="small muted">{{ u.email }} · {{ 'last in ' ~ (u.last_login_at | ago) if u.last_login_at else 'never logged in' }}</span>
+        {% if not u.is_active %}<span class="badge badge--err">Disabled</span>{% endif %}</span>
+        <form method="post" action="{{ url_for('admin.user_update', slug=a.slug, uid=u.id) }}" class="row">
+          <button class="btn btn--ghost btn--sm" name="action" value="resend">Send login link</button>
+          {% if u.is_active %}<button class="btn btn--danger btn--sm" name="action" value="disable" data-confirm="Stop {{ u.email }} logging in?">Disable</button>
+          {% else %}<button class="btn btn--ghost btn--sm" name="action" value="enable">Enable</button>{% endif %}
+        </form></li>
+    {% endfor %}</ul>
+    {% else %}{{ empty('Nobody yet', 'Invite the owner to give them their dashboard.') }}{% endif %}
+  </section>
+</div>
+
+{% elif tab == 'reviews' %}
+<div class="page-top" style="margin-bottom:14px">
+  <p>{{ reviews|length }} review{{ '' if reviews|length == 1 else 's' }} · shown on {{ a.domain or 'their site' }} and <a href="{{ url_for('reviews_public.business', slug=a.slug) }}" target="_blank">their review page</a></p>
+  <a class="btn btn--sm" href="{{ url_for('admin.review_new', client=a.slug) }}">Add a review by hand</a>
+</div>
+{% macro admin_actions(r) %}
+  <form method="post" action="{{ url_for('admin.review_set', rid=r.id) }}" class="review__actions">
+    <input type="hidden" name="back" value="{{ url_for('admin.client', slug=a.slug, tab='reviews') }}">
+    {% if r.status != 'published' %}<button class="btn btn--ghost btn--sm" name="action" value="publish">Show it</button>{% endif %}
+    {% if r.status != 'removed' %}<button class="btn btn--danger btn--sm" name="action" value="remove" data-confirm="Hide this review from the public? Only do this for fake, abusive or off-topic reviews.">Remove</button>{% endif %}
+  </form>
+{% endmacro %}
+{% for r in reviews %}{{ review_card(r, actions=admin_actions) }}{% else %}{{ empty('No reviews yet') }}{% endfor %}
+
+{% elif tab == 'site' %}
+<div class="grid grid--2">
+  <section class="card">
+    <div class="card__head"><h2>Site key</h2>{% if a.site_api_key_hash %}<span class="badge badge--ok">Set</span>{% else %}<span class="badge">Not set</span>{% endif %}</div>
+    <p class="small muted">Their website uses this key to read reviews, posts and content from HapiTech. Put it in the site's <code class="mono">.env</code> as <code class="mono">HAPITECH_SITE_KEY</code>.</p>
+    {% if new_key %}
+      <div class="copy" style="margin-top:14px"><input id="newKey" value="{{ new_key }}" readonly><button class="btn btn--sm" type="button" data-copy="#newKey">Copy</button></div>
+      <p class="small" style="margin-top:8px;color:#f5b041">Copy it now. It won't be shown again.</p>
+    {% endif %}
+    <form method="post" action="{{ url_for('admin.site_key', slug=a.slug) }}" style="margin-top:14px">
+      <button class="btn btn--ghost btn--sm" {% if a.site_api_key_hash %}data-confirm="Make a new key? The old one stops working straight away, so the site needs updating too."{% endif %}>{{ 'Replace key' if a.site_api_key_hash else 'Create key' }}</button>
+    </form>
+  </section>
+  <section class="card">
+    <div class="card__head"><h2>Endpoints</h2></div>
+    <dl class="kv small">
+      <dt>Reviews</dt><dd class="mono">/api/v1/sites/{{ a.slug }}/reviews</dd>
+      <dt>Posts</dt><dd class="mono">/api/v1/sites/{{ a.slug }}/posts</dd>
+      <dt>Content</dt><dd class="mono">/api/v1/sites/{{ a.slug }}/content</dd>
+      <dt>Review page</dt><dd><a href="{{ url_for('reviews_public.business', slug=a.slug) }}" target="_blank">/reviews/{{ a.slug }}</a></dd>
+    </dl>
+  </section>
+</div>
+{% endif %}
+{% endblock %}

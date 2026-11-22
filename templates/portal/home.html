@@ -1,0 +1,29 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import empty, review_card with context %}
+{% block title %}Home{% endblock %}
+{% block content %}
+{% include "portal/_trial.html" %}
+<section class="hello">
+  <h1>Hi {{ (current_user.name if not current_user.is_admin else g.account.first_name) or g.account.first_name }} 👋</h1>
+  <p>
+    {% if stats.this_month %}{{ stats.this_month }} new review{{ '' if stats.this_month == 1 else 's' }} this month.{% else %}No new reviews yet this month.{% endif %}
+    {% if stats.unreplied %} {{ stats.unreplied }} waiting for a reply.{% endif %}
+    {% if last_post %} Your last post was {{ last_post.published_at | ago }}.{% endif %}
+  </p>
+  <div class="hello__actions">
+    <a class="btn btn--lg" href="{{ url_for('portal.ask') }}">Job done? Ask for a review</a>
+    <a class="btn btn--ghost btn--lg" href="{{ url_for('portal.post_edit') }}">Post an update</a>
+  </div>
+</section>
+
+<div class="grid grid--3">
+  <div class="stat"><p class="stat__label">Reviews</p><p class="stat__value">{{ stats.total }}</p><p class="stat__sub">{{ ('%.1f' % stats.avg) ~ '★ average' if stats.avg else 'none yet' }}</p></div>
+  <div class="stat"><p class="stat__label">Waiting for a reply</p><p class="stat__value">{{ stats.unreplied }}</p><p class="stat__sub"><a href="{{ url_for('portal.reviews', show='unreplied') }}">Reply now →</a></p></div>
+  <div class="stat"><p class="stat__label">Requests sent, not reviewed yet</p><p class="stat__value">{{ stats.waiting }}</p><p class="stat__sub"><a href="{{ url_for('portal.requests_list') }}">See requests →</a></p></div>
+</div>
+
+<section class="card" style="margin-top:16px">
+  <div class="card__head"><h2>Latest reviews</h2><a href="{{ url_for('portal.reviews') }}">All reviews</a></div>
+  {% for r in latest %}{{ review_card(r) }}{% else %}{{ empty('No reviews yet', 'Ask your next customer. It takes 20 seconds.') }}{% endfor %}
+</section>
+{% endblock %}

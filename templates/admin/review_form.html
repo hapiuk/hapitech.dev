@@ -1,0 +1,17 @@
+{% extends "app/base.html" %}
+{% block title %}Add a review{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ url_for('admin.reviews') }}">Reviews</a> / Add</p>
+<div class="page-top"><div><h1>Add a review by hand</h1><p>For reviews from Google, Checkatrade and so on that the client sends you. Copy them word for word. Shown with a "via …" link.</p></div></div>
+<form method="post" class="card form-card form-grid">
+  <label class="field"><span>Client</span><select name="client" required><option value="">Choose…</option>{% for c in clients %}<option value="{{ c.slug }}" {{ 'selected' if f.get('client') == c.slug }}>{{ c.name }}</option>{% endfor %}</select></label>
+  <label class="field"><span>From</span><select name="source">{% for k, v in sources.items() if k != 'hapitech' %}<option value="{{ k }}" {{ 'selected' if f.get('source') == k }}>{{ v }}</option>{% endfor %}</select></label>
+  <label class="field"><span>Reviewer's name</span><input name="author_name" value="{{ f.get('author_name','') }}" required></label>
+  <label class="field"><span>Stars</span><select name="rating">{% for n in [5,4,3,2,1] %}<option {{ 'selected' if (f.get('rating')|string) == (n|string) }}>{{ n }}</option>{% endfor %}</select></label>
+  <label class="field full"><span>Review text</span><textarea name="body" rows="5">{{ f.get('body','') }}</textarea></label>
+  <label class="field"><span>Date written</span><input type="date" name="reviewed_at" value="{{ f.get('reviewed_at','') }}"></label>
+  <label class="field"><span>Service <small>optional</small></span><input name="service" value="{{ f.get('service','') }}"></label>
+  <label class="field full"><span>Link to the original <small>optional; defaults to their Google review link</small></span><input name="source_url" value="{{ f.get('source_url','') }}"></label>
+  <div class="form-actions full"><button class="btn" type="submit">Add review</button></div>
+</form>
+{% endblock %}

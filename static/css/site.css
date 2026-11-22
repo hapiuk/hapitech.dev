@@ -637,3 +637,64 @@ a.cred{cursor:pointer}
 .read__more a:hover{color:var(--acc)}
 .read__more span{flex:none;font-size:.84rem;color:var(--ink-3)}
 @media (max-width:560px){.read__more li{flex-direction:column;gap:4px}}
+
+/* ==========================================================
+   v7: login modal + auth pages
+   ========================================================== */
+.modal{
+  border:0;padding:0;background:transparent;color:var(--ink);
+  width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px);margin:auto;overflow:visible;
+}
+.modal::backdrop{background:rgba(5,6,9,.62);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.modal[open]{animation:modal-in .22s var(--ease)}
+@keyframes modal-in{from{opacity:0;transform:translateY(10px) scale(.98)}}
+.modal__card,.auth-card{
+  position:relative;padding:32px 28px 26px;border-radius:22px;background:var(--card);
+  border:1px solid var(--line-2);box-shadow:var(--shadow-lg);max-height:calc(100dvh - 32px);overflow:auto;
+}
+.modal__close{
+  position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:10px;border:0;background:transparent;
+  font-size:1.5rem;line-height:1;color:var(--ink-3);cursor:pointer;
+}
+.modal__close:hover{background:var(--card-2);color:var(--ink)}
+.modal__logo{height:30px;width:auto;margin-bottom:14px}
+.modal__title{font-size:1.55rem;letter-spacing:-.02em}
+.modal__sub{color:var(--ink-2);font-size:.94rem;margin:6px 0 22px}
+.login__tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:12px;background:var(--bg);border:1px solid var(--line);margin-bottom:18px}
+.login__tab{padding:9px 10px;border:0;border-radius:9px;background:transparent;font-size:.9rem;font-weight:600;color:var(--ink-2);cursor:pointer}
+.login__tab[aria-selected="true"]{background:var(--card-2);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.login__pane{display:grid;gap:14px}
+.login__pane[hidden],[data-code-step][hidden]{display:none}
+[data-code-step]{display:grid;gap:14px}
+.login__row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:.9rem}
+.login__submit{width:100%}
+.login__hint{font-size:.9rem;color:var(--ink-2)}
+.login__code{font-family:var(--mono);font-size:1.4rem!important;letter-spacing:.3em;text-align:center}
+.login__msg{min-height:1.4em;margin-top:12px;font-size:.9rem;color:var(--ink-2)}
+.login__msg.is-ok{color:var(--live)}
+.login__msg.is-err{color:var(--err)}
+.check{display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--ink-2)}
+.check input{width:18px;height:18px;accent-color:var(--acc)}
+.linkish{border:0;background:none;padding:0;color:var(--acc);font-weight:600;font-size:.9rem;cursor:pointer;justify-self:start}
+.linkish:hover{text-decoration:underline;text-underline-offset:3px}
+.auth-page{display:grid;place-items:center;padding:64px 16px 96px;min-height:70vh}
+.auth-card{width:min(440px,100%)}
+
+/* ---------- HapiTech Lab (public) ---------- */
+.lab-table{width:100%;border-collapse:collapse;font-size:.94rem}
+.lab-table th{text-align:left;font-size:.76rem;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;border-bottom:1px solid var(--line)}
+.lab-table td{padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.lab-table tr:last-child td{border-bottom:0}
+.table-wrap{overflow-x:auto}
+.lab-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:28px}
+.lab-stats div{padding:16px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
+.lab-stats strong{display:block;font-size:1.6rem;letter-spacing:-.03em}
+.lab-stats span{font-size:.82rem;color:var(--ink-3)}
+@media (max-width:700px){.lab-stats{grid-template-columns:1fr 1fr}}
+.lab-h2{font-size:1.25rem;margin-top:40px}
+.lab-details{margin-top:16px}
+.lab-details summary{cursor:pointer;font-weight:600;color:var(--acc)}
+.lab-details pre{margin-top:12px;white-space:pre-wrap;padding:16px;border-radius:12px;background:var(--bg-2);border:1px solid var(--line);font-family:var(--mono);font-size:.86rem}
+.lab-frame{width:100%;aspect-ratio:16/10;border:1px solid var(--line);border-radius:14px;background:#000;margin-top:14px}
+.muted{color:var(--ink-3)}
+.small{font-size:.86rem}

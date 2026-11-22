@@ -1,0 +1,29 @@
+{% extends "site/base.html" %}
+{% block title %}HapiTech Lab: local AI benchmarks{% endblock %}
+{% block meta %}<meta name="description" content="How local AI models perform on real tasks on our own hardware: pass rates, speed and time to first token.">{% endblock %}
+{% block content %}
+<section class="page-head page-head--tight"><div class="wrap">
+  <p class="kicker">HapiTech Lab</p>
+  <h1>Local AI, tested on real tasks.</h1>
+  <p>We run open models on our own workstation and publish what we measure: whether they got the task right, how fast they answer and how long you wait for the first word. No vendor numbers.</p>
+</div></section>
+<section class="news-page"><div class="wrap">
+  {% if not prompts %}<p class="empty">No results published yet.</p>{% endif %}
+  {% for p in prompts %}
+  <article class="post" style="margin-bottom:16px">
+    <h2 class="post__title">{{ p.name }}</h2>
+    {% if p.description %}<p class="post__excerpt">{{ p.description }}</p>{% endif %}
+    <div class="table-wrap" style="margin-top:16px"><table class="lab-table">
+      <thead><tr><th>Model</th><th>Passed</th><th>Speed</th><th>First word</th><th></th></tr></thead>
+      <tbody>{% for r in by_prompt[p.slug] %}{% set pr = r.pass_rate %}
+        <tr><td><strong>{{ r.model.display_name }}</strong><br><span class="muted small">{{ r.model.quant or '' }}</span></td>
+          <td>{{ '%d%%' % (pr * 100) if pr is not none else 'Judged by hand' }} <span class="muted small">of {{ r.results|length }}</span></td>
+          <td>{{ '%.0f tok/s' % r.avg('decode_tps') if r.avg('decode_tps') else '—' }}</td>
+          <td>{{ '%.1f s' % (r.avg('ttft_ms') / 1000) if r.avg('ttft_ms') else '—' }}</td>
+          <td><a class="post__src" href="{{ url_for('lab.run', rid=r.id) }}">Details →</a></td></tr>
+      {% endfor %}</tbody></table></div>
+  </article>
+  {% endfor %}
+  <aside class="sources"><h2>How we test</h2><p>Every test is a fixed prompt with a clear pass/fail check, run on one RTX 4070 Ti Super workstation through llama.cpp. Speeds are averages across attempts. Interested in running local AI in your business? <a href="/#contact">Get in touch</a>.</p></aside>
+</div></section>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "reviews/_base.html" %}
+{% block title %}How did {{ a.first_name }} do? | {{ a.name }}{% endblock %}
+{% block meta %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<form method="post" enctype="multipart/form-data" class="rv__card" id="rvForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <h1 class="rv__title">How did {{ a.first_name }} do{% if req.job_ref %} with your {{ req.job_ref | lower }}{% endif %}?</h1>
+  <p class="rv__sub">Tap the stars. It takes about 20 seconds.</p>
+  <fieldset class="rv__stars" aria-label="Your rating">
+    {% for n in [5,4,3,2,1] %}
+      <input type="radio" id="s{{ n }}" name="rating" value="{{ n }}" {{ 'checked' if (f.get('rating')|string) == (n|string) }} required>
+      <label for="s{{ n }}" title="{{ n }} star{{ '' if n == 1 else 's' }}"><span class="sr">{{ n }} star{{ '' if n == 1 else 's' }}</span>★</label>
+    {% endfor %}
+  </fieldset>
+  <p class="rv__rating-word" id="ratingWord" aria-live="polite"></p>
+  <label class="field"><span>Anything you'd like to say? <em>(optional)</em></span>
+    <textarea name="body" rows="4" maxlength="3000" placeholder="What did they do, and how did it go?">{{ f.get('body','') }}</textarea></label>
+  <label class="field"><span>Your name, as shown on the review</span>
+    <input name="name" value="{{ f.get('name','') }}" maxlength="120" autocomplete="name" required></label>
+  <label class="field"><span>Add photos <em>(optional, up to 3)</em></span><input type="file" name="photos" accept="image/*" multiple></label>
+  {% if error %}<p class="login__msg is-err">{{ error }}</p>{% endif %}
+  <button class="btn rv__submit" type="submit">Post my review</button>
+  <p class="rv__fine">Your review appears on {{ a.name }}'s website with your name as entered. We don't show your phone number or email. <a href="/privacy">Privacy</a></p>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var words = {1: "Poor", 2: "Not great", 3: "OK", 4: "Good", 5: "Excellent!"};
+  var out = document.getElementById("ratingWord");
+  document.querySelectorAll('input[name="rating"]').forEach(function (r) {
+    r.addEventListener("change", function () { out.textContent = words[r.value]; });
+    if (r.checked) out.textContent = words[r.value];
+  });
+  var f = document.getElementById("rvForm");
+  f.addEventListener("submit", function () { var b = f.querySelector(".rv__submit"); b.disabled = true; b.textContent = "Posting…"; });
+})();
+</script>
+{% endblock %}

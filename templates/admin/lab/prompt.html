@@ -1,0 +1,51 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import status_badge with context %}
+{% block title %}{{ p.name }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ url_for('admin.bench_prompts') }}">Prompts</a> / <span class="mono">{{ p.slug }}</span></p>
+<div class="page-top">
+  <div><h1>{{ p.name }}</h1><p>Version {{ p.version }}{% if not p.is_current %} <span class="badge badge--warn">Old version</span>{% endif %} · {{ (p.category or '').replace('_',' ') }} · {{ p.grading or 'ungraded' }} grading</p></div>
+  <div class="page-top__actions">
+    <a class="btn btn--ghost btn--sm" href="{{ url_for('admin.bench_prompt_json', slug=p.slug, v=p.version) }}">Download JSON</a>
+    {% if p.is_current %}<a class="btn btn--sm" href="{{ url_for('admin.bench_prompt_edit', slug=p.slug) }}">Edit (new version)</a>{% endif %}
+  </div>
+</div>
+<div class="grid grid--side">
+  <div>
+    {% if p.description %}<section class="card"><p>{{ p.description }}</p></section>{% endif %}
+    <section class="card">
+      <div class="card__head"><h2>Prompt</h2><button class="btn btn--ghost btn--sm" type="button" data-copy="#promptText">Copy</button></div>
+      <pre class="block" id="promptText">{{ p.prompt_text }}</pre>
+    </section>
+    {% if p.pass_criteria %}<section class="card"><div class="card__head"><h2>Pass criteria</h2></div><p>{{ p.pass_criteria }}</p></section>{% endif %}
+    {% if fixtures %}
+    <section class="card">
+      <div class="card__head"><h2>Fixtures &amp; source files</h2><span class="small muted">{{ fixtures|length }} file{{ '' if fixtures|length == 1 else 's' }}</span></div>
+      {% for path, text in fixtures.items() %}
+        <details class="fold"><summary class="mono small">{{ path }}</summary><pre class="block">{{ text }}</pre></details>
+      {% endfor %}
+    </section>
+    {% endif %}
+  </div>
+  <div>
+    <section class="card">
+      <div class="card__head"><h3>Settings</h3></div>
+      <dl class="kv small"><dt>Max tokens</dt><dd>{{ p.max_tokens or '—' }}</dd><dt>Repeats</dt><dd>{{ p.repeats or '—' }}</dd><dt>Kind</dt><dd>{{ p.kind or '—' }}</dd></dl>
+      {% if config %}<details class="fold"><summary class="small">Other settings</summary><pre class="block">{{ config | tojson(indent=1) }}</pre></details>{% endif %}
+    </section>
+    <section class="card">
+      <div class="card__head"><h3>Versions</h3></div>
+      <ul class="list">{% for v in versions %}
+        <li><a href="{{ url_for('admin.bench_prompt', slug=p.slug, v=v.version) }}" {% if v.version == p.version %}style="font-weight:700"{% endif %}>v{{ v.version }}{% if v.is_current %} (current){% endif %}</a><span class="small muted">{{ v.created_at | ukdate }}</span></li>
+        {% if v.changelog %}<li class="small muted" style="border:0;padding-top:0">{{ v.changelog }}</li>{% endif %}
+      {% endfor %}</ul>
+    </section>
+    <section class="card">
+      <div class="card__head"><h3>Runs</h3></div>
+      {% if runs %}<ul class="list">{% for r in runs %}
+        <li><a href="{{ url_for('admin.bench_run', rid=r.id) }}">{{ r.model.display_name }}</a><span>{{ status_badge(r.status) }} <span class="small muted">v{{ r.prompt.version }}</span></span></li>
+      {% endfor %}</ul>{% else %}<p class="small muted">No runs yet.</p>{% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}
