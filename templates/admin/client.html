@@ -220,6 +220,7 @@
       <dt>Posts</dt><dd class="mono">/api/v1/sites/{{ a.slug }}/posts</dd>
       <dt>Content</dt><dd class="mono">/api/v1/sites/{{ a.slug }}/content</dd>
       <dt>Review page</dt><dd><a href="{{ url_for('reviews_public.business', slug=a.slug) }}" target="_blank">/reviews/{{ a.slug }}</a></dd>
+      <dt>"Leave a review" button</dt><dd><a href="{{ url_for('reviews_public.write', slug=a.slug) }}" target="_blank">/reviews/{{ a.slug }}/write</a><br><span class="muted">Point the site's review button here. If the add-on is off, it forwards to Google.</span></dd>
     </dl>
   </section>
 </div>

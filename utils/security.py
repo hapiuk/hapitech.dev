@@ -12,7 +12,7 @@ CSRF_EXEMPT_PREFIXES = ("/api/v1/",)          # client-site API: authenticated b
 
 LOGIN_WINDOW = dt.timedelta(minutes=15)
 MAX_FAILS_PER_IP = 10
-MAX_FAILS_PER_EMAIL = 6
+MAX_FAILS_PER_EMAIL = 5
 
 
 # ---------------------------------------------------------------- CSRF
@@ -65,12 +65,18 @@ def client_ip() -> str:
     return (fwd.split(",")[0].strip() or request.remote_addr or "?")[:64]
 
 
+def ip_key() -> str:
+    """Keyed hash of the visitor's IP: enough to rate-limit, without storing the address itself."""
+    from flask import current_app
+    return hmac.new(current_app.config["SECRET_KEY"].encode(), client_ip().encode(), "sha256").hexdigest()[:32]
+
+
 def login_blocked(email: str) -> bool:
     from models import db
     from models.core import LoginAttempt
     since = dt.datetime.utcnow() - LOGIN_WINDOW
     q = db.session.query(LoginAttempt).filter(LoginAttempt.created_at >= since, LoginAttempt.success.is_(False))
-    if q.filter(LoginAttempt.ip == client_ip()).count() >= MAX_FAILS_PER_IP:
+    if q.filter(LoginAttempt.ip == ip_key()).count() >= MAX_FAILS_PER_IP:
         return True
     return bool(email) and q.filter(LoginAttempt.email == email).count() >= MAX_FAILS_PER_EMAIL
 
@@ -78,7 +84,7 @@ def login_blocked(email: str) -> bool:
 def record_login(email: str, success: bool, kind: str = "password") -> None:
     from models import db
     from models.core import LoginAttempt
-    db.session.add(LoginAttempt(ip=client_ip(), email=(email or "")[:255], success=success, kind=kind))
+    db.session.add(LoginAttempt(ip=ip_key(), email=(email or "")[:255], success=success, kind=kind))
     # prune old rows now and then
     if secrets.randbelow(50) == 0:
         LoginAttempt.query.filter(LoginAttempt.created_at < dt.datetime.utcnow() - dt.timedelta(days=7)).delete()
@@ -90,7 +96,7 @@ def record_login(email: str, success: bool, kind: str = "password") -> None:
 def _deny():
     if request.path.startswith(("/admin/api/", "/portal/api/")):
         return jsonify({"ok": False, "message": "Please log in again."}), 401
-    return redirect(url_for("auth.login", next=request.full_path if request.method == "GET" else None))
+    return redirect(url_for("auth.login", next=request.full_path.rstrip("?") if request.method == "GET" else None))
 
 
 def admin_required(fn):

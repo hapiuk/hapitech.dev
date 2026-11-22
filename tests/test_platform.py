@@ -41,11 +41,8 @@ def _seed(db):
     for acct in (r, y):
         db.session.add(AddOn(account_id=acct.id, status="trial", trial_ends_at=dt.date.today() + dt.timedelta(days=30)))
     admin = User(email="admin@test", username="admin@test", role="admin", name="Aaron")
-    admin.set_password("admin-password-123")
     roland = User(email="roland@test", username="roland@test", role="owner", account_id=r.id, name="Roland")
-    roland.set_password("roland-password")
     ray = User(email="ray@test", username="ray@test", role="owner", account_id=y.id, name="Ray")
-    ray.set_password("ray-password-1")
     db.session.add_all([admin, roland, ray])
     db.session.add(Review(account_id=y.id, author_name="Ray's customer", rating=5, body="Great", source="google"))
     db.session.commit()
@@ -58,9 +55,12 @@ def _csrf(client, path="/"):
     return m.group(1)
 
 
-def _login(client, email, pw):
+def _login(client, email, pw=None, remember=False):
+    """Passwordless: ask for a code (returned in the response in local log mode), then verify it."""
     tok = _csrf(client)
-    return client.post("/auth/login", json={"email": email, "password": pw}, headers={"X-CSRF-Token": tok})
+    r = client.post("/auth/code/request", json={"email": email}, headers={"X-CSRF-Token": tok})
+    code = r.json.get("dev_code", "000000")
+    return client.post("/auth/code/verify", json={"code": code, "remember": remember}, headers={"X-CSRF-Token": tok})
 
 
 def _form(client, path, data, page=None, **kw):
@@ -72,30 +72,27 @@ def _form(client, path, data, page=None, **kw):
 # ---------------------------------------------------------------- auth
 
 def test_login_routes_by_role(app):
-    c = app.test_client()
-    r = _login(c, "admin@test", "admin-password-123")
-    assert r.status_code == 200 and r.json["redirect"] == "/admin"
-    c2 = app.test_client()
-    r = _login(c2, "roland@test", "roland-password")
-    assert r.json["redirect"] == "/portal"
+    assert _login(app.test_client(), "admin@test").json["redirect"] == "/admin"
+    assert _login(app.test_client(), "roland@test").json["redirect"] == "/portal"
 
 
-def test_bad_password_and_lockout(app):
+def test_wrong_codes_then_lockout(app):
     c = app.test_client()
-    for _ in range(6):
-        r = _login(c, "roland@test", "wrong")
-        assert r.status_code in (401, 429)
-    r = _login(c, "roland@test", "roland-password")
-    assert r.status_code == 429          # locked for 15 minutes, even with the right password
+    tok = _csrf(c)
+    c.post("/auth/code/request", json={"email": "roland@test"}, headers={"X-CSRF-Token": tok})
+    for _ in range(5):
+        assert c.post("/auth/code/verify", json={"code": "000001"}, headers={"X-CSRF-Token": tok}).status_code == 400
+    r = c.post("/auth/code/verify", json={"code": "000001"}, headers={"X-CSRF-Token": tok})
+    assert "expired" in r.json["message"]                      # code dead after 5 wrong tries
+    r = c.post("/auth/code/request", json={"email": "roland@test"}, headers={"X-CSRF-Token": tok})
+    assert r.status_code == 429                                 # and the email is rate limited
 
 
 def test_csrf_required(app):
-    c = app.test_client()
-    r = c.post("/auth/login", json={"email": "admin@test", "password": "admin-password-123"})
-    assert r.status_code == 400
+    assert app.test_client().post("/auth/code/request", json={"email": "admin@test"}).status_code == 400
 
 
-def test_email_code_login(app):
+def test_code_is_emailed(app):
     c = app.test_client()
     tok = _csrf(c)
     assert c.post("/auth/code/request", json={"email": "ray@test"}, headers={"X-CSRF-Token": tok}).json["ok"]
@@ -110,14 +107,31 @@ def test_unknown_email_gets_generic_answer(app):
     c = app.test_client()
     tok = _csrf(c)
     r = c.post("/auth/code/request", json={"email": "nobody@test"}, headers={"X-CSRF-Token": tok})
-    assert r.json["ok"] and "If that email" in r.json["message"]
+    assert r.json["ok"] and "dev_code" not in r.json
+    assert c.post("/auth/code/verify", json={"code": "123456"}, headers={"X-CSRF-Token": tok}).status_code == 400
+
+
+def test_no_passwords_stored(app):
+    from models.core import User
+    _login(app.test_client(), "admin@test")
+    with app.app_context():
+        assert all(u.password_hash == "" for u in User.query.all())
+
+
+def test_logout_really_logs_out_even_with_remember_me(app):
+    c = app.test_client()
+    assert _login(c, "roland@test", remember=True).json["ok"]
+    assert c.get("/portal/").status_code == 200
+    tok = _csrf(c, "/portal/")
+    assert c.post("/logout", data={"csrf_token": tok}).status_code == 302
+    assert c.get("/portal/").status_code == 302                 # bounced to login
 
 
 # ---------------------------------------------------------------- access control
 
 def test_owner_cannot_reach_admin(app):
     c = app.test_client()
-    _login(c, "roland@test", "roland-password")
+    _login(c, "roland@test")
     assert c.get("/admin/").status_code == 403
     assert c.get("/admin/clients").status_code == 403
 
@@ -132,7 +146,7 @@ def test_tenancy_owner_cannot_touch_other_account(app):
     from models import db
     from models.reviews import Review
     c = app.test_client()
-    _login(c, "roland@test", "roland-password")
+    _login(c, "roland@test")
     with app.app_context():
         rays = Review.query.filter_by(author_name="Ray's customer").first().id
     # Roland's portal never lists Ray's review...
@@ -156,12 +170,16 @@ def _png():
 def test_review_request_to_published_review(app):
     from models.reviews import Review, ReviewRequest
     c = app.test_client()
-    _login(c, "roland@test", "roland-password")
-    r = _form(c, "/portal/ask", {"customer_name": "Sarah", "contact": "07700 900123", "job_ref": "Wardrobe"},
-              page="/portal/ask")
+    _login(c, "roland@test")
+    r = _form(c, "/portal/ask", {"customer_name": "Sarah", "job_ref": "Wardrobe"}, page="/portal/ask")
     assert r.status_code == 302
-    send = c.get(r.headers["Location"]).get_data(as_text=True)
-    assert "sms:07700900123?&amp;body=" in send and "wa.me/447700900123" in send
+    send_url = r.headers["Location"]
+    send = c.get(send_url).get_data(as_text=True)
+    assert "Ask Sarah to scan this" in send and "sms:" not in send
+    _form(c, send_url, {"email": "sarah@example.com"}, page=send_url)      # emailed, address not kept
+    with app.app_context():
+        rq = ReviewRequest.query.filter_by(customer_name="Sarah").first()
+        assert rq.sent_via == "email" and rq.contact is None
     with app.app_context():
         token = ReviewRequest.query.filter_by(customer_name="Sarah").first().token
     assert f"https://hapitech.test/r/{token}" in send
@@ -203,7 +221,7 @@ def test_uploaded_photo_has_no_exif(app, tmp_path):
 def test_owner_report_keeps_review_visible(app):
     from models.reviews import Review
     c = app.test_client()
-    _login(c, "ray@test", "ray-password-1")
+    _login(c, "ray@test")
     with app.app_context():
         rid = Review.query.filter_by(author_name="Ray's customer").first().id
     _form(c, f"/portal/reviews/{rid}", {"action": "report", "reason": "Not my customer"}, page="/portal/reviews")
@@ -252,7 +270,7 @@ def test_bench_upload_publish_flow(app):
         db.session.add(BenchPrompt(slug="t-1", name="Test one", prompt_text="Say hi"))
         db.session.commit()
     c = app.test_client()
-    _login(c, "admin@test", "admin-password-123")
+    _login(c, "admin@test")
     text = "\n".join(json.dumps(x) for x in SAMPLE)
     r = _form(c, "/admin/lab/runs/new", {"jsonl": text}, page="/admin/lab/runs/new")
     assert r.status_code == 302
@@ -270,7 +288,7 @@ def test_bench_upload_publish_flow(app):
 
 def test_bad_jsonl_is_rejected(app):
     c = app.test_client()
-    _login(c, "admin@test", "admin-password-123")
+    _login(c, "admin@test")
     r = _form(c, "/admin/lab/runs/new", {"jsonl": "{not json"}, page="/admin/lab/runs/new")
     assert r.status_code == 200 and "Line 1" in r.get_data(as_text=True)
 
@@ -283,17 +301,17 @@ ADMIN_PAGES = ["/admin/", "/admin/clients", "/admin/clients/new", "/admin/client
                "/admin/reviews/new", "/admin/requests", "/admin/settings", "/admin/lab/runs", "/admin/lab/runs/new",
                "/admin/lab/prompts", "/admin/lab/prompts/new", "/admin/lab/models", "/admin/lab/models/new"]
 PORTAL_PAGES = ["/portal/", "/portal/ask", "/portal/requests", "/portal/reviews", "/portal/posts", "/portal/posts/new",
-                "/portal/website", "/portal/help", "/portal/account"]
-PUBLIC_PAGES = ["/", "/news", "/privacy", "/terms", "/login", "/lab", "/reviews/rolands"]
+                "/portal/website", "/portal/help"]
+PUBLIC_PAGES = ["/", "/news", "/privacy", "/terms", "/login", "/lab", "/reviews/rolands", "/reviews/rolands/write"]
 
 
 def test_all_pages_render(app):
     a = app.test_client()
-    _login(a, "admin@test", "admin-password-123")
+    _login(a, "admin@test")
     for p in ADMIN_PAGES:
         assert a.get(p).status_code == 200, p
     o = app.test_client()
-    _login(o, "roland@test", "roland-password")
+    _login(o, "roland@test")
     for p in PORTAL_PAGES:
         assert o.get(p).status_code == 200, p
     anon = app.test_client()
@@ -303,7 +321,7 @@ def test_all_pages_render(app):
 
 def test_admin_can_view_client_portal(app):
     c = app.test_client()
-    _login(c, "admin@test", "admin-password-123")
+    _login(c, "admin@test")
     r = c.get("/admin/clients/rolands/portal", follow_redirects=True)
     assert r.status_code == 200 and "Back to admin" in r.get_data(as_text=True)
 
@@ -316,5 +334,38 @@ def test_addon_paused_shows_upsell(app):
         AddOn.query.filter_by(account_id=a.id).first().status = "paused"
         db.session.commit()
     c = app.test_client()
-    _login(c, "roland@test", "roland-password")
+    _login(c, "roland@test")
     assert "Get more reviews, the easy way" in c.get("/portal/ask").get_data(as_text=True)
+
+
+def test_open_review_form_from_site_button(app, monkeypatch):
+    import routes.reviews_public as rp
+    from models.reviews import Review
+    c = app.test_client()
+    html = c.get("/reviews/rolands/write").get_data(as_text=True)
+    tok = re.search(r'name="csrf-token" content="([^"]+)"', html).group(1)
+    t = re.search(r'name="t" value="([^"]+)"', html).group(1)
+    base = {"csrf_token": tok, "t": t, "rating": "4", "name": "Jo", "body": "Good job"}
+    c.post("/reviews/rolands/write", data=base)                       # instant submit: dropped as a bot
+    monkeypatch.setattr(rp, "MIN_SECONDS_TO_WRITE", 0)
+    c.post("/reviews/rolands/write", data={**base, "website": "spam"})  # honeypot: dropped
+    with app.app_context():
+        assert not Review.query.filter_by(author_name="Jo").first()
+    assert c.post("/reviews/rolands/write", data=base).status_code == 200
+    with app.app_context():
+        rv = Review.query.filter_by(author_name="Jo").first()
+        assert rv and rv.source == "website" and not rv.verified and rv.rating == 4
+    for _ in range(3):
+        r = c.post("/reviews/rolands/write", data={**base, "name": "Again"})
+    assert "already left reviews today" in r.get_data(as_text=True)
+
+
+def test_write_form_forwards_to_google_without_addon(app):
+    from models import db
+    from models.core import AddOn, Account
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        AddOn.query.filter_by(account_id=a.id).first().status = "paused"
+        db.session.commit()
+    r = app.test_client().get("/reviews/rolands/write")
+    assert r.status_code == 302 and r.headers["Location"] == "https://g.page/r/x/review"

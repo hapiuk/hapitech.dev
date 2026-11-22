@@ -4,15 +4,8 @@
 <div class="page-top"><div><h1>Settings</h1></div></div>
 <div class="grid grid--2">
   <section class="card">
-    <div class="card__head"><h2>Your password</h2></div>
-    <form method="post" class="stack">
-      <input type="hidden" name="action" value="password">
-      <input type="email" name="email" value="{{ current_user.email }}" autocomplete="username" hidden>
-      <label class="field"><span>Current password</span><input type="password" name="current" autocomplete="current-password" required></label>
-      <label class="field"><span>New password <small>(12+ characters)</small></span><input type="password" name="new" autocomplete="new-password" minlength="12" required></label>
-      <label class="field"><span>Again</span><input type="password" name="new2" autocomplete="new-password" minlength="12" required></label>
-      <div><button class="btn btn--sm">Change password</button></div>
-    </form>
+    <div class="card__head"><h2>Logging in</h2></div>
+    <p class="small muted">There are no passwords. Everyone (you included) logs in with a 6-digit code emailed to them. No password is stored anywhere.</p>
   </section>
   <div>
     <section class="card">

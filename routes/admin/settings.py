@@ -1,8 +1,7 @@
-# routes/admin/settings.py — your own password, email test, AI news feed health.
+# routes/admin/settings.py — email test and AI news feed health.
 from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
-from models import db
 from utils.mailer import send_email
 
 from . import admin_bp
@@ -12,19 +11,7 @@ from . import admin_bp
 def settings():
     if request.method == "POST":
         action = request.form.get("action")
-        if action == "password":
-            cur, new, new2 = (request.form.get(k, "") for k in ("current", "new", "new2"))
-            if not current_user.check_password(cur):
-                flash("Your current password isn't right.", "err")
-            elif len(new) < 12:
-                flash("Use at least 12 characters.", "err")
-            elif new != new2:
-                flash("The new passwords don't match.", "err")
-            else:
-                current_user.set_password(new)
-                db.session.commit()
-                flash("Password changed.", "ok")
-        elif action == "test-email":
+        if action == "test-email":
             try:
                 send_email(to=current_user.email, subject="HapiTech test email",
                            text="If you can read this, outgoing email works.")

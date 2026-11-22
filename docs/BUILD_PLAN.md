@@ -7,7 +7,9 @@ _Drafted 22 Nov 2026, revised the same day with Aaron's answers. Status: plan on
 - Reviews are **centralised on hapitech.dev** and fed into Roland's and Ray G's sites.
 - Ray G's current site reviews are real (copied from his actual reviews). The "placeholder" comment only meant they're waiting to be automated. They get imported as real reviews.
 - Deploys: Aaron pulls on the server himself using the one-line command in section 8.
-- **No paid SMS provider.** Texts go from the tradesperson's own phone (see "Ask for a review" below).
+- **No paid SMS provider.** For now, review requests go by QR code (scanned on the spot) or an emailed link. No phone numbers are collected. Texting from the tradesperson's own phone can come back later if wanted.
+- **Email codes only. No passwords anywhere.** Keep as little sensitive data as possible: customer emails are used once and not stored, and IPs are only kept as keyed hashes for 7 days.
+- **No Google API submission for now.** Each client site's existing "Leave a Google Review" button will point to their HapiTech review form instead (`/reviews/<slug>/write`), so reviews come in without Google. Phase 7 is parked.
 - **Clients can make reasonable content changes themselves** (posts, photos, the text and prices of their services, opening hours). Anything bigger stays a change request to HapiTech.
 - **Reviews and Updates is a paid add-on**, with a free trial so clients can see it working on real jobs first.
 - **All existing reviews on both sites come from their Google Business Profiles.**
@@ -26,7 +28,8 @@ _Drafted 22 Nov 2026, revised the same day with Aaron's answers. Status: plan on
 | 22 Nov 2026 | 4: Benchmarks | ✅ Built locally | 3 models, all 8 prompts (+ fixtures, versioned), 11 published runs imported; upload → draft → publish; public `/lab`; Lab results in AI news |
 | 22 Nov 2026 | 5: Reviews core | ✅ Built locally | "Job done → ask" (SMS/WhatsApp from own phone, email, QR, link); client-branded review form; Google hand-off; inbox, replies, reports; review pages; 16 existing Google reviews imported (dates left blank: real dates unknown) |
 | 22 Nov 2026 | 6: Portal posts + client sites | 🟡 Portal side built (posts, photo upload, content-block editor, site API). **Not yet done:** switching Roland's/Ray's sites to read from the API, and defining each site's editable blocks | Sites must look identical afterwards |
-| — | 7: Google sync | ⏳ Not started | Needs Google Business Profile API approval |
+| 22 Nov 2026 | Changes after review | ✅ Built locally | Logout fixed (remember-me cookie survived); login is email-code only, with passwords wiped by migration `b2c3d4e5f6a7`; "Ask for a review" is QR-first plus an emailed link (no phone, email not stored); open review form for each site's review button with honeypot, time check and per-visitor daily limit; hashed IPs; privacy policy updated; 21 tests |
+| — | 7: Google sync | ⏸ Parked | Decided against Google API submission for small sites; the site button feeds the HapiTech form instead |
 | — | 8: Polish | ⏳ Not started | |
 
 **Tests:** `.venv/bin/python -m pytest -q` (17 checks: auth, lockout, CSRF, tenancy, full review flow, EXIF stripping, site API keys, benchmark upload/publish, every page renders).
@@ -130,11 +133,11 @@ Notes
 
 ## 3. Login modal and routing
 
-1. "Client login" on every public page opens a modal (no page change). It has two tabs: **Password**, and **Email me a code** (the existing OTP flow, hardened).
-2. `POST /auth/login` returns `{ok, redirect}`: `/admin` for admins, `/portal` for owners and staff. Failures get one generic message.
-3. `/login` stays as a full page for no-JS visitors and for redirects from protected pages (`?next=` is allowed only for same-site paths).
-4. Session hardening: `SESSION_COOKIE_SECURE`, `HTTPONLY`, `SAMESITE=Lax`; 14-day "remember me"; logout clears the session server-side.
-5. The admin can invite a client user: they get an email link to set a password (a signed token with a 48-hour expiry).
+1. "Client login" on every public page opens a pop-up. You enter your email, get a 6-digit code by email, and type it in. There are **no passwords**, and none are stored.
+2. Codes are single-use, last 10 minutes and are held only as a keyed hash in the signed session. After 5 wrong codes, that email is locked for 15 minutes. Unknown emails get the same answer as real ones.
+3. `POST /auth/code/verify` returns the right dashboard: `/admin` for admins, `/portal` for owners and staff. `/login` is the full-page fallback.
+4. Sessions: Secure, HttpOnly, SameSite=Lax cookies; optional "keep me logged in" (14 days). Logout clears both the session and the remember-me cookie.
+5. Inviting a client user just emails them "your dashboard is ready: log in with this email address".
 
 ---
 
@@ -186,6 +189,9 @@ Kept deliberately small, mobile-first and in plain language.
 - **Report** flags an abusive or fake review to HapiTech for removal. Owners can't delete or hide genuine negative reviews: the law requires all genuine reviews to be shown fairly (it's also what makes the system trustworthy).
 
 **Ask for a review: the "job done" moment (like Uber asking for a rating)**
+
+_Current build (22 Nov): **QR code first**. The tradesperson taps Job done, a big QR code appears, and the customer scans it there and then. Or they type the customer's email to send the link, and the address is used once and not stored. Text/WhatsApp from their own phone, described below, is on hold._
+
 - On their phone at the end of a job, the tradesperson taps **Job done → Ask for a review**, types the customer's name and number, and taps **Send text**. Their phone's messaging app opens with the message and link already written ("Thanks for having me round today, Sarah! Could you leave a quick review? It takes 20 seconds: <link>"). They press send, so it **comes from their own number**: no SMS provider, no cost per text, and the customer recognises the sender. Under the hood this is a standard `sms:` link.
 - The same screen offers **WhatsApp** (pre-filled the same way), **Email** (sent by HapiTech from their branded address) and **Show QR code** (the customer scans it on the doorstep).
 - The customer opens the link and sees the business logo, "How did Roland do?", five big stars, an optional comment and optional photos, then a thank-you screen with an "Also post on Google" button. It's built to take about 20 seconds on a phone.
@@ -275,6 +281,5 @@ Then, from your own machine, import the Lab data (models, prompts, results) the 
 
 ## 9. Logins for reviewing the work
 
-- **Locally (each phase):** the seed script creates three accounts with demo data: your admin, plus one owner each for Roland's and Ray G. It writes random passwords to `instance/dev-credentials.txt` (gitignored) and prints them once. Use the "Client login" pop-up at `http://127.0.0.1:5077` to check each portal.
-- **On the server:** no passwords are kept in code or git. After the Phase 1 deploy, run `flask create-admin aaron@hapitech.dev` once; it asks for the password interactively. Roland and Ray get invite emails to set their own passwords when you're ready to hand over.
-- Your existing production admin login keeps working until Phase 1 replaces the users table, and the migration carries it across.
+- **Locally:** `flask seed-dev` creates your admin plus demo owners `roland@demo.local` and `ray@demo.local` (listed in `instance/dev-credentials.txt`). Click "Client login" and enter the email. In local test mode the 6-digit code is shown right there, because nothing is really emailed.
+- **On the server:** codes are emailed for real. Your existing admin account carries over: just log in with aaron@hapitech.dev. `flask create-admin EMAIL` makes someone else an admin. Roland and Ray are invited from Admin → client → Logins.

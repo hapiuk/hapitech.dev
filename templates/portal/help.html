@@ -15,5 +15,4 @@
     <ul class="list">{% for r in rows %}<li class="small"><span>{{ r.body[:70] }}{% if r.body|length > 70 %}…{% endif %}</span>{{ status_badge(r.status) }}</li>{% endfor %}</ul>{% endif %}
   </aside>
 </div>
-<p class="small muted" style="margin-top:16px"><a href="{{ url_for('portal.account') }}">Change your password →</a></p>
 {% endblock %}

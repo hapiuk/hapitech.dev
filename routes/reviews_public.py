@@ -41,7 +41,7 @@ def leave(token):
             rating = int(f.get("rating") or 0)
         except ValueError:
             rating = 0
-        name = (f.get("name") or req.customer_name or "").strip()[:120]
+        name = (f.get("name") or "").strip()[:120]
         if not (1 <= rating <= 5):
             return render_template("reviews/leave.html", a=a, req=req, f=f, error="Tap a star rating first.")
         if not name:
@@ -65,7 +65,78 @@ def leave(token):
         db.session.add(review)
         db.session.commit()
         return render_template("reviews/thanks.html", a=a, review=review, already=False)
-    return render_template("reviews/leave.html", a=a, req=req, f={"name": req.customer_name}, error=None)
+    name = "" if req.customer_name == "your customer" else req.customer_name
+    return render_template("reviews/leave.html", a=a, req=req, f={"name": name}, error=None)
+
+
+WRITE_LIMIT_PER_DAY = 3          # per visitor (hashed IP) per business
+MIN_SECONDS_TO_WRITE = 4         # bots submit instantly
+
+
+def _save_review_photos(a, files, name):
+    ids = []
+    for up in files.getlist("photos")[:MAX_REVIEW_PHOTOS]:
+        if up and up.filename:
+            path, w, h = save_image(up, a, prefix="review")      # raises UploadError
+            m = Media(account_id=a.id, file_path=path, width=w, height=h, alt=f"Photo from {name}'s review")
+            db.session.add(m)
+            db.session.flush()
+            ids.append(m.id)
+    return ids
+
+
+@reviews_public_bp.route("/reviews/<slug>/write", methods=["GET", "POST"])
+def write(slug):
+    """Open review form behind each client site's "Leave a review" button (no request link needed)."""
+    from itsdangerous import BadSignature, URLSafeTimedSerializer
+    from models.core import LoginAttempt
+    from utils.security import ip_key
+    a = Account.query.filter_by(slug=slug, kind="client").first()
+    if not a or a.status == "archived":
+        abort(404)
+    if not a.has_addon():                       # add-on off: the button keeps working, straight to Google
+        if a.google_profile_url:
+            return redirect(a.google_profile_url)
+        abort(404)
+    signer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"], salt="review-form")
+    if request.method == "POST":
+        f = request.form
+        try:
+            started = signer.loads(f.get("t", ""), max_age=60 * 60 * 6)
+        except BadSignature:
+            started = None
+        too_fast = started is None or (dt.datetime.utcnow().timestamp() - started) < MIN_SECONDS_TO_WRITE
+        if f.get("website") or too_fast:        # honeypot filled / instant submit: pretend it worked
+            return render_template("reviews/thanks.html", a=a, review=None, already=False)
+        since = dt.datetime.utcnow() - dt.timedelta(days=1)
+        recent = LoginAttempt.query.filter(LoginAttempt.kind == "review", LoginAttempt.ip == ip_key(),
+                                           LoginAttempt.email == f"review:{a.slug}",
+                                           LoginAttempt.created_at >= since).count()
+        if recent >= WRITE_LIMIT_PER_DAY:
+            return render_template("reviews/leave.html", a=a, req=None, f=f, open_form=True, t=f.get("t"),
+                                   error="You've already left reviews today. Thank you!")
+        try:
+            rating = int(f.get("rating") or 0)
+        except ValueError:
+            rating = 0
+        name = (f.get("name") or "").strip()[:120]
+        err = ("Tap a star rating first." if not 1 <= rating <= 5 else "Add your name." if not name else None)
+        if err:
+            return render_template("reviews/leave.html", a=a, req=None, f=f, open_form=True, t=f.get("t"), error=err)
+        try:
+            photo_ids = _save_review_photos(a, request.files, name)
+        except UploadError as e:
+            return render_template("reviews/leave.html", a=a, req=None, f=f, open_form=True, t=f.get("t"), error=str(e))
+        review = Review(account_id=a.id, source="website", author_name=name, rating=rating,
+                        body=(f.get("body") or "").strip()[:3000], photos=json.dumps(photo_ids),
+                        service=(f.get("service") or "").strip()[:120] or None, status="published",
+                        verified=False, reviewed_at=dt.datetime.utcnow())
+        db.session.add(review)
+        db.session.add(LoginAttempt(ip=ip_key(), email=f"review:{a.slug}", kind="review", success=True))
+        db.session.commit()
+        return render_template("reviews/thanks.html", a=a, review=review, already=False)
+    return render_template("reviews/leave.html", a=a, req=None, f={}, open_form=True,
+                           t=signer.dumps(dt.datetime.utcnow().timestamp()), error=None)
 
 
 @reviews_public_bp.route("/reviews/<slug>")

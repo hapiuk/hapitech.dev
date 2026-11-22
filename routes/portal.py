@@ -10,7 +10,7 @@ from models import db
 from models.content import ContentBlock, ContentBlockVersion, Media, Post
 from models.core import ChangeRequest
 from models.reviews import Review, ReviewReply, ReviewRequest
-from utils.links import public_url, sms_href, whatsapp_href
+from utils.links import public_url
 from utils.mailer import send_email
 from utils.security import owner_required, scoped
 from utils.uploads import UploadError, delete_file, save_image
@@ -48,7 +48,8 @@ def _review_link(req: ReviewRequest) -> str:
 
 def _request_message(req: ReviewRequest) -> str:
     who = g.account.contact_name or g.account.name
-    return (f"Hi {req.customer_name}, thanks for choosing {g.account.name}! "
+    hi = f"Hi {req.customer_name}, thanks" if req.customer_name != "your customer" else "Thanks"
+    return (f"{hi} for choosing {g.account.name}! "
             f"Would you mind leaving {who.split()[0]} a quick review? It takes about 20 seconds: {_review_link(req)}")
 
 
@@ -79,15 +80,12 @@ def home():
 @owner_required
 @addon_required
 def ask():
+    """Job done: make a single-use review link, then show it as a QR code (or email it)."""
     if request.method == "POST":
-        name = (request.form.get("customer_name") or "").strip()
-        if not name:
-            flash("Add the customer's first name so the message feels personal.", "err")
-            return render_template("portal/ask.html", f=request.form)
-        req = ReviewRequest(account_id=g.account.id, customer_name=name[:120],
-                            contact=(request.form.get("contact") or "").strip()[:255] or None,
+        req = ReviewRequest(account_id=g.account.id,
+                            customer_name=(request.form.get("customer_name") or "").strip()[:120] or "your customer",
                             job_ref=(request.form.get("job_ref") or "").strip()[:160] or None,
-                            created_by=current_user.id)
+                            sent_via="qr", created_by=current_user.id)
         db.session.add(req)
         db.session.commit()
         return redirect(url_for("portal.ask_send", rid=req.id))
@@ -99,40 +97,24 @@ def ask():
 @addon_required
 def ask_send(rid):
     req = scoped(ReviewRequest, id=rid).first_or_404()
-    msg = _request_message(req)
-    contact = req.contact or ""
-    is_email = "@" in contact
-    if request.method == "POST":           # "Email it for me"
-        to = (request.form.get("email") or contact).strip()
-        if "@" not in to:
+    if request.method == "POST":           # "Email them the link" (the address is used once, never stored)
+        to = (request.form.get("email") or "").strip()
+        if "@" not in to or len(to) > 255:
             flash("Enter the customer's email address.", "err")
         else:
             try:
                 send_email(to=to, subject=f"How did {g.account.name} do?", from_name=g.account.name,
                            reply_to=g.account.contact_email or None,
-                           text=msg + f"\n\nThank you!\n{g.account.contact_name or g.account.name}")
-                req.sent_via, req.contact = "email", to
+                           text=_request_message(req) + f"\n\nThank you!\n{g.account.contact_name or g.account.name}")
+                if req.sent_via == "email" and req.completed_at is None:
+                    req.reminder_sent_at = dt.datetime.utcnow()
+                req.sent_via = "email"
                 db.session.commit()
-                flash(f"Email sent to {to}.", "ok")
+                flash(f"Sent to {to}. We don't keep their email address.", "ok")
             except Exception as exc:
                 flash(f"The email couldn't be sent: {exc}", "err")
         return redirect(url_for("portal.ask_send", rid=rid))
-    return render_template("portal/ask_send.html", req=req, msg=msg, link=_review_link(req), is_email=is_email,
-                           sms=sms_href("" if is_email else contact, msg),
-                           wa=whatsapp_href("" if is_email else contact, msg))
-
-
-@portal_bp.route("/api/requests/<int:rid>/sent", methods=["POST"])
-@owner_required
-def ask_mark_sent(rid):
-    req = scoped(ReviewRequest, id=rid).first_or_404()
-    via = (request.get_json(silent=True) or {}).get("via")
-    if via in ("sms", "whatsapp", "qr", "link"):
-        req.sent_via = via
-        if req.completed_at is None and request.args.get("reminder"):
-            req.reminder_sent_at = dt.datetime.utcnow()
-        db.session.commit()
-    return jsonify({"ok": True})
+    return render_template("portal/ask_send.html", req=req, msg=_request_message(req), link=_review_link(req))
 
 
 @portal_bp.route("/requests")
@@ -331,25 +313,3 @@ def help():
         return redirect(url_for("portal.help"))
     rows = scoped(ChangeRequest).order_by(ChangeRequest.created_at.desc()).limit(20).all()
     return render_template("portal/help.html", rows=rows)
-
-
-@portal_bp.route("/account", methods=["GET", "POST"])
-@owner_required
-def account():
-    if request.method == "POST":
-        if current_user.is_admin:
-            flash("You're viewing as the client. Change your own password in Admin → Settings.", "err")
-            return redirect(url_for("portal.account"))
-        cur, new, new2 = (request.form.get(k, "") for k in ("current", "new", "new2"))
-        if not current_user.check_password(cur):
-            flash("Your current password isn't right.", "err")
-        elif len(new) < 10:
-            flash("Use at least 10 characters.", "err")
-        elif new != new2:
-            flash("The new passwords don't match.", "err")
-        else:
-            current_user.set_password(new)
-            db.session.commit()
-            flash("Password changed.", "ok")
-        return redirect(url_for("portal.account"))
-    return render_template("portal/account.html")

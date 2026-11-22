@@ -8,7 +8,7 @@ admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 @admin_bp.before_request
 def _guard():
     if not current_user.is_authenticated:
-        return redirect(url_for("auth.login", next=request.full_path if request.method == "GET" else None))
+        return redirect(url_for("auth.login", next=request.full_path.rstrip("?") if request.method == "GET" else None))
     if not current_user.is_admin:
         abort(403)
 

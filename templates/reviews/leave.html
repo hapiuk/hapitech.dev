@@ -4,7 +4,9 @@
 {% block content %}
 <form method="post" enctype="multipart/form-data" class="rv__card" id="rvForm">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <h1 class="rv__title">How did {{ a.first_name }} do{% if req.job_ref %} with your {{ req.job_ref | lower }}{% endif %}?</h1>
+  {% if open_form %}<input type="hidden" name="t" value="{{ t }}">
+  <p class="rv__hp" aria-hidden="true"><label>Leave this empty <input name="website" tabindex="-1" autocomplete="off"></label></p>{% endif %}
+  <h1 class="rv__title">How did {{ a.first_name }} do{% if req and req.job_ref %} with your {{ req.job_ref | lower }}{% endif %}?</h1>
   <p class="rv__sub">Tap the stars. It takes about 20 seconds.</p>
   <fieldset class="rv__stars" aria-label="Your rating">
     {% for n in [5,4,3,2,1] %}
@@ -15,6 +17,8 @@
   <p class="rv__rating-word" id="ratingWord" aria-live="polite"></p>
   <label class="field"><span>Anything you'd like to say? <em>(optional)</em></span>
     <textarea name="body" rows="4" maxlength="3000" placeholder="What did they do, and how did it go?">{{ f.get('body','') }}</textarea></label>
+  {% if open_form %}<label class="field"><span>What was the job? <em>(optional)</em></span>
+    <input name="service" value="{{ f.get('service','') }}" maxlength="120" placeholder="e.g. Bathroom fitting"></label>{% endif %}
   <label class="field"><span>Your name, as shown on the review</span>
     <input name="name" value="{{ f.get('name','') }}" maxlength="120" autocomplete="name" required></label>
   <label class="field"><span>Add photos <em>(optional, up to 3)</em></span><input type="file" name="photos" accept="image/*" multiple></label>

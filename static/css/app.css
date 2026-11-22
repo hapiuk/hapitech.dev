@@ -224,3 +224,8 @@ details.fold[open] > summary{margin-bottom:8px}
 .site-row__meta{grid-column:2;display:flex;gap:8px;align-items:center}
 .side__actions{display:grid;grid-template-columns:auto 1fr 1fr;gap:6px}
 .side__actions .btn--sm{padding:0 .6rem;min-height:40px}
+.qr-card{display:grid;justify-items:center;text-align:center;gap:14px}
+.qr-card__title{font-size:clamp(1.3rem,4vw,1.6rem);letter-spacing:-.02em}
+.qr-full{margin:auto;border:0;border-radius:20px;padding:20px;background:#fff;color:#16181d;text-align:center}
+.qr-full::backdrop{background:rgba(0,0,0,.8)}
+.qr-full p{margin-top:10px;font-size:.9rem}

@@ -660,13 +660,9 @@ a.cred{cursor:pointer}
 .modal__logo{height:30px;width:auto;margin-bottom:14px}
 .modal__title{font-size:1.55rem;letter-spacing:-.02em}
 .modal__sub{color:var(--ink-2);font-size:.94rem;margin:6px 0 22px}
-.login__tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:12px;background:var(--bg);border:1px solid var(--line);margin-bottom:18px}
-.login__tab{padding:9px 10px;border:0;border-radius:9px;background:transparent;font-size:.9rem;font-weight:600;color:var(--ink-2);cursor:pointer}
-.login__tab[aria-selected="true"]{background:var(--card-2);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.2)}
 .login__pane{display:grid;gap:14px}
-.login__pane[hidden],[data-code-step][hidden]{display:none}
+[data-code-step][hidden]{display:none}
 [data-code-step]{display:grid;gap:14px}
-.login__row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:.9rem}
 .login__submit{width:100%}
 .login__hint{font-size:.9rem;color:var(--ink-2)}
 .login__code{font-family:var(--mono);font-size:1.4rem!important;letter-spacing:.3em;text-align:center}

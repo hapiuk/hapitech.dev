@@ -3,7 +3,6 @@ import datetime as dt
 import re
 
 from flask_login import UserMixin
-from werkzeug.security import check_password_hash, generate_password_hash
 
 from . import db
 
@@ -70,7 +69,7 @@ class User(UserMixin, TimestampMixin, db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)
     username = db.Column(db.String(80), unique=True, nullable=False)        # legacy; mirrors email
     name = db.Column(db.String(120))
-    password_hash = db.Column(db.String(255), nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False, default="")   # unused: login is by email code only
     role = db.Column(db.String(20), nullable=False, default="owner")         # admin | owner | staff
     account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=True)
     client_id = db.Column(db.Integer, nullable=True)                         # legacy column, unused
@@ -91,11 +90,6 @@ class User(UserMixin, TimestampMixin, db.Model):
     def home_url(self):
         return "/admin" if self.is_admin else "/portal"
 
-    def set_password(self, password: str) -> None:
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password: str) -> bool:
-        return bool(self.password_hash) and check_password_hash(self.password_hash, password)
 
 
 JOB_TYPES = [("build", "Website build"), ("change", "Website change"), ("hosting", "Hosting"),

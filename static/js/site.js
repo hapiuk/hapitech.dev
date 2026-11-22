@@ -156,73 +156,42 @@
   function initLogin(root) {
     var msg = root.querySelector("[data-login-msg]");
     var nextUrl = root.getAttribute("data-next") || "";
-    function say(t, kind) { msg.textContent = t || ""; msg.className = "login__msg" + (kind ? " is-" + kind : ""); }
-    function show(name) {
-      root.querySelectorAll("[data-login-pane]").forEach(function (p) { p.hidden = p.getAttribute("data-login-pane") !== name; });
-      root.querySelectorAll(".login__tab").forEach(function (t) {
-        t.setAttribute("aria-selected", t.getAttribute("data-login-tab") === name ? "true" : "false");
-      });
-      root.querySelector(".login__tabs").hidden = name === "forgot";
-      say("");
-      var first = root.querySelector('[data-login-pane="' + name + '"] input:not([hidden])');
-      if (first) setTimeout(function () { first.focus(); }, 30);
-    }
-    root.querySelectorAll("[data-login-tab]").forEach(function (b) {
-      b.addEventListener("click", function () { show(b.getAttribute("data-login-tab")); });
-    });
-    function busy(form, on) {
-      form.querySelectorAll("button[type=submit]").forEach(function (b) { b.disabled = on; });
-    }
-    function go(d) { window.location.href = d.redirect || "/"; }
     var q = nextUrl ? "?next=" + encodeURIComponent(nextUrl) : "";
-
-    var pw = root.querySelector('[data-login-pane="password"]');
-    pw.addEventListener("submit", function (e) {
+    function say(t, kind) { msg.textContent = t || ""; msg.className = "login__msg" + (kind ? " is-" + kind : ""); }
+    var form = root.querySelector('[data-login-pane="code"]');
+    var stepEmail = form.querySelector('[data-code-step="email"]');
+    var stepVerify = form.querySelector('[data-code-step="verify"]');
+    var sent = form.querySelector("[data-code-sent]");
+    function busy(on) { form.querySelectorAll("button[type=submit]").forEach(function (b) { b.disabled = on; }); }
+    function reset() {
+      stepEmail.hidden = false; stepVerify.hidden = true; form.code.value = ""; say(""); busy(false);
+      setTimeout(function () { form.email.focus(); }, 30);
+    }
+    form.addEventListener("submit", function (e) {
       e.preventDefault();
-      if (!pw.email.value.trim() || !pw.password.value) { say("Enter your email and password.", "err"); return; }
-      busy(pw, true); say("Logging in…");
-      postJSON("/auth/login" + q, { email: pw.email.value.trim(), password: pw.password.value, remember: pw.remember.checked })
-        .then(function (d) { if (d.ok) { say("Welcome back. Taking you to your dashboard…", "ok"); go(d); } else { say(d.message || "Couldn't log in.", "err"); busy(pw, false); } })
-        .catch(function () { say("Network problem. Please try again.", "err"); busy(pw, false); });
-    });
-
-    var code = root.querySelector('[data-login-pane="code"]');
-    var stepEmail = code.querySelector('[data-code-step="email"]');
-    var stepVerify = code.querySelector('[data-code-step="verify"]');
-    code.addEventListener("submit", function (e) {
-      e.preventDefault();
-      busy(code, true);
+      busy(true);
       if (!stepEmail.hidden) {
-        var em = code.email.value.trim();
-        if (!em) { say("Enter your email address.", "err"); busy(code, false); return; }
+        var em = form.email.value.trim();
+        if (!em) { say("Enter your email address.", "err"); busy(false); return; }
         say("Sending…");
         postJSON("/auth/code/request", { email: em }).then(function (d) {
-          busy(code, false);
-          if (d.ok) { stepEmail.hidden = true; stepVerify.hidden = false; say(d.message, "ok"); code.code.focus(); }
-          else say(d.message || "Couldn't send a code.", "err");
-        }).catch(function () { busy(code, false); say("Network problem. Please try again.", "err"); });
+          busy(false);
+          if (!d.ok) { say(d.message || "Couldn't send a code.", "err"); return; }
+          stepEmail.hidden = true; stepVerify.hidden = false;
+          sent.textContent = "Check " + em + " for your code. It works for 10 minutes.";
+          say(d.dev_code ? d.message : "", "ok");
+          form.code.focus();
+        }).catch(function () { busy(false); say("Network problem. Please try again.", "err"); });
       } else {
         say("Checking…");
-        postJSON("/auth/code/verify" + q, { code: code.code.value }).then(function (d) {
-          if (d.ok) { say("Welcome back. Taking you to your dashboard…", "ok"); go(d); }
-          else { busy(code, false); say(d.message || "That code didn't work.", "err"); }
-        }).catch(function () { busy(code, false); say("Network problem. Please try again.", "err"); });
+        postJSON("/auth/code/verify" + q, { code: form.code.value, remember: form.remember.checked }).then(function (d) {
+          if (d.ok) { say("Welcome back. Taking you to your dashboard…", "ok"); window.location.href = d.redirect || "/"; }
+          else { busy(false); say(d.message || "That code didn't work.", "err"); }
+        }).catch(function () { busy(false); say("Network problem. Please try again.", "err"); });
       }
     });
-    code.querySelector("[data-code-restart]").addEventListener("click", function () {
-      stepEmail.hidden = false; stepVerify.hidden = true; code.code.value = ""; say("");
-    });
-
-    var fg = root.querySelector('[data-login-pane="forgot"]');
-    fg.addEventListener("submit", function (e) {
-      e.preventDefault();
-      if (!fg.email.value.trim()) { say("Enter your email address.", "err"); return; }
-      busy(fg, true);
-      postJSON("/auth/forgot", { email: fg.email.value.trim() }).then(function (d) {
-        busy(fg, false); say(d.message || "Done.", d.ok ? "ok" : "err");
-      }).catch(function () { busy(fg, false); say("Network problem. Please try again.", "err"); });
-    });
-    return { show: show };
+    form.querySelector("[data-code-restart]").addEventListener("click", reset);
+    return { show: reset };
   }
 
   document.querySelectorAll("[data-login-root]").forEach(function (root) { root._login = initLogin(root); });
@@ -234,7 +203,7 @@
         if (typeof closeMenu === "function") closeMenu();
         modal.showModal();
         var root = modal.querySelector("[data-login-root]");
-        if (root && root._login) root._login.show("password");
+        if (root && root._login) root._login.show();
       });
     });
     modal.querySelector("[data-modal-close]").addEventListener("click", function () { modal.close(); });

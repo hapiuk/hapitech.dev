@@ -263,8 +263,7 @@ def user_invite(slug):
         flash("That email already belongs to another client.", "err")
         return redirect(url_for("admin.client", slug=slug, tab="users"))
     if u is None:
-        u = User(email=email, username=email, name=name, role="owner", account_id=a.id,
-                 password_hash=generate_password_hash(secrets.token_urlsafe(32)))   # unusable until they set one
+        u = User(email=email, username=email, name=name, role="owner", account_id=a.id)
         db.session.add(u)
     u.account_id, u.is_active_flag = a.id, True
     u.name = name or u.name

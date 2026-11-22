@@ -49,3 +49,4 @@ body.rv{background:#f4f2ee;color:#16181d;min-height:100dvh;display:flex;flex-dir
 .rv .review__reply strong{display:block;font-size:.8rem;color:#7a7f89;margin-bottom:4px}
 .rv__foot{padding:20px 16px 28px;text-align:center;font-size:.8rem;color:#7a7f89}
 .rv .login__msg.is-err{color:#dc2626}
+.rv__hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}

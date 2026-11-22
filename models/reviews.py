@@ -5,7 +5,7 @@ import secrets
 from . import db
 from .core import TimestampMixin, utcnow
 
-REVIEW_SOURCES = {"hapitech": "HapiTech", "google": "Google", "facebook": "Facebook",
+REVIEW_SOURCES = {"hapitech": "HapiTech", "website": "their website", "google": "Google", "facebook": "Facebook",
                   "checkatrade": "Checkatrade", "manual": "Added manually"}
 
 

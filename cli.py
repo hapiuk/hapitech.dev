@@ -1,12 +1,12 @@
 # cli.py — operational commands (run with `flask <command>` from the app folder).
 #
 #   flask deploy                    backup DB, bring migrations up to date (used by the server one-liner)
-#   flask create-admin EMAIL        create/reset the admin user (asks for the password)
+#   flask create-admin EMAIL        make EMAIL an admin (login is by emailed code, no passwords)
 #   flask setup-clients             fill in Roland's / Ray G account details (idempotent)
 #   flask import-site-reviews SLUG PATH_TO_CLIENT_SITE
 #                                   import the reviews hard-coded in a client site's app.py (idempotent)
 #   flask import-bench PATH         import benchmark models/prompts/fixtures/published results (idempotent)
-#   flask seed-dev                  LOCAL ONLY: demo logins + data, passwords to instance/dev-credentials.txt
+#   flask seed-dev                  LOCAL ONLY: demo logins + data (codes show on screen locally)
 import ast
 import datetime as dt
 import glob
@@ -69,19 +69,15 @@ def deploy(no_backup):
 @click.command("create-admin")
 @click.argument("email")
 @click.option("--name", default="Aaron")
-@click.password_option(prompt="New admin password", confirmation_prompt=True)
-def create_admin(email, name, password):
-    """Create the admin user, or reset an existing admin's password."""
+def create_admin(email, name):
+    """Make EMAIL an admin (creates the user if needed). Log in with an emailed code; no password."""
     from models.core import User
-    if len(password) < 12:
-        raise click.ClickException("Use at least 12 characters.")
     email = email.strip().lower()
     u = User.query.filter(db.func.lower(User.email) == email).first()
     if u is None:
         u = User(email=email, username=email, name=name, role="admin")
         db.session.add(u)
-    u.role, u.is_active_flag = "admin", True
-    u.set_password(password)
+    u.role, u.is_active_flag, u.password_hash = "admin", True, ""
     db.session.commit()
     click.echo(f"Admin ready: {email}")
 
@@ -198,7 +194,8 @@ def seed_dev(clients_dir, bench_dir):
     ctx = click.get_current_context()
     ctx.invoke(setup_clients)
     lines = [f"# HapiTech local logins — generated {dt.datetime.now():%Y-%m-%d %H:%M}. Local only; never commit.",
-             "# Log in at http://127.0.0.1:5077 via 'Client login'.", ""]
+             "# Log in at http://127.0.0.1:5077 via 'Client login': enter the email, and in local test mode",
+             "# the 6-digit code is shown right there (nothing is really emailed).", ""]
     people = [("aaron@hapitech.dev", "Aaron", "admin", None),
               ("roland@demo.local", "Roland", "owner", "rolands-handyman"),
               ("ray@demo.local", "Ray", "owner", "ray-g-handyman")]
@@ -207,11 +204,9 @@ def seed_dev(clients_dir, bench_dir):
         if u is None:
             u = User(email=email, username=email, name=name, role=role)
             db.session.add(u)
-        pw = "-".join(secrets.token_hex(2) for _ in range(4))
-        u.set_password(pw)
-        u.name, u.role, u.is_active_flag = name, role, True
+        u.name, u.role, u.is_active_flag, u.password_hash = name, role, True, ""
         u.account = Account.query.filter_by(slug=slug).first() if slug else None
-        lines.append(f"{role:6}  {email:24}  {pw}" + (f"   ({slug})" if slug else ""))
+        lines.append(f"{role:6}  {email:24}" + (f"   ({slug})" if slug else ""))
     db.session.commit()
 
     for slug, site in (("rolands-handyman", "rolandshandyman.co.uk"), ("ray-g-handyman", "rayghandymanservice.co.uk")):
@@ -241,5 +236,5 @@ def seed_dev(clients_dir, bench_dir):
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
     os.chmod(path, 0o600)
-    click.echo("\n".join(lines[3:]))
+    click.echo("\n".join(lines[4:]))
     click.echo(f"\nSaved to {path}")
