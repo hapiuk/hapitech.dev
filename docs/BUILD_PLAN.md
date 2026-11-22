@@ -296,3 +296,68 @@ Then, from your own machine, import the Lab data (models, prompts, results) the 
 
 - **Locally:** `flask seed-dev` creates your admin plus demo owners `roland@demo.local` and `ray@demo.local` (listed in `instance/dev-credentials.txt`). Click "Client login" and enter the email. In local test mode the 6-digit code is shown right there, because nothing is really emailed.
 - **On the server:** codes are emailed for real. Your existing admin account carries over: just log in with aaron@hapitech.dev. `flask create-admin EMAIL` makes someone else an admin. Roland and Ray are invited from Admin → client → Logins.
+
+---
+
+## 10. Proposed additions (for Aaron to review)
+
+_Added 22 Nov 2026. Nothing below is built. Invites to Roland and Ray are on hold until some of these are in._
+Size: **S** = under a day, **M** = 1–3 days, **L** = 3+ days.
+
+### UK job sources: what's actually possible
+| Source | Can we pull it? | Notes |
+|---|---|---|
+| **Contracts Finder** (gov.uk public contracts) | ✅ Free public API, searchable by postcode + radius + keyword | Tested 22 Nov: works, but results are mostly large council/housing contracts and "approved supplier" frameworks (e.g. responsive-repairs lists). Rarely a one-off handyman job. Worth it as a "public work near you" tab with honest expectations |
+| **Planning applications** (councils / planning.data.gov.uk) | ⚠️ Partly: coverage varies by council | Useful as area insight for Ray ("12 extensions approved within 5 miles this month"). Shouldn't be used to cold-contact homeowners |
+| **Checkatrade, MyBuilder, Rated People, Bark, TrustATrader, Airtasker** | ❌ No public API; scraping breaks their terms | Alternative: they forward those platforms' lead emails to a HapiTech address and the leads land in one inbox (see A2) |
+| **Facebook groups, Nextdoor** | ❌ No API for this | — |
+
+### A. Win more work
+| # | Feature | What it does | Size |
+|---|---|---|---|
+| A1 | **Enquiries inbox** | The quote forms on their sites already email them; also save each enquiry to the dashboard with name, job, postcode and travel cost, plus status New → Quoted → Won/Lost and one-tap reply | M |
+| A2 | **Lead platform inbox** | Forward Checkatrade/MyBuilder/Bark lead emails to `leads+<client>@hapitech.dev`; they show alongside site enquiries | M |
+| A3 | **Public work near you** | Contracts Finder, defaulting to the client's postcode (via postcodes.io), with radius, keyword and value filters; saved searches email new matches weekly | M |
+| A4 | **Planning activity near you** | Map/list of approved extensions, lofts and kitchens near them, for councils with data | M |
+| A5 | **Quotes** | Build a quote on the phone (items, labour, materials), email it as a PDF with an "Accept" link; accepted quotes become bookings | L |
+
+### B. Bookings and reminders (email-based, no SMS)
+| # | Feature | What it does | Size |
+|---|---|---|---|
+| B1 | **Job calendar** | Jobs with date, time and postcode; a **calendar feed** so jobs appear in their phone's own calendar (Google/Apple) | M |
+| B2 | **Customer reminders** | Booking confirmation and "see you tomorrow" emails sent automatically | S (after B1) |
+| B3 | **Booking requests on their site** | Customers pick a preferred day or slot; the tradesperson confirms with one tap | M |
+| B4 | **After the job** | Marking a booking "done" offers the review QR, or emails the review link automatically if the customer gave an email | S |
+| B5 | **Repeat-work reminders** | Customer opt-in: "remind me next autumn about gutters / boiler service" | S |
+| B6 | **Simple invoices** | Invoice PDF from a finished job, mark as paid; card payment links later if wanted | M |
+
+### C. Found online (SEO)
+| # | Feature | What it does | Size |
+|---|---|---|---|
+| C1 | **Business schema on their sites** | Search-engine markup (name, area served, phone, services, opening hours) generated from their account. Quick, real benefit | S |
+| C2 | **Search Console report** | Connect Google Search Console (free, a different thing from the review API); monthly "people found you by searching…", clicks and impressions | M |
+| C3 | **Town pages from real posts** | Posts tagged with a town build up a genuine "Recent work in Tettenhall" page. Only towns with real jobs, never auto-generated filler (Google penalises that) | M |
+| C4 | **Google Business Profile helper** | One-tap "copy for Google" on each post and review reply, ready to paste into their Business Profile | S |
+| C5 | **Speed and health check** | Monthly page-speed score (free Google API), broken-link and SSL check, sent to you | S |
+| C6 | **Sitemap + Search Console setup** | Done once per site | S |
+
+### D. Insight
+| # | Feature | What it does | Size |
+|---|---|---|---|
+| D1 | **Cookie-free visit counts** | Simple privacy-friendly stats counted on our server (no cookies, no banner, no Google Analytics) | M |
+| D2 | **Monthly summary email** | "This month: 4 new reviews (4.9★), 11 enquiries, 230 visits, top search: 'handyman Wolverhampton'" | S (after D1/C2) |
+
+### E. Everyday convenience
+| # | Feature | What it does | Size |
+|---|---|---|---|
+| E1 | **Holiday / away mode** | One switch on the phone shows "Back on 3 January" on their site and pauses booking requests | S |
+| E2 | **Gallery and before/after uploads** | Add photos from the phone straight into the site's existing galleries (Roland's before/after, Ray's projects) | M |
+| E3 | **Opening hours and price list** | Editable blocks, if they want them shown | S |
+| E4 | **Notifications** | Phone notifications for a new review or enquiry. Works once the dashboard is installed as an app (Android, and iPhone on iOS 16.4+) | M |
+| E5 | **AI helpers (run on HapiTech's local AI)** | Draft a reply to a review, turn rough job notes into a post, tidy a quote email. Private, nothing sent to big AI companies, and a live demo of the AI services you sell | M |
+| E6 | **Staff logins** | A second person (partner, apprentice) with limited access | S |
+
+### Suggested packaging (for discussion)
+- **Included with hosting:** review page and button, holiday mode, schema markup, health check.
+- **Reviews & Updates add-on (existing):** QR/email review requests, inbox and replies, posts, website edits, install-as-app, AI reply helper.
+- **Growth add-on (new):** enquiries and lead inbox, calendar, reminders, booking requests, Search Console report, monthly summary, public work near you.
