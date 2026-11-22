@@ -91,3 +91,15 @@ class ContentBlockVersion(db.Model):
     value = db.Column(db.Text, nullable=False)
     saved_by = db.Column(db.Integer, db.ForeignKey("users.id"))
     saved_at = db.Column(db.DateTime, default=utcnow, nullable=False)
+
+
+class SiteVisit(db.Model):
+    """Cookie-free page counts reported by the client site's server (no IPs, no visitor IDs)."""
+    __tablename__ = "site_visits"
+    __table_args__ = (db.UniqueConstraint("account_id", "day", "path", "ref", name="uq_visit_bucket"),)
+    id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=False, index=True)
+    day = db.Column(db.Date, nullable=False, index=True)
+    path = db.Column(db.String(200), nullable=False)
+    ref = db.Column(db.String(100), nullable=False, default="")     # referring site, e.g. "google" / "facebook"
+    count = db.Column(db.Integer, nullable=False, default=0)

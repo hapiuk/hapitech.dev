@@ -89,6 +89,8 @@ def content(slug):
     out = {}
     for b in blocks:
         v = b.data
+        if b.type == "images" and b.value == b.default_value:
+            continue                      # unedited photos: the site keeps using its own folder, unchanged
         if b.type == "images":
             imgs = []
             for x in v or []:
@@ -145,3 +147,65 @@ def enquiry(slug):
         except Exception as exc:
             print(f"[BOOKING_NOTIFY] {exc}")
     return jsonify({"ok": True, "id": lead.id}), 201
+
+
+PHOTO_BLOCKS = {
+    "hero": ("Top-of-page photos", 60, "The big photo at the top of your homepage. One is picked each visit."),
+    "gallery": ("Gallery photos", 80, "Your work gallery. The first five show on the homepage strip."),
+    "photos": ("Your photos", 80, "Used at the top of your homepage and in your gallery."),
+}
+
+
+@site_api_bp.route("/sites/<slug>/defaults", methods=["POST"])
+def defaults(slug):
+    """The site reports its own photo lists on start-up. They become the editable defaults,
+    so the dashboard shows exactly what's on the site until the client changes something."""
+    import json as _json
+    a = _account(slug)
+    d = request.get_json(silent=True) or {}
+    photos = d.get("photos") or {}
+    updated = []
+    for key, paths in photos.items():
+        if key not in PHOTO_BLOCKS or not isinstance(paths, list):
+            continue
+        clean = [f"static:{p}" for p in paths[:200] if isinstance(p, str) and p.startswith("img/") and ".." not in p]
+        label, limit, help_text = PHOTO_BLOCKS[key]
+        new_default = _json.dumps(clean)
+        b = ContentBlock.query.filter_by(account_id=a.id, key=f"photos.{key}").first()
+        if b is None:
+            b = ContentBlock(account_id=a.id, key=f"photos.{key}", value=new_default)
+            db.session.add(b)
+        elif b.value == b.default_value:          # not edited yet: follow the site's folder
+            b.value = new_default
+        b.type, b.label, b.group, b.help, b.max_length = "images", label, "Photos", help_text, limit
+        b.default_value = new_default
+        updated.append(key)
+    db.session.commit()
+    return jsonify({"ok": True, "updated": updated})
+
+
+@site_api_bp.route("/sites/<slug>/visits", methods=["POST"])
+def visits(slug):
+    """Batched page counts from the site's server: {"hits": [{"day","path","ref","n"}]}."""
+    import datetime as _dt
+
+    from models.content import SiteVisit
+    a = _account(slug)
+    hits = (request.get_json(silent=True) or {}).get("hits") or []
+    today = _dt.date.today()
+    for h in hits[:500]:
+        try:
+            day = _dt.date.fromisoformat(h.get("day"))
+            n = max(0, min(int(h.get("n") or 0), 100000))
+        except (TypeError, ValueError):
+            continue
+        if n == 0 or abs((today - day).days) > 2:
+            continue
+        path, ref = str(h.get("path") or "/")[:200], str(h.get("ref") or "")[:100]
+        row = SiteVisit.query.filter_by(account_id=a.id, day=day, path=path, ref=ref).first()
+        if row is None:
+            row = SiteVisit(account_id=a.id, day=day, path=path, ref=ref, count=0)
+            db.session.add(row)
+        row.count += n
+    db.session.commit()
+    return jsonify({"ok": True})
