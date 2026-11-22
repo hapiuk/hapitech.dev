@@ -302,6 +302,13 @@ Then, from your own machine, import the Lab data (models, prompts, results) the 
 ## 10. Proposed additions (for Aaron to review)
 
 _Added 22 Nov 2026. Nothing below is built. Invites to Roland and Ray are on hold until some of these are in._
+
+**Aaron's decisions (22 Nov):**
+- **Build:** everything in this section **except E3** (opening hours and price lists: handled at the quote stage) and **E5** (AI helpers: nothing may depend on the local workstation).
+- **Also build E7: editable gallery and hero images** on both client sites (upload, remove, reorder from the phone; defaults are the current photos, so nothing changes until they edit).
+- **Help and tutorials:** short in-app help for anything not obvious. Keep everything as simple as possible.
+- **Everything manageable from the hapitech.dev admin** as well as the client's own dashboard.
+- **Open questions (lead inbox, quotes/invoices, Search Console, new server packages):** see the chat on 22 Nov and the answers recorded here once given.
 Size: **S** = under a day, **M** = 1–3 days, **L** = 3+ days.
 
 ### UK job sources: what's actually possible
@@ -352,10 +359,11 @@ Size: **S** = under a day, **M** = 1–3 days, **L** = 3+ days.
 |---|---|---|---|
 | E1 | **Holiday / away mode** | One switch on the phone shows "Back on 3 January" on their site and pauses booking requests | S |
 | E2 | **Gallery and before/after uploads** | Add photos from the phone straight into the site's existing galleries (Roland's before/after, Ray's projects) | M |
-| E3 | **Opening hours and price list** | Editable blocks, if they want them shown | S |
+| E3 | ~~Opening hours and price list~~ | Dropped: done at the quote stage | — |
 | E4 | **Notifications** | Phone notifications for a new review or enquiry. Works once the dashboard is installed as an app (Android, and iPhone on iOS 16.4+) | M |
-| E5 | **AI helpers (run on HapiTech's local AI)** | Draft a reply to a review, turn rough job notes into a post, tidy a quote email. Private, nothing sent to big AI companies, and a live demo of the AI services you sell | M |
+| E5 | ~~AI helpers (run on HapiTech's local AI)~~ (dropped for now) | Draft a reply to a review, turn rough job notes into a post, tidy a quote email. Private, nothing sent to big AI companies, and a live demo of the AI services you sell | M |
 | E6 | **Staff logins** | A second person (partner, apprentice) with limited access | S |
+| E7 | **Gallery and hero images** | Upload, remove and reorder the photos in the site's hero, gallery and before/after sections from the phone | M |
 
 ### Suggested packaging (for discussion)
 - **Included with hosting:** review page and button, holiday mode, schema markup, health check.
