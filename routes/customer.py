@@ -61,7 +61,7 @@ def reminder_stop(token):
 
 
 def _ics_escape(s):
-    return (s or "").replace("\\", "\\\\").replace(";", "\;").replace(",", "\\,").replace("\n", "\\n")
+    return (s or "").replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
 
 
 @customer_bp.route("/cal/<token>.ics")
