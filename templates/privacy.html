@@ -1,48 +1,9 @@
-<!-- templates/privacy.html -->
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="icon" type="image/png" href="{{ url_for('static', filename='media/favicon/favicon-96x96.png') }}" sizes="96x96" />
-  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='media/favicon/favicon.svg') }}" />
-  <link rel="shortcut icon" href="{{ url_for('static', filename='media/favicon/favicon.ico') }}" />
-  <title>Privacy Policy — HapiTech</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <style>
-    .legal-page{ max-width: 780px; margin: 0 auto; padding: 100px 0 60px; }
-    .legal-page h1{ font-size: clamp(2rem,4vw,2.6rem); margin-bottom: 6px; }
-    .legal-updated{ opacity: .65; font-size: .85rem; margin-bottom: 32px; }
-    .legal-page section{ padding: 0 0 34px; }
-    .legal-page h2{ font-size: 1.3rem; margin-bottom: 12px; }
-    .legal-page p, .legal-page li{ opacity: .88; line-height: 1.65; margin-bottom: 12px; }
-    .legal-page ul{ padding-left: 22px; margin-bottom: 12px; }
-    .legal-page a{ color: #8ec8ff; }
-    .legal-card{ padding: 36px clamp(20px,4vw,48px); }
-  </style>
-</head>
-<body>
-  <div class="bg"></div>
-
-  <header class="site-header">
-    <nav class="site-nav neon-card">
-      <a href="/" class="brand">
-        <img src="{{ url_for('static', filename='media/logo.png') }}" alt="HapiTech Logo">
-        <span>HapiTech</span>
-      </a>
-      <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="navLinks" aria-label="Menu">
-        <span></span><span></span><span></span>
-      </button>
-      <div class="nav-links" id="navLinks">
-        <a href="/#services">Services</a>
-        <a href="/#work">Projects</a>
-        <a href="/login">Client Login</a>
-      </div>
-    </nav>
-  </header>
-
-  <main class="page">
-    <div class="neon-card legal-card legal-page">
+{# templates/privacy.html #}
+{% extends "site/base.html" %}
+{% block title %}Privacy Policy | HapiTech{% endblock %}
+{% block content %}
+  <div class="wrap legal">
+    <article class="legal__card">
       <h1>Privacy Policy</h1>
       <p class="legal-updated">Last updated: 9 August 2026</p>
 
@@ -107,16 +68,10 @@
         <p>Solar Journal isn't specifically aimed at children. If you're under 13, please don't create an account without a parent or guardian's involvement. If you believe a child has created an account, get in touch and we'll remove it.</p>
       </section>
 
-      <section style="padding-bottom:0;">
+      <section>
         <h2>9. Changes to this policy</h2>
         <p>We'll update this page if what we collect or how we use it changes. Significant changes will be reflected in the date above.</p>
       </section>
-    </div>
-  </main>
-
-  <footer class="site">
-    &copy; HapiTech {{ current_year }} · <a href="/">Home</a> · <a href="/terms">Terms &amp; Conditions</a>
-  </footer>
-  <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
-</body>
-</html>
+    </article>
+  </div>
+{% endblock %}

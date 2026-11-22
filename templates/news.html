@@ -1,0 +1,88 @@
+{# templates/news.html — AI news: latest strip along the top, then an infinite-scroll feed.
+   Data: utils/news.py (cached hourly). Fragment endpoint: /news/items. #}
+{% extends "site/base.html" %}
+
+{% block title %}AI news: local models &amp; frontier labs | HapiTech{% endblock %}
+
+{% block meta %}
+  <meta name="description" content="The latest news on local and open AI models and from the frontier AI labs, with every article credited and linked to its original publisher.">
+  <meta property="og:title" content="AI news | HapiTech">
+  <meta property="og:type" content="website">
+{% endblock %}
+
+{% block content %}
+  <section class="page-head page-head--tight">
+    <div class="wrap">
+      <p class="kicker">AI news</p>
+      <h1>Local models &amp; frontier AI.</h1>
+      <p>News from the people building AI, collected from their public feeds. Every article is credited and links to the original.</p>
+    </div>
+  </section>
+
+  <section class="news-page">
+    <div class="wrap">
+      <nav class="tabs" aria-label="Filter news">
+        <a href="{{ url_for('news.news_page') }}" {% if cat == 'all' %}aria-current="page"{% endif %}>All</a>
+        {% for key, label in categories.items() %}
+        <a href="{{ url_for('news.news_page', cat=key) }}" {% if cat == key %}aria-current="page"{% endif %}>{{ label }}</a>
+        {% endfor %}
+      </nav>
+
+      {% if latest %}
+      <div class="latest" aria-label="Latest articles">
+        <p class="latest__label">Latest</p>
+        <ul class="latest__row">
+          {% for item in latest %}
+          <li>
+            <a class="latest__card" href="{{ url_for('news.news_article', item_id=item.id) }}">
+              {% if item.image %}<img src="{{ item.image }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% else %}<span class="latest__ph" aria-hidden="true">{{ item.source[:1] }}</span>{% endif %}
+              <span class="latest__src">{{ item.source }}{% if item.date %} · {{ item.date | news_date }}{% endif %}</span>
+              <span class="latest__title">{{ item.title }}</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <div class="news-layout">
+        <div class="feed-col">
+          {% if items %}
+          <div id="newsFeed" class="feed" data-cat="{{ cat }}" data-next="{{ next_offset if next_offset is not none else '' }}">
+            {% include "news/_items.html" %}
+          </div>
+          <div id="feedMore" class="feed-more">
+            {% if next_offset is not none %}
+            <a class="btn btn--ghost" href="{{ url_for('news.news_page', cat=None if cat == 'all' else cat, offset=next_offset) }}">Load more</a>
+            {% else %}
+            <p>You're all caught up.</p>
+            {% endif %}
+          </div>
+          {% else %}
+          <p class="empty">No articles right now. The feeds are being refreshed, so check back in a minute.</p>
+          {% endif %}
+        </div>
+
+        <aside class="news-side">
+          <div class="sources">
+            <h2>Sources &amp; credit</h2>
+            <p>
+              Articles come from each publisher's public RSS or Atom feed{% if updated %}, last refreshed {{ updated }}{% endif %}.
+              Where a publisher's feed includes the full article, we show it. Otherwise you'll see their summary and a link to the original.
+            </p>
+            <p>All articles, names and trademarks belong to their publishers. HapiTech isn't affiliated with any of them.</p>
+            <ul>
+              {% for f in feeds %}
+              <li><a href="{{ f.home }}" target="_blank" rel="noopener">{{ f.name }}</a></li>
+              {% endfor %}
+            </ul>
+          </div>
+          <div class="side-cta">
+            <p>Wondering what any of this means for your business?</p>
+            <a href="/#contact" class="btn btn--sm">Ask Aaron</a>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+{% endblock %}

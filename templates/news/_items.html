@@ -1,0 +1,29 @@
+{# templates/news/_items.html — article cards; used by /news and the /news/items infinite-scroll fragment.
+   item.content is already sanitised (utils/news.py:sanitise) and only set when the publisher's
+   own feed carries the full article. #}
+{% for item in items %}
+<article class="post" id="a-{{ item.id }}">
+  <div class="news-card__meta">
+    <span class="src{% if item.cat == 'local' %} src--local{% endif %}">{{ item.source }}</span>
+    {% if item.date %}<time datetime="{{ item.date }}">{{ item.date | news_date }}</time>{% endif %}
+  </div>
+  <h2 class="post__title"><a href="{{ url_for('news.news_article', item_id=item.id) }}">{{ item.title }}</a></h2>
+
+  {% if item.content %}
+    <div class="prose post__body" data-clamp>{{ item.content | safe }}</div>
+    <button class="post__expand" type="button" hidden>Show the full article</button>
+  {% else %}
+    {% if item.image %}
+    <a class="post__img" href="{{ item.link }}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">
+      <img src="{{ item.image }}" alt="" loading="lazy" referrerpolicy="no-referrer">
+    </a>
+    {% endif %}
+    {% if item.excerpt %}<p class="post__excerpt">{{ item.excerpt }}</p>{% endif %}
+  {% endif %}
+
+  <footer class="post__foot">
+    <p>{% if item.content %}Full text from {{ item.source }}'s public feed{% else %}Summary from {{ item.source }}{% endif %}</p>
+    <a class="post__src" href="{{ item.link }}" target="_blank" rel="noopener">Read on {{ item.source }} <span aria-hidden="true">↗</span></a>
+  </footer>
+</article>
+{% endfor %}

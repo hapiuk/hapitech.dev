@@ -1,0 +1,60 @@
+{# templates/news/article.html — one news item, credited to and linked to its publisher. #}
+{% extends "site/base.html" %}
+
+{% block title %}{{ item.title }} | AI news | HapiTech{% endblock %}
+
+{% block meta %}
+  <meta name="description" content="{{ item.excerpt or item.title }}">
+  <link rel="canonical" href="{{ item.link }}">
+  <meta name="robots" content="noindex, follow">
+{% endblock %}
+
+{% block content %}
+  <article class="read">
+    <div class="wrap read__wrap">
+      <a class="read__back" href="{{ url_for('news.news_page') }}">← All AI news</a>
+
+      <div class="news-card__meta">
+        <span class="src{% if item.cat == 'local' %} src--local{% endif %}">{{ item.source }}</span>
+        {% if item.date %}<time datetime="{{ item.date }}">{{ item.date | news_date }}</time>{% endif %}
+      </div>
+      <h1 class="read__title">{{ item.title }}</h1>
+
+      {% if item.content %}
+        <div class="prose read__body">{{ item.content | safe }}</div>
+      {% else %}
+        {% if item.image %}
+        <a class="post__img read__img" href="{{ item.link }}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">
+          <img src="{{ item.image }}" alt="" referrerpolicy="no-referrer">
+        </a>
+        {% endif %}
+        {% if item.excerpt %}<p class="read__lede">{{ item.excerpt }}</p>{% endif %}
+      {% endif %}
+
+      <div class="read__credit">
+        <p>
+          {% if item.content %}
+            Published by <strong>{{ item.source }}</strong> and shown here from their public feed.
+          {% else %}
+            This is {{ item.source }}'s own summary. The full article is on their site.
+          {% endif %}
+        </p>
+        <a class="btn" href="{{ item.link }}" target="_blank" rel="noopener">Read on {{ item.source }} <span aria-hidden="true">↗</span></a>
+      </div>
+
+      {% if more %}
+      <div class="read__more">
+        <h2>More AI news</h2>
+        <ul>
+          {% for m in more %}
+          <li>
+            <a href="{{ url_for('news.news_article', item_id=m.id) }}">{{ m.title }}</a>
+            <span>{{ m.source }}{% if m.date %} · {{ m.date | news_date }}{% endif %}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </article>
+{% endblock %}

@@ -1,327 +1,480 @@
-<!-- templates/home.html -->
-<!doctype html>
-<html lang="en-GB">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>HapiTech — Websites, platforms and tools, engineered with AI</title>
-  <meta name="description" content="HapiTech is an independent UK software studio. Business websites, web platforms and internal tools, built with AI and verified by an engineer, then hosted and looked after.">
-  <meta property="og:title" content="HapiTech — engineered with AI, owned by an engineer">
-  <meta property="og:description" content="Business websites, web platforms and internal tools. Built fast with AI, tested properly, hosted and supported.">
+{# templates/home.html — public homepage (v5: websites + practical AI + IT support for small businesses).
+   In-house products (hapitech.report, hapitech.space, Local AI Benchmark, MOTH//LIGHT) are
+   intentionally not shown for now. Earlier homepages are in git history. #}
+{% extends "site/base.html" %}
+
+{% block title %}HapiTech: Websites, practical AI &amp; IT for small businesses{% endblock %}
+
+{% block meta %}
+  <meta name="description" content="HapiTech helps small and local businesses with websites that bring in work, private AI that runs on your own hardware, AI workflow automation, and IT support, backed by 16 years in IT.">
+  <meta property="og:title" content="HapiTech: Practical tech for small businesses">
+  <meta property="og:description" content="Websites, local AI setups, AI workflows and IT support for small and local businesses.">
   <meta property="og:type" content="website">
-  <meta name="theme-color" content="#07090d">
-  <link rel="icon" type="image/png" href="{{ url_for('static', filename='media/favicon/favicon-96x96.png') }}" sizes="96x96" />
-  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='media/favicon/favicon.svg') }}" />
-  <link rel="shortcut icon" href="{{ url_for('static', filename='media/favicon/favicon.ico') }}" />
-  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='media/favicon/apple-touch-icon.png') }}" />
-  <meta name="apple-mobile-web-app-title" content="HapiTech" />
-  <link rel="manifest" href="/static/media/favicon/site.webmanifest" />
-  <link rel="preload" href="{{ url_for('static', filename='fonts/geist-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
-  <script>document.documentElement.classList.add('js')</script>
-</head>
-<body class="ht">
-  <a class="skip" href="#main">Skip to content</a>
-  <canvas id="field" aria-hidden="true"></canvas>
+  <meta property="og:image" content="{{ url_for('static', filename='media/work/rolands.webp', _external=True) }}">
+{% endblock %}
 
-  <header class="nav" id="nav">
-    <div class="wrap nav__row">
-      <a href="/" class="brand" aria-label="HapiTech home">
-        <img src="{{ url_for('static', filename='media/logo.png') }}" alt="" width="28" height="32">
-        <span>HapiTech</span>
-      </a>
-      <nav class="nav__links" id="navLinks" aria-label="Main">
-        <a href="#build">Services</a>
-        <a href="#method">Method</a>
-        <a href="#work">Work</a>
-        <a href="#lab">Lab</a>
-        <a href="/login" class="nav__login">Client login</a>
-      </nav>
-      <a href="#contact" class="btn btn--sm nav__cta">Start a project</a>
-      <button class="nav__toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="navLinks" aria-label="Menu">
-        <span></span><span></span>
-      </button>
-    </div>
-  </header>
+{% block content %}
 
-  <main id="main">
-
-    <!-- HERO -->
-    <section class="hero wrap">
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero__grid">
       <div class="hero__copy">
-        <p class="eyebrow"><span class="dot dot--live"></span>Independent software studio · UK</p>
-        <h1 class="hero__title">
-          Websites, platforms and tools.<br>
-          <span class="grad">Engineered with AI.</span><br>
-          Owned by an engineer.
-        </h1>
+        <p class="eyebrow">Websites · AI · IT support for small businesses</p>
+        <h1 class="hero__title">Practical tech for <span class="acc">small&nbsp;businesses</span>.</h1>
         <p class="hero__lede">
-          HapiTech builds the software small businesses run on, and keeps it running.
-          AI does the heavy lifting; an engineer with fourteen years in IT designs it, tests it,
-          ships it and stays on hand when something needs to change.
+          Sixteen years in IT, now put to work for small and local businesses: websites that bring
+          in enquiries, AI that runs privately on your own hardware, and the everyday IT that keeps it
+          all going. One person, plain English, no hard sell.
         </p>
         <div class="hero__actions">
-          <a href="#contact" class="btn">Start a project</a>
-          <a href="#work" class="btn btn--ghost">See the work <span aria-hidden="true">→</span></a>
+          <a href="#contact" class="btn">Get in touch</a>
+          <a href="#services" class="btn btn--ghost">What we do <span aria-hidden="true">↓</span></a>
         </div>
-      </div>
-
-      <div class="term" aria-label="How a HapiTech release runs">
-        <div class="term__bar" aria-hidden="true">
-          <span></span><span></span><span></span>
-          <p>~/hapitech · release</p>
-        </div>
-        <pre class="term__body" id="termBody"><code><span class="t-dim">$</span> hapitech build --client "your business"
-<span class="t-ok">✓</span> spec agreed in plain English
-<span class="t-ok">✓</span> AI-assisted build · Flask · SQL · vanilla JS
-<span class="t-ok">✓</span> automated tests + real-browser checks
-<span class="t-ok">✓</span> every change reviewed before release
-<span class="t-dim">$</span> hapitech deploy
-<span class="t-ok">✓</span> nginx · gunicorn · systemd · TLS
-<span class="t-ok">✓</span> backup taken, rollback ready
-<span class="t-acc">●</span> live, and still looked after<span class="caret"></span></code></pre>
-      </div>
-    </section>
-
-    <!-- PROOF STRIP -->
-    <section class="strip" aria-label="Currently running">
-      <div class="wrap strip__row">
-        <p class="strip__label">Running now</p>
-        <ul class="strip__list">
-          <li><span class="dot dot--live"></span>hapitech.report</li>
-          <li><span class="dot dot--live"></span>rolandshandyman.co.uk</li>
-          <li><span class="dot dot--live"></span>rayghandymanservice.co.uk</li>
-          <li><span class="dot dot--build"></span>hapitech.space</li>
-          <li><span class="dot dot--build"></span>MOTH//LIGHT</li>
+        <ul class="hero__ticks" aria-label="Working with HapiTech">
+          <li>16 years in IT</li>
+          <li>One point of contact</li>
+          <li>Honest advice, even if it's "you don't need it"</li>
         </ul>
       </div>
-    </section>
 
-    <!-- WHAT WE BUILD -->
-    <section id="build" class="section wrap">
-      <header class="section__head reveal">
-        <p class="kicker">01 — Services</p>
-        <h2>One studio, from the first sketch to the server it runs on.</h2>
-      </header>
-
-      <ol class="rows">
-        <li class="row reveal">
-          <span class="row__n">A</span>
-          <div class="row__main">
-            <h3>Business websites</h3>
-            <p>Fast, custom-built sites with enquiry and quote forms shaped around how you work. No page builders, no template bolted on.</p>
-          </div>
-          <p class="row__tag">Flask · Jinja · CSS · SMTP</p>
-        </li>
-        <li class="row reveal">
-          <span class="row__n">B</span>
-          <div class="row__main">
-            <h3>Web platforms &amp; SaaS</h3>
-            <p>Multi-user products with roles, audit trails, mobile field views and reporting, like hapitech.report, our statutory inspection platform.</p>
-          </div>
-          <p class="row__tag">Multi-tenant · Roles · Audit · Mobile</p>
-        </li>
-        <li class="row reveal">
-          <span class="row__n">C</span>
-          <div class="row__main">
-            <h3>Internal tools &amp; automation</h3>
-            <p>Dashboards, trackers and scripts that replace spreadsheets and copy-paste, built by someone who has run business systems from the inside.</p>
-          </div>
-          <p class="row__tag">Python · SQL · APIs · Scripting</p>
-        </li>
-        <li class="row reveal">
-          <span class="row__n">D</span>
-          <div class="row__main">
-            <h3>Hosting &amp; ongoing care</h3>
-            <p>Your site runs on hardened servers we manage: TLS, backups, updates, and changes when you ask for them.</p>
-          </div>
-          <p class="row__tag">Linux · nginx · SELinux · systemd</p>
-        </li>
-      </ol>
-    </section>
-
-    <!-- METHOD: HUMAN + AI -->
-    <section id="method" class="section section--panel">
-      <div class="wrap">
-        <header class="section__head reveal">
-          <p class="kicker">02 — Method</p>
-          <h2>AI for speed. An engineer for everything that matters.</h2>
-          <p class="section__lede">
-            AI lets a small studio build at the pace of a team. It does not get the final word:
-            every feature is specified, tested and checked by a person before it reaches you.
-          </p>
-        </header>
-
-        <div class="flow">
-          <article class="flow__step reveal">
-            <p class="flow__n">01</p>
-            <h3>Spec</h3>
-            <p>We agree what it does in plain English — screens, rules, edge cases — before any code exists.</p>
-          </article>
-          <article class="flow__step reveal">
-            <p class="flow__n">02</p>
-            <h3>Build with AI</h3>
-            <p>AI agents write and refactor code against the spec, inside the project's own conventions.</p>
-          </article>
-          <article class="flow__step reveal">
-            <p class="flow__n">03</p>
-            <h3>Verify</h3>
-            <p>Automated tests, real-browser checks at phone and desktop sizes, and a human review of every change.</p>
-          </article>
-          <article class="flow__step reveal">
-            <p class="flow__n">04</p>
-            <h3>Ship &amp; support</h3>
-            <p>Deployed to managed servers with backups and rollback, then looked after for as long as you need.</p>
-          </article>
-        </div>
-
-        <div class="facts reveal">
-          <div class="fact">
-            <p class="fact__v">420</p>
-            <p class="fact__k">automated tests run against hapitech.report</p>
-          </div>
-          <div class="fact">
-            <p class="fact__v">29</p>
-            <p class="fact__k">real-browser test stages check MOTH//LIGHT at five screen sizes</p>
-          </div>
-          <div class="fact">
-            <p class="fact__v">2012</p>
-            <p class="fact__k">the year our founder started in IT: games, defence, enterprise, industry</p>
-          </div>
-        </div>
+      <div class="hero__stack" aria-hidden="true">
+        <figure class="shot shot--back">
+          <div class="shot__bar"><span></span><span></span><span></span><p>rayghandymanservice.co.uk</p></div>
+          <img src="{{ url_for('static', filename='media/work/rayg.webp') }}" alt="" width="1200" height="750">
+        </figure>
+        <figure class="shot shot--front">
+          <div class="shot__bar"><span></span><span></span><span></span><p>rolandshandyman.co.uk</p></div>
+          <img src="{{ url_for('static', filename='media/work/rolands.webp') }}" alt="" width="1200" height="750">
+        </figure>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- CLIENT WORK -->
-    <section id="work" class="section wrap">
+  <!-- LIVE STRIP -->
+  <section class="strip" aria-label="Sites we look after">
+    <div class="wrap strip__row">
+      <p class="strip__label">Live &amp; looked after by HapiTech</p>
+      <ul class="strip__list">
+        <li><a href="https://rolandshandyman.co.uk" target="_blank" rel="noopener"><span class="dot"></span>rolandshandyman.co.uk</a></li>
+        <li><a href="https://rayghandymanservice.co.uk" target="_blank" rel="noopener"><span class="dot"></span>rayghandymanservice.co.uk</a></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SERVICES OVERVIEW -->
+  <section id="services" class="section">
+    <div class="wrap">
       <header class="section__head section__head--split reveal">
         <div>
-          <p class="kicker">03 — Client work</p>
-          <h2>Live sites for local businesses.</h2>
+          <p class="kicker">Services</p>
+          <h2>What we can help with.</h2>
         </div>
-        <p class="section__lede">Designed, built, hosted and maintained by HapiTech, with enquiry forms that go straight to the owner's inbox.</p>
+        <p class="section__lede">Small businesses rarely need an agency, a software subscription and an IT contractor. Often one person who knows all three will do.</p>
       </header>
 
-      <div class="cases">
-        <a class="case reveal" href="https://rolandshandyman.co.uk" target="_blank" rel="noopener">
-          <figure class="case__shot">
-            <img src="{{ url_for('static', filename='media/work/rolands.webp') }}" alt="Roland's Handyman website homepage" width="1200" height="750" loading="lazy">
-          </figure>
-          <div class="case__meta">
-            <div>
-              <h3>Roland's Handyman</h3>
-              <p>Handyman &amp; property maintenance · website, enquiries, hosting</p>
-            </div>
-            <span class="case__go" aria-hidden="true">↗</span>
-          </div>
-        </a>
-        <a class="case reveal" href="https://rayghandymanservice.co.uk" target="_blank" rel="noopener">
-          <figure class="case__shot">
-            <img src="{{ url_for('static', filename='media/work/rayg.webp') }}" alt="Ray G Handyman Services website homepage" width="1200" height="750" loading="lazy">
-          </figure>
-          <div class="case__meta">
-            <div>
-              <h3>Ray G Handyman Services</h3>
-              <p>Home improvement &amp; renovation · website, gallery, quotes, hosting</p>
-            </div>
-            <span class="case__go" aria-hidden="true">↗</span>
-          </div>
-        </a>
-      </div>
-    </section>
+      <ul class="pillars">
+        <li class="pillar reveal">
+          <span class="feature__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/></svg>
+          </span>
+          <h3>Websites</h3>
+          <p>Custom sites for trades and local businesses that show your work and send quote requests straight to your inbox. Designed, built and hosted.</p>
+          <a class="pillar__link" href="#work">See our work →</a>
+        </li>
+        <li class="pillar reveal">
+          <span class="feature__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/></svg>
+          </span>
+          <h3>Local AI setups</h3>
+          <p>An AI assistant running on a computer in your office, so your documents and customer details never leave the building. No per-seat subscriptions.</p>
+          <a class="pillar__link" href="#ai">How it works →</a>
+        </li>
+        <li class="pillar reveal">
+          <span class="feature__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 6h10M6 8l5 8.2M18 8l-5 8.2"/></svg>
+          </span>
+          <h3>AI workflows</h3>
+          <p>Hand repetitive admin, like sorting enquiries, drafting replies and pulling details from documents, to an AI workflow that checks with you before anything important goes out.</p>
+          <a class="pillar__link" href="#ai">Examples →</a>
+        </li>
+        <li class="pillar reveal">
+          <span class="feature__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4z"/><path d="M7 9v5c0 1.7 2.2 3 5 3s5-1.3 5-3V9"/><path d="M21 7v6"/></svg>
+          </span>
+          <h3>AI introductions</h3>
+          <p>A plain-English session for you and your team: what AI is good at, where it isn't, and the handful of uses that would actually save your business time.</p>
+          <a class="pillar__link" href="#ai">What's covered →</a>
+        </li>
+        <li class="pillar reveal">
+          <span class="feature__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+          </span>
+          <h3>IT support &amp; hardware</h3>
+          <p>Computers, Windows, networks and Wi-Fi, printers, new kit set up properly. Backed by 16 years in IT and hardware work done with electrical safety training.</p>
+          <span class="pillar__tag">Small offices &amp; sole traders</span>
+        </li>
+        <li class="pillar reveal">
+          <span class="feature__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5L16 12l-4-4z"/></svg>
+          </span>
+          <h3>Looking after it</h3>
+          <p>Hosting, domains and business email, backups and updates, and changes when you need them. You message the same person who set it up.</p>
+          <span class="pillar__tag">Ongoing</span>
+        </li>
+      </ul>
+    </div>
+  </section>
 
-    <!-- THE LAB -->
-    <section id="lab" class="section wrap">
+  <!-- AI -->
+  <section id="ai" class="section section--tint">
+    <div class="wrap">
       <header class="section__head reveal">
-        <p class="kicker">04 — The Lab</p>
-        <h2>Products we build and run ourselves.</h2>
-        <p class="section__lede">The clearest proof of what we can build for you is what we build for ourselves.</p>
+        <p class="kicker">AI for small businesses</p>
+        <h2>AI that fits the way you already work.</h2>
+        <p class="section__lede">No hype and no 50-page strategy. We start with the jobs that eat your week and only bring in AI where it clearly helps.</p>
       </header>
 
-      <div class="lab">
-        <a class="lab__item lab__item--lead reveal" href="https://hapitech.report" target="_blank" rel="noopener">
-          <div class="lab__top">
-            <p class="badge badge--live"><span class="dot dot--live"></span>Live · v0.9</p>
-            <span class="case__go" aria-hidden="true">↗</span>
-          </div>
-          <h3>hapitech.report</h3>
-          <p>Statutory inspection software for LOLER, PUWER and PSSR. Engineers inspect on a phone, one question at a time, with photos and signatures; the office sees results live.</p>
-          <ul class="chips">
-            <li>Multi-tenant SaaS</li><li>Branching inspection flows</li><li>Mobile field app</li><li>Audit trail</li>
+      <div class="ai-grid">
+        <article class="ai-card reveal">
+          <p class="ai-card__label">Private</p>
+          <h3>Local AI setups</h3>
+          <p>Open AI models running on your own computer or a small server in the office. Your data stays with you, it keeps working if the internet drops, and there's no monthly fee per user.</p>
+          <ul>
+            <li>Ask questions of your own price lists, manuals and policies</li>
+            <li>Draft quotes, emails and job write-ups from rough notes</li>
+            <li>Summarise long documents without uploading them anywhere</li>
+            <li>We pick the hardware, set it up and show you how to use it</li>
           </ul>
-        </a>
+        </article>
+        <article class="ai-card reveal">
+          <p class="ai-card__label">Automation</p>
+          <h3>Agentic workflows</h3>
+          <p>An agentic workflow is AI that can carry out several steps on its own, like reading, deciding, drafting and filing, with you approving anything that matters.</p>
+          <ul>
+            <li>Sort website enquiries and draft a reply for you to check</li>
+            <li>Pull details out of invoices or forms into a spreadsheet</li>
+            <li>Turn job notes and photos into a tidy customer summary</li>
+            <li>Built around the tools you already use, kept simple to change</li>
+          </ul>
+        </article>
+        <article class="ai-card reveal">
+          <p class="ai-card__label">Getting started</p>
+          <h3>AI introductions</h3>
+          <p>A relaxed session at your place or online, for owners and staff who keep hearing about AI and want to know if it's worth their time.</p>
+          <ul>
+            <li>What tools like ChatGPT, Claude and Gemini can and can't do</li>
+            <li>Live examples using your own day-to-day tasks</li>
+            <li>Simple rules for using AI safely with customer data</li>
+            <li>A short written list of ideas worth trying in your business</li>
+          </ul>
+        </article>
+      </div>
 
-        <a class="lab__item reveal" href="https://hapitech.space" target="_blank" rel="noopener">
-          <div class="lab__top">
-            <p class="badge"><span class="dot dot--build"></span>In development</p>
-            <span class="case__go" aria-hidden="true">↗</span>
-          </div>
-          <h3>hapitech.space</h3>
-          <p>A real-time 3D solar system in the browser, with planet positions computed live from orbital elements.</p>
-          <ul class="chips"><li>Three.js</li><li>Orbital mechanics</li><li>WebGL</li></ul>
-        </a>
+      <p class="callout reveal">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <span>If AI won't save you time or money, we'll tell you, and you won't be sold anything. To see what's new in the field, have a look at our <a href="/news">AI news page</a>.</span>
+      </p>
+    </div>
+  </section>
 
-        <div class="lab__item reveal">
-          <div class="lab__top">
-            <p class="badge"><span class="dot dot--build"></span>In development</p>
-          </div>
-          <h3>MOTH//LIGHT</h3>
-          <p>A moonlit survival game for web and Android, with moth genetics, a living sanctuary and its own soundtrack. No engine, no framework.</p>
-          <ul class="chips"><li>Canvas 2D</li><li>Web Audio</li><li>Android</li></ul>
+  <!-- WORK -->
+  <section id="work" class="section">
+    <div class="wrap">
+      <header class="section__head reveal">
+        <p class="kicker">Our work</p>
+        <h2>Real sites, for real local businesses.</h2>
+        <p class="section__lede">Both designed from scratch around how the business actually works, then hosted and maintained by us.</p>
+      </header>
+
+      <article class="case reveal">
+        <a class="case__shot" href="https://rolandshandyman.co.uk" target="_blank" rel="noopener" aria-label="Visit rolandshandyman.co.uk (opens in a new tab)">
+          <div class="shot__bar" aria-hidden="true"><span></span><span></span><span></span><p>rolandshandyman.co.uk</p></div>
+          <img src="{{ url_for('static', filename='media/work/rolands.webp') }}" alt="Roland's Handyman website homepage" width="1200" height="750" loading="lazy">
+        </a>
+        <div class="case__body">
+          <img class="case__logo" src="{{ url_for('static', filename='media/clients/rolandshandyman.png') }}" alt="" width="48" height="48" loading="lazy">
+          <h3>Roland's Handyman</h3>
+          <p class="case__sector">Handyman &amp; property maintenance</p>
+          <p>A site that walks customers through each service (furniture assembly, wall mounting, minor plumbing and electrical) and turns interest into a quote request.</p>
+          <ul class="case__list">
+            <li>Quote form that checks the customer's postcode and estimates any travel charge</li>
+            <li>Before-and-after and project galleries</li>
+            <li>Customer reviews and a service-area map</li>
+            <li>WhatsApp, Facebook and Instagram buttons</li>
+            <li>Branded enquiry emails from the business's own address</li>
+          </ul>
+          <a class="case__link" href="https://rolandshandyman.co.uk" target="_blank" rel="noopener">Visit the site <span aria-hidden="true">↗</span></a>
+        </div>
+      </article>
+
+      <article class="case case--flip reveal">
+        <a class="case__shot" href="https://rayghandymanservice.co.uk" target="_blank" rel="noopener" aria-label="Visit rayghandymanservice.co.uk (opens in a new tab)">
+          <div class="shot__bar" aria-hidden="true"><span></span><span></span><span></span><p>rayghandymanservice.co.uk</p></div>
+          <img src="{{ url_for('static', filename='media/work/rayg.webp') }}" alt="Ray G Handyman Services website homepage" width="1200" height="750" loading="lazy">
+        </a>
+        <div class="case__body">
+          <img class="case__logo" src="{{ url_for('static', filename='media/clients/rayg.png') }}" alt="" width="48" height="48" loading="lazy">
+          <h3>Ray G Handyman Services</h3>
+          <p class="case__sector">Home improvement &amp; renovation</p>
+          <p>A bold, full-screen site for a renovation business covering bathrooms, kitchens, carpentry, loft conversions, extensions and paving, built to show off finished jobs.</p>
+          <ul class="case__list">
+            <li>Full-screen photo hero with a clear "Request a free quote" call to action</li>
+            <li>Project gallery plus before-and-after comparisons</li>
+            <li>Customer reviews and an "About me" section</li>
+            <li>Quote form with postcode check and travel-cost estimate</li>
+            <li>Tap-to-call and WhatsApp for mobile visitors</li>
+          </ul>
+          <a class="case__link" href="https://rayghandymanservice.co.uk" target="_blank" rel="noopener">Visit the site <span aria-hidden="true">↗</span></a>
+        </div>
+      </article>
+
+      <div class="sub-head reveal">
+        <h3>What every website includes</h3>
+        <p>The same building blocks behind the sites above, shaped around your trade and your area.</p>
+      </div>
+
+      <ul class="features">
+        <li class="feature reveal">
+          <span class="feature__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/></svg>
+          </span>
+          <h3>Custom design</h3>
+          <p>Built for your business from a blank page, with your logo and colours and your photos front and centre. No page builders.</p>
+        </li>
+        <li class="feature reveal">
+          <span class="feature__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 4h16v12H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg>
+          </span>
+          <h3>Quote &amp; enquiry forms</h3>
+          <p>Forms that ask the questions you need answered and send a tidy, branded email straight to your inbox.</p>
+        </li>
+        <li class="feature reveal">
+          <span class="feature__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+          </span>
+          <h3>Service area &amp; travel costs</h3>
+          <p>Customers enter a postcode and see whether they're in your area, and what any extra travel would cost, before they ask.</p>
+        </li>
+        <li class="feature reveal">
+          <span class="feature__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 5v14"/><path d="m6 15 2.5-3 2 2.5M14 15l2-2.5 2.5 2.5"/></svg>
+          </span>
+          <h3>Galleries &amp; before/after</h3>
+          <p>Your finished jobs are your best advert. We lay them out so they load fast and look sharp on a phone.</p>
+        </li>
+        <li class="feature reveal">
+          <span class="feature__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>
+          </span>
+          <h3>Reviews</h3>
+          <p>Show what past customers have said, right next to the button that gets new ones in touch.</p>
+        </li>
+        <li class="feature reveal">
+          <span class="feature__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>
+          </span>
+          <h3>Made for phones</h3>
+          <p>Most customers find you on their phone. Tap-to-call, WhatsApp and social buttons are always within reach.</p>
+        </li>
+        <li class="feature reveal">
+          <span class="feature__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="6" rx="1.5"/><rect x="4" y="14" width="16" height="6" rx="1.5"/><path d="M8 7h.01M8 17h.01"/></svg>
+          </span>
+          <h3>Hosting, domain &amp; email</h3>
+          <p>We host it on servers we manage, with SSL, backups and updates, and can set up your domain and a business email address.</p>
+        </li>
+        <li class="feature reveal">
+          <span class="feature__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5L16 12l-4-4z"/></svg>
+          </span>
+          <h3>Ongoing changes</h3>
+          <p>New service, new photos, new prices? Send a message and it gets done. No logins to learn, no plugins to update.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- PROCESS -->
+  <section id="process" class="section section--tint">
+    <div class="wrap">
+      <header class="section__head reveal">
+        <p class="kicker">How it works</p>
+        <h2>From a quick chat to something that works and keeps working.</h2>
+      </header>
+
+      <ol class="steps">
+        <li class="step reveal">
+          <p class="step__n">1</p>
+          <h3>Chat</h3>
+          <p>Tell us about your business and what's slowing you down. No jargon needed, and no obligation.</p>
+        </li>
+        <li class="step reveal">
+          <p class="step__n">2</p>
+          <h3>Plan</h3>
+          <p>You get a clear suggestion of what's worth doing, what it costs and what isn't worth doing yet.</p>
+        </li>
+        <li class="step reveal">
+          <p class="step__n">3</p>
+          <h3>Build &amp; check</h3>
+          <p>We set it up and test it properly, whether that's a website, an AI setup or new hardware, before you rely on it.</p>
+        </li>
+        <li class="step reveal">
+          <p class="step__n">4</p>
+          <h3>Hand over &amp; look after</h3>
+          <p>We show you how to use it, then keep it secure and up to date. You always know who to call.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about" class="section section--ink">
+    <div class="wrap about">
+      <header class="reveal">
+        <p class="kicker">About</p>
+        <h2>You deal with the person who does the work.</h2>
+      </header>
+      <div class="about__body reveal">
+        <p>
+          HapiTech is run by Aaron, who has spent 16 years in IT: systems administration at Rebellion,
+          IT and telecoms for NATO sites in Afghanistan with Thales, and senior customer engineering
+          for Rolls-Royce with Computacenter.
+        </p>
+        <p>
+          These days that experience goes into small businesses: websites that run on properly managed
+          servers, AI set up carefully and privately, and IT that's done right the first time. When you
+          want something changed, you message the same person who built it.
+        </p>
+        <ul class="about__facts">
+          <li><strong>16</strong><span>years in IT</span></li>
+          <li><strong>1</strong><span>point of contact, start to finish</span></li>
+          <li><strong>2</strong><span>client sites live, hosted &amp; maintained</span></li>
+        </ul>
+
+        <div class="creds">
+          <p class="creds__title">Certifications</p>
+          <ul class="creds__list">
+            <li>
+              <a class="cred" href="https://oaiacademy.credential.net/abf9429c-35f1-49f8-88fb-3c414e880ce5?key=04a8744e965f6d89a6bcaefde38d857320581c28aa6fdfb963d8fcda88e70aa7" target="_blank" rel="noopener" aria-describedby="tip-oai">
+                <img src="{{ url_for('static', filename='media/badges/openai-academy-ai-foundations.webp') }}" alt="" width="42" height="42" loading="lazy">
+                <span><span class="cred__name">AI Foundations</span><span class="cred__meta">OpenAI Academy · 2026 · Verify ↗</span></span>
+                <span class="cred__tip" role="tooltip" id="tip-oai"><strong>OpenAI Academy: AI Foundations</strong>AI and large language model fundamentals, prompt writing, context setting, checking AI output and responsible use at work. Click to verify the credential.</span>
+              </a>
+            </li>
+            <li>
+              <span class="cred" tabindex="0" aria-describedby="tip-aplus">
+                <span class="cred__mark cred__mark--aplus" aria-hidden="true">A+</span>
+                <span><span class="cred__name">CompTIA A+</span><span class="cred__meta">2011</span></span>
+                <span class="cred__tip" role="tooltip" id="tip-aplus"><strong>CompTIA A+</strong>The industry-standard certification for IT support: PC hardware, operating systems, troubleshooting, networking basics and security.</span>
+              </span>
+            </li>
+            <li>
+              <span class="cred" tabindex="0" aria-describedby="tip-mtanet">
+                <span class="cred__mark cred__mark--mta" aria-hidden="true">MTA</span>
+                <span><span class="cred__name">Networking Fundamentals</span><span class="cred__meta">Microsoft MTA · 2011</span></span>
+                <span class="cred__tip" role="tooltip" id="tip-mtanet"><strong>Microsoft Technology Associate: Networking Fundamentals</strong>Network infrastructure and hardware, IP addressing, protocols and core network services.</span>
+              </span>
+            </li>
+            <li>
+              <span class="cred" tabindex="0" aria-describedby="tip-mtawin">
+                <span class="cred__mark cred__mark--mta" aria-hidden="true">MTA</span>
+                <span><span class="cred__name">Windows OS Fundamentals</span><span class="cred__meta">Microsoft MTA · 2011</span></span>
+                <span class="cred__tip" role="tooltip" id="tip-mtawin"><strong>Microsoft Technology Associate: Windows Operating System Fundamentals</strong>Installing, configuring and maintaining Windows, including applications, files, devices and updates.</span>
+              </span>
+            </li>
+            {# TODO: replace with the exact electrical safety certificate name(s) and year #}
+            <li>
+              <span class="cred" tabindex="0" aria-describedby="tip-elec">
+                <span class="cred__mark cred__mark--elec" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></span>
+                <span><span class="cred__name">Electrical safety</span><span class="cred__meta">Certified</span></span>
+                <span class="cred__tip" role="tooltip" id="tip-elec"><strong>Electrical safety certification</strong>Trained to work safely with electrical equipment, which matters when installing and repairing hardware on your premises.</span>
+              </span>
+            </li>
+          </ul>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- ABOUT -->
-    <section class="section wrap about">
-      <div class="about__grid">
-        <header class="reveal">
-          <p class="kicker">05 — Who</p>
-          <h2>Built by someone who has supported systems, not just coded them.</h2>
-        </header>
-        <div class="about__body reveal">
-          <p>
-            HapiTech is run by Aaron, in IT since 2012: systems administration at Rebellion,
-            IT and telecoms for NATO sites in Afghanistan with Thales, senior customer engineering for
-            Rolls-Royce with Computacenter, and business systems for an industrial inspection company,
-            the experience behind hapitech.report.
-          </p>
-          <p>
-            That background is the difference: software that is secure, backed up and supportable,
-            not a demo that falls over after launch.
-          </p>
-          <ul class="timeline">
-            <li><span>2024</span> Founded HapiTech</li>
-            <li><span>2023</span> IT Business Systems Engineer · Industrial Safety Inspections</li>
-            <li><span>2021</span> Senior Customer Engineer · Computacenter, Rolls-Royce</li>
-            <li><span>2019</span> IT &amp; Telecoms Technician · Thales, Kabul</li>
-            <li><span>2012</span> IT Systems Administrator · Rebellion</li>
-          </ul>
+  {% if news_items %}
+  <!-- AI NEWS TEASER -->
+  <section id="news" class="section">
+    <div class="wrap">
+      <header class="section__head section__head--split reveal">
+        <div>
+          <p class="kicker">AI news</p>
+          <h2>What's new in AI.</h2>
         </div>
+        <p class="section__lede">The latest from frontier AI labs and the local and open-model world, gathered from the publishers' own feeds.</p>
+      </header>
+      <div class="news-grid">
+        {% for item in news_items %}
+        <article class="news-card reveal">
+          <div class="news-card__meta">
+            <span class="src{% if item.cat == 'local' %} src--local{% endif %}">{{ item.source }}</span>
+            {% if item.date %}<time datetime="{{ item.date }}">{{ item.date | news_date }}</time>{% endif %}
+          </div>
+          <h3><a href="{{ url_for('news.news_article', item_id=item.id) }}">{{ item.title }}</a></h3>
+          {% if item.excerpt %}<p>{{ item.excerpt }}</p>{% endif %}
+          <span class="news-card__more" aria-hidden="true">Read more →</span>
+        </article>
+        {% endfor %}
       </div>
-    </section>
+      <div class="news-foot">
+        <p>Every article is credited and links to the original. All content belongs to its publishers.</p>
+        <a href="/news" class="btn btn--ghost btn--sm">All AI news →</a>
+      </div>
+    </div>
+  </section>
+  {% endif %}
 
-    <!-- CONTACT -->
-    <section id="contact" class="section wrap">
+  <!-- CONTACT -->
+  <section id="contact" class="section{% if news_items %} section--tint{% endif %}">
+    <div class="wrap">
       <div class="contact reveal">
         <div class="contact__copy">
-          <p class="kicker">06 — Contact</p>
-          <h2>Got something that should be software?</h2>
-          <p>A new site, a tool to replace a spreadsheet, or help with something already built. Tell us what you need and you'll hear back from the person who would build it.</p>
+          <p class="kicker">Get in touch</p>
+          <h2>Tell us what you need.</h2>
+          <p>A new website, a first look at AI, or a computer that just needs sorting. Send a few details and you'll hear back from Aaron directly.</p>
+          <p class="contact__alt">Prefer email? <a href="mailto:aaron@hapitech.dev">aaron@hapitech.dev</a></p>
         </div>
 
         <form class="form" id="contactForm" novalidate>
+          <div class="form__row">
+            <label class="field">
+              <span>Your name</span>
+              <input id="contactName" name="name" autocomplete="name" required>
+            </label>
+            <label class="field">
+              <span>Business name <em>(optional)</em></span>
+              <input id="contactBusiness" name="business" autocomplete="organization">
+            </label>
+          </div>
+          <div class="form__row">
+            <label class="field">
+              <span>Email</span>
+              <input id="contactEmail" name="email" type="email" autocomplete="email" required>
+            </label>
+            <label class="field">
+              <span>Phone <em>(optional)</em></span>
+              <input id="contactPhone" name="phone" type="tel" autocomplete="tel">
+            </label>
+          </div>
           <label class="field">
-            <span>Name</span>
-            <input id="contactName" name="name" autocomplete="name" required>
+            <span>What do you need?</span>
+            <select id="contactNeed" name="need">
+              <option>A new or replacement website</option>
+              <option>Changes or hosting for an existing site</option>
+              <option>A local (private) AI setup</option>
+              <option>An AI workflow or automation</option>
+              <option>An AI introduction for my business</option>
+              <option>IT support or hardware</option>
+              <option>Not sure yet / something else</option>
+            </select>
           </label>
           <label class="field">
-            <span>Email</span>
-            <input id="contactEmail" name="email" type="email" autocomplete="email" required>
-          </label>
-          <label class="field">
-            <span>What can we help with?</span>
-            <textarea id="contactMessage" name="message" rows="5" required></textarea>
+            <span>Tell us a bit about it</span>
+            <textarea id="contactMessage" name="message" rows="5" required placeholder="What your business does, and what you'd like help with."></textarea>
           </label>
           <div class="form__foot">
             <p id="contactStatus" class="form__status" role="status" aria-live="polite"></p>
@@ -329,23 +482,7 @@
           </div>
         </form>
       </div>
-    </section>
-
-  </main>
-
-  <footer class="foot">
-    <div class="wrap foot__row">
-      <p>&copy; HapiTech {{ current_year }}</p>
-      <nav aria-label="Footer">
-        <a href="/login">Client login</a>
-        <a href="/privacy">Privacy</a>
-        <a href="/terms">Terms</a>
-        <a href="https://www.linkedin.com/in/aaron-g-b8880868/" target="_blank" rel="noopener">LinkedIn</a>
-        <a href="https://github.com/hapiuk" target="_blank" rel="noopener">GitHub</a>
-      </nav>
     </div>
-  </footer>
+  </section>
 
-  <script src="{{ url_for('static', filename='js/home.js') }}" defer></script>
-</body>
-</html>
+{% endblock %}

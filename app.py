@@ -19,6 +19,7 @@ from utils.mailer import send_contact_email
 from routes.admin_command_center import admin_command_center_bp
 from routes.report_tenants import report_tenants_bp
 from routes.pricing_config import pricing_config_bp
+from routes.news import news_bp
 from utils.command_center import get_service_state, SERVICES
 
 def handle_contact(data: dict) -> None:
@@ -139,6 +140,7 @@ def create_app():
 	app.register_blueprint(admin_command_center_bp)
 	app.register_blueprint(report_tenants_bp)
 	app.register_blueprint(pricing_config_bp)
+	app.register_blueprint(news_bp)
 
 	# --------------------------------------------------
 	# startup DB seeding & admin account setup
@@ -208,7 +210,16 @@ def create_app():
 		role = getattr(current_user, "role", None)
 		if current_user.is_authenticated and role in ("admin", "client"):
 			return redirect(url_for("admin_dashboard" if role == "admin" else "client_dashboard"))
-		return render_template("home.html", current_year=datetime.datetime.utcnow().year)
+		from utils.news import get_news
+		# never block the homepage on feeds: empty list (section hidden) until a cache exists
+		news_items, seen = [], set()
+		for item in get_news(blocking=False).get("items", []):   # newest first, one per source
+			if item.get("source_id") not in seen:
+				seen.add(item.get("source_id"))
+				news_items.append(item)
+			if len(news_items) == 3:
+				break
+		return render_template("home.html", news_items=news_items, current_year=datetime.datetime.utcnow().year)
 
 	@app.route("/login", methods=["GET", "POST"])
 	def login():

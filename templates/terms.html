@@ -1,48 +1,9 @@
-<!-- templates/terms.html -->
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="icon" type="image/png" href="{{ url_for('static', filename='media/favicon/favicon-96x96.png') }}" sizes="96x96" />
-  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='media/favicon/favicon.svg') }}" />
-  <link rel="shortcut icon" href="{{ url_for('static', filename='media/favicon/favicon.ico') }}" />
-  <title>Terms &amp; Conditions — HapiTech</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <style>
-    .legal-page{ max-width: 780px; margin: 0 auto; padding: 100px 0 60px; }
-    .legal-page h1{ font-size: clamp(2rem,4vw,2.6rem); margin-bottom: 6px; }
-    .legal-updated{ opacity: .65; font-size: .85rem; margin-bottom: 32px; }
-    .legal-page section{ padding: 0 0 34px; }
-    .legal-page h2{ font-size: 1.3rem; margin-bottom: 12px; }
-    .legal-page p, .legal-page li{ opacity: .88; line-height: 1.65; margin-bottom: 12px; }
-    .legal-page ul{ padding-left: 22px; margin-bottom: 12px; }
-    .legal-page a{ color: #8ec8ff; }
-    .legal-card{ padding: 36px clamp(20px,4vw,48px); }
-  </style>
-</head>
-<body>
-  <div class="bg"></div>
-
-  <header class="site-header">
-    <nav class="site-nav neon-card">
-      <a href="/" class="brand">
-        <img src="{{ url_for('static', filename='media/logo.png') }}" alt="HapiTech Logo">
-        <span>HapiTech</span>
-      </a>
-      <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="navLinks" aria-label="Menu">
-        <span></span><span></span><span></span>
-      </button>
-      <div class="nav-links" id="navLinks">
-        <a href="/#services">Services</a>
-        <a href="/#work">Projects</a>
-        <a href="/login">Client Login</a>
-      </div>
-    </nav>
-  </header>
-
-  <main class="page">
-    <div class="neon-card legal-card legal-page">
+{# templates/terms.html #}
+{% extends "site/base.html" %}
+{% block title %}Terms &amp; Conditions | HapiTech{% endblock %}
+{% block content %}
+  <div class="wrap legal">
+    <article class="legal__card">
       <h1>Terms &amp; Conditions</h1>
       <p class="legal-updated">Last updated: 9 August 2026</p>
 
@@ -89,16 +50,10 @@
         <p>We may update these terms from time to time; continued use of the site after a change means you accept the update. Significant changes will be reflected in the date above.</p>
       </section>
 
-      <section style="padding-bottom:0;">
+      <section>
         <h2>8. Contact</h2>
         <p>Questions about these terms: <a href="mailto:aaron@hapitech.dev">aaron@hapitech.dev</a>.</p>
       </section>
-    </div>
-  </main>
-
-  <footer class="site">
-    &copy; HapiTech {{ current_year }} · <a href="/">Home</a> · <a href="/privacy">Privacy Policy</a>
-  </footer>
-  <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
-</body>
-</html>
+    </article>
+  </div>
+{% endblock %}
