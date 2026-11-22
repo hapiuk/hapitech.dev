@@ -590,3 +590,16 @@ def test_admin_sees_all_jobs(app):
     _login(a, "admin@test")
     html = a.get("/admin/work").get_data(as_text=True)
     assert "Cust rolands" in html and "Cust rayg" in html
+
+
+def test_setup_clients_creates_switched_off_owner_logins(app):
+    from models.core import User
+    runner = app.test_cli_runner()
+    with app.app_context():
+        res = runner.invoke(args=["setup-clients"])
+        assert res.exit_code == 0, res.output
+    with app.app_context():
+        u = User.query.filter_by(email="enquiries@rolandshandyman.co.uk").first()
+        assert u and u.role == "owner" and not u.is_active and u.account.contact_email == u.email
+    r = _login(app.test_client(), "enquiries@rolandshandyman.co.uk")
+    assert r.status_code == 400                                   # can't log in until invited

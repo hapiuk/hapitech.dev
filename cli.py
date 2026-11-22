@@ -89,11 +89,13 @@ CLIENT_DETAILS = {
     "rolandshandyman.co.uk": dict(
         name="Roland's Handyman", slug="rolands-handyman", trade="Handyman & property maintenance",
         town="West Midlands", contact_name="Roland", contact_phone="+447554585833",
+        contact_email="enquiries@rolandshandyman.co.uk",
         google_profile_url="https://g.page/r/CexidGdXUTMsEAE/review",
         logo_path="media/clients/rolandshandyman.png", brand_colour="#f97316"),
     "rayghandymanservice.co.uk": dict(
         name="Ray G Handyman Services", slug="ray-g-handyman", trade="Home improvement & renovation",
         town="Wolverhampton", contact_name="Ray", contact_phone="+447379195256",
+        contact_email="enquiries@rayghandymanservice.co.uk",
         google_profile_url="https://g.page/r/CeR53HEINwUDEAE/review",
         logo_path="media/clients/rayg.png", brand_colour="#dc2626"),
 }
@@ -106,8 +108,10 @@ def setup_clients():
     for domain, d in CLIENT_DETAILS.items():
         acct = Account.query.filter_by(domain=domain).first() or Account.query.filter_by(slug=d["slug"]).first()
         if acct is None:
-            acct = Account(domain=domain, kind="client", status="active")
+            slug = d["slug"] if not Account.query.filter_by(slug=d["slug"]).first() else f"{d['slug']}-2"
+            acct = Account(domain=domain, kind="client", status="active", name=d["name"], slug=slug)
             db.session.add(acct)
+            db.session.flush()
         for k, v in d.items():
             if k == "slug" and Account.query.filter(Account.slug == v, Account.id != acct.id).first():
                 continue
@@ -116,8 +120,22 @@ def setup_clients():
         db.session.flush()
         from utils.content_blocks import ensure_blocks
         ensure_blocks(acct, None)
+        _ensure_owner(acct, d["contact_email"], d["contact_name"])
     db.session.commit()
     click.echo("Client accounts (and their editable website blocks) up to date: " + ", ".join(d["slug"] for d in CLIENT_DETAILS.values()))
+
+
+def _ensure_owner(acct, email, name):
+    """The owner's login. Created switched OFF: it only works after Admin → Logins → Send invite."""
+    from models.core import User
+    u = User.query.filter(db.func.lower(User.email) == email.lower()).first()
+    if u is None:
+        stale = User.query.filter_by(account_id=acct.id, role="owner").first()   # e.g. an old demo login
+        if stale and stale.email.endswith("@demo.local"):
+            stale.email = stale.username = email
+            return
+        db.session.add(User(email=email, username=email, name=name, role="owner", account_id=acct.id,
+                            is_active_flag=False))
 
 
 def _extract_list(path, var="reviews"):
@@ -200,8 +218,8 @@ def seed_dev(clients_dir, bench_dir):
              "# Log in at http://127.0.0.1:5077 via 'Client login': enter the email, and in local test mode",
              "# the 6-digit code is shown right there (nothing is really emailed).", ""]
     people = [("aaron@hapitech.dev", "Aaron", "admin", None),
-              ("roland@demo.local", "Roland", "owner", "rolands-handyman"),
-              ("ray@demo.local", "Ray", "owner", "ray-g-handyman")]
+              ("enquiries@rolandshandyman.co.uk", "Roland", "owner", "rolands-handyman"),
+              ("enquiries@rayghandymanservice.co.uk", "Ray", "owner", "ray-g-handyman")]
     for email, name, role, slug in people:
         u = User.query.filter_by(email=email).first()
         if u is None:
