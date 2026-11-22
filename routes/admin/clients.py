@@ -330,7 +330,27 @@ def site_key(slug):
 def view_portal(slug):
     a = _acct(slug)
     session["portal_as"] = a.slug
+    nxt = safe_next(request.args.get("next"))
+    if nxt and nxt.startswith("/portal/"):
+        return redirect(nxt)
     return redirect(url_for("portal.home", **{"as": a.slug}))
+
+
+@admin_bp.route("/work")
+def work():
+    """Every client's jobs in one list (enquiries, bookings, unpaid invoices)."""
+    from models.work import Invoice, Lead
+    show = request.args.get("show", "open")
+    q = Lead.query.filter(Lead.archived_at.is_(None))
+    if show == "open":
+        q = q.filter(Lead.status.in_(["new", "quoted", "accepted", "booked"]))
+    elif show == "new":
+        q = q.filter(Lead.status == "new")
+    elif show == "done":
+        q = q.filter(Lead.status == "done")
+    rows = q.order_by(Lead.created_at.desc()).limit(300).all()
+    unpaid = Invoice.query.filter(Invoice.status == "sent").order_by(Invoice.sent_at).all()
+    return render_template("admin/work.html", rows=rows, show=show, unpaid=unpaid)
 
 
 # ---------------------------------------------------------------- change requests (all clients)

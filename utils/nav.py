@@ -16,6 +16,8 @@ ICONS = {
     "help": '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/>',
     "check": '<path d="m5 12 5 5 9-10"/>',
     "list": '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+    "briefcase": '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>',
+    "calendar": '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
     "lab": '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/><path d="M7.5 15h9"/>',
 }
 
@@ -33,6 +35,7 @@ def admin_nav(counts=None):
     return [
         _item("Overview", "admin.home", "home", url="/admin", prefix=None),
         _item("Clients", "admin.clients", "users", prefix="/admin/clients"),
+        _item("Clients' jobs", "admin.work", "briefcase", prefix="/admin/work"),
         _item("Reviews", "admin.reviews", "star", prefix="/admin/reviews", badge=c.get("reported")),
         _item("Change requests", "admin.change_requests", "inbox", prefix="/admin/requests", badge=c.get("requests")),
         {"section": "HapiTech Lab"},
@@ -44,13 +47,18 @@ def admin_nav(counts=None):
     ]
 
 
-def portal_nav(counts=None):
+def portal_nav(counts=None, owner=True):
     c = counts or {}
-    return [
+    items = [
         _item("Home", "portal.home", "home", url="/portal", tab=True),
+        _item("Jobs", "portal.jobs", "briefcase", prefix="/portal/jobs", tab=True, badge=c.get("new_jobs")),
         _item("Ask for a review", "portal.ask", "send", prefix="/portal/ask", tab=True, short="Ask", primary=True),
         _item("Reviews", "portal.reviews", "star", prefix="/portal/reviews", tab=True, badge=c.get("unreplied")),
-        _item("Posts", "portal.posts", "image", prefix="/portal/posts", tab=True),
-        _item("My website", "portal.website", "edit", prefix="/portal/website"),
-        _item("Help & changes", "portal.help", "help", prefix="/portal/help"),
+        _item("Calendar", "portal.calendar", "calendar", prefix="/portal/calendar"),
+        _item("Posts", "portal.posts", "image", prefix="/portal/posts"),
     ]
+    if owner:
+        items.append(_item("My website", "portal.website", "edit", prefix="/portal/website"))
+        items.append(_item("Settings", "portal.settings", "cog", prefix="/portal/settings"))
+    items.append(_item("Help", "portal.help", "help", prefix="/portal/help"))
+    return items

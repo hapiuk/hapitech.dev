@@ -299,8 +299,8 @@ ADMIN_PAGES = ["/admin/", "/admin/clients", "/admin/clients/new", "/admin/client
                "/admin/clients/rolands?tab=jobs", "/admin/clients/rolands?tab=money", "/admin/clients/rolands?tab=users",
                "/admin/clients/rolands?tab=reviews", "/admin/clients/rolands?tab=site", "/admin/reviews",
                "/admin/reviews/new", "/admin/requests", "/admin/settings", "/admin/lab/runs", "/admin/lab/runs/new",
-               "/admin/lab/prompts", "/admin/lab/prompts/new", "/admin/lab/models", "/admin/lab/models/new"]
-PORTAL_PAGES = ["/portal/", "/portal/ask", "/portal/requests", "/portal/reviews", "/portal/posts", "/portal/posts/new",
+               "/admin/lab/prompts", "/admin/lab/prompts/new", "/admin/lab/models", "/admin/lab/models/new", "/admin/work"]
+PORTAL_PAGES = ["/portal/", "/portal/ask", "/portal/requests", "/portal/reviews", "/portal/posts", "/portal/posts/new", "/portal/jobs", "/portal/jobs/new", "/portal/calendar", "/portal/settings",
                 "/portal/website", "/portal/help"]
 PUBLIC_PAGES = ["/", "/news", "/privacy", "/terms", "/login", "/lab", "/reviews/rolands", "/reviews/rolands/write"]
 
@@ -400,3 +400,193 @@ def test_site_blocks_match_definitions(app):
         db.session.commit()
         assert ensure_blocks(a, None) == 0                     # idempotent
         assert ContentBlock.query.filter_by(account_id=a.id, key="services.wall.title").first().data == "Wall Mounting Service"
+
+
+# ---------------------------------------------------------------- jobs: enquiry -> quote -> booking -> done -> invoice
+
+def _outbox(app):
+    d = os.path.join(app.instance_path, "mail_outbox")
+    return [open(os.path.join(d, f)).read() for f in sorted(os.listdir(d))] if os.path.isdir(d) else []
+
+
+def _site_key(app, slug):
+    from models import db
+    from models.core import Account
+    from werkzeug.security import generate_password_hash
+    with app.app_context():
+        a = Account.query.filter_by(slug=slug).first()
+        a.site_api_key_hash = generate_password_hash("ht_k")
+        a.contact_email = "roland-owner@test"
+        db.session.commit()
+    return {"X-Site-Key": "ht_k"}
+
+
+def test_job_lifecycle(app):
+    import datetime as dt
+    from models import db
+    from models.work import Invoice, Lead, Quote
+    from utils.tasks import run_all
+    c = app.test_client()
+    hdr = _site_key(app, "rolands")
+    r = c.post("/api/v1/sites/rolands/enquiries", json={"name": "Sam Smith", "email": "sam@example.com",
+                                                        "postcode": "wv1 1aa", "job": "Fit a wardrobe"}, headers=hdr)
+    assert r.status_code == 201
+    lid = r.json["id"]
+    o = app.test_client()
+    _login(o, "roland@test")
+    assert "Sam Smith" in o.get("/portal/jobs").get_data(as_text=True)
+    # quote
+    page = f"/portal/jobs/{lid}/quote"
+    r = _form(o, page, {"desc": ["Labour", "Fixings"], "qty": ["1", "2"], "price": ["120", "5"], "vat_rate": "0",
+                        "action": "send"}, page=page)
+    assert r.status_code == 302
+    with app.app_context():
+        q = Quote.query.filter_by(lead_id=lid).first()
+        assert q.status == "sent" and q.totals[2] == 130.0 and Lead.query.get(lid).status == "quoted"
+        token = q.token
+    assert any("/q/" + token in m for m in _outbox(app))
+    # customer accepts
+    cust = app.test_client()
+    html = cust.get(f"/q/{token}").get_data(as_text=True)
+    assert "£130.00" in html and "Accept this quote" in html
+    tok = re.search(r'name="csrf_token" value="([^"]+)"', html).group(1)
+    cust.post(f"/q/{token}", data={"csrf_token": tok, "answer": "accept"})
+    with app.app_context():
+        assert Lead.query.get(lid).status == "accepted"
+    # book for tomorrow 10:00, with confirmation
+    tomorrow = (dt.date.today() + dt.timedelta(days=1)).isoformat()
+    _form(o, f"/portal/jobs/{lid}", {"action": "book", "date": tomorrow, "time": "10:00", "days": "1", "notify": "1"},
+          page=f"/portal/jobs/{lid}")
+    assert any("You're booked in for" in m for m in _outbox(app))
+    # day-before reminder via the scheduler (force, and pretend it's after 8am)
+    with app.app_context():
+        lead = Lead.query.get(lid)
+        assert lead.status == "booked" and lead.confirm_sent_at
+    import utils.tasks as tasks
+    real = tasks.dt.datetime
+    class FakeDT(real):
+        @classmethod
+        def utcnow(cls):
+            return real.combine(real.utcnow().date(), real.min.time()).replace(hour=9)
+    tasks.dt.datetime = FakeDT
+    try:
+        assert run_all(app, force=True)["reminders"] == 1
+        assert run_all(app, force=True)["reminders"] == 0          # only once
+    finally:
+        tasks.dt.datetime = real
+    # done -> review email; then invoice prefilled from the quote, sent, paid
+    _form(o, f"/portal/jobs/{lid}", {"action": "done", "ask_review": "1"}, page=f"/portal/jobs/{lid}")
+    assert any("How did we do?" in m for m in _outbox(app))
+    ipage = f"/portal/jobs/{lid}/invoice"
+    assert "Labour" in o.get(ipage).get_data(as_text=True)          # copied from the accepted quote
+    _form(o, ipage, {"desc": ["Labour", "Fixings"], "qty": ["1", "2"], "price": ["120", "5"], "vat_rate": "0",
+                     "action": "send"}, page=ipage)
+    with app.app_context():
+        inv = Invoice.query.filter_by(lead_id=lid).first()
+        assert inv.status == "sent" and inv.number == "INV-0001"
+        itok, iid = inv.token, inv.id
+    assert "INV-0001" in cust.get(f"/i/{itok}").get_data(as_text=True)
+    _form(o, f"/portal/jobs/{lid}/invoice/{iid}", {"action": "paid", "desc": ["x"], "qty": ["1"], "price": ["1"]},
+          page=f"/portal/jobs/{lid}/invoice/{iid}")
+    with app.app_context():
+        assert Invoice.query.get(iid).status == "paid"
+    # accepted/done jobs can't be deleted until archived
+    _form(o, f"/portal/jobs/{lid}", {"action": "delete"}, page=f"/portal/jobs/{lid}")
+    with app.app_context():
+        assert Lead.query.get(lid) is not None
+    _form(o, f"/portal/jobs/{lid}", {"action": "archive"}, page=f"/portal/jobs/{lid}")
+    _form(o, f"/portal/jobs/{lid}", {"action": "delete"}, page=f"/portal/jobs/{lid}")
+    with app.app_context():
+        assert Lead.query.get(lid) is None and Quote.query.count() == 0      # details gone with it
+
+
+def test_declined_jobs_auto_deleted_after_30_days(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account
+    from models.work import Lead
+    from utils.tasks import run_all
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        old = Lead(account_id=a.id, name="Old", status="declined", declined_at=dt.datetime.utcnow() - dt.timedelta(days=31))
+        recent = Lead(account_id=a.id, name="Recent", status="declined", declined_at=dt.datetime.utcnow() - dt.timedelta(days=2))
+        done = Lead(account_id=a.id, name="Done", status="done", done_at=dt.datetime.utcnow() - dt.timedelta(days=400))
+        db.session.add_all([old, recent, done])
+        db.session.commit()
+    assert run_all(app, force=True)["deleted"] == 1
+    with app.app_context():
+        assert {l.name for l in Lead.query.all()} == {"Recent", "Done"}
+
+
+def test_new_enquiry_can_be_deleted_straight_away(app):
+    from models import db
+    from models.core import Account
+    from models.work import Lead
+    with app.app_context():
+        lid = Lead(account_id=Account.query.filter_by(slug="rolands").first().id, name="Nope")
+        db.session.add(lid); db.session.commit(); lid = lid.id
+    o = app.test_client()
+    _login(o, "roland@test")
+    _form(o, f"/portal/jobs/{lid}", {"action": "delete"}, page=f"/portal/jobs/{lid}")
+    with app.app_context():
+        assert Lead.query.get(lid) is None
+
+
+def test_calendar_feed(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account
+    from models.work import Lead
+    o = app.test_client()
+    _login(o, "roland@test")
+    assert o.get("/portal/calendar").status_code == 200
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        db.session.add(Lead(account_id=a.id, name="Pat", title="Shelves", status="booked", postcode="WV2 2AA",
+                            start_at=dt.datetime.utcnow() + dt.timedelta(days=3)))
+        db.session.commit()
+        token = a.calendar_token
+    ics = app.test_client().get(f"/cal/{token}.ics")
+    body = ics.get_data(as_text=True)
+    assert ics.status_code == 200 and "BEGIN:VCALENDAR" in body and "Shelves – Pat" in body and "WV2 2AA" in body
+    assert app.test_client().get("/cal/wrong-token-wrong-token-wrong.ics").status_code == 404
+
+
+def test_helper_restrictions(app):
+    from models import db
+    from models.core import Account, User
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        db.session.add(User(email="helper@test", username="helper@test", role="staff", account_id=a.id))
+        db.session.commit()
+    h = app.test_client()
+    _login(h, "helper@test")
+    assert h.get("/portal/jobs").status_code == 200
+    assert h.get("/portal/settings").status_code == 302                  # bounced
+    assert h.get("/portal/website").status_code == 302
+    assert "Settings" not in h.get("/portal/").get_data(as_text=True).split('class="side__nav"')[1].split("</nav>")[0]
+
+
+def test_away_mode_in_content_api(app):
+    import datetime as dt
+    hdr = _site_key(app, "rolands")
+    o = app.test_client()
+    _login(o, "roland@test")
+    back = (dt.date.today() + dt.timedelta(days=5)).isoformat()
+    _form(o, "/portal/settings", {"action": "away", "away_until": back, "away_message": "On holiday"}, page="/portal/settings")
+    away = app.test_client().get("/api/v1/sites/rolands/content", headers=hdr).json["away"]
+    assert away == {"until": back, "message": "On holiday"}
+
+
+def test_admin_sees_all_jobs(app):
+    from models import db
+    from models.core import Account
+    from models.work import Lead
+    with app.app_context():
+        for slug in ("rolands", "rayg"):
+            db.session.add(Lead(account_id=Account.query.filter_by(slug=slug).first().id, name=f"Cust {slug}"))
+        db.session.commit()
+    a = app.test_client()
+    _login(a, "admin@test")
+    html = a.get("/admin/work").get_data(as_text=True)
+    assert "Cust rolands" in html and "Cust rayg" in html

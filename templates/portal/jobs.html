@@ -1,0 +1,31 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import empty, status_badge, howto with context %}
+{% block title %}Jobs{% endblock %}
+{% block content %}
+<div class="page-top"><div><h1>Jobs</h1><p>Every enquiry, from first contact to paid.</p></div><a class="btn btn--sm" href="{{ url_for('portal.job_new') }}">Add a job</a></div>
+{% call howto() %}
+  <ol>
+    <li>Quote requests from your website land here automatically. Add phone enquiries with <b>Add a job</b>.</li>
+    <li>Open a job to send a <b>quote</b>. When they accept, pick a <b>date</b> and it goes in your calendar.</li>
+    <li>After the work, tap <b>Done</b>: we can email them a review link. Then send the <b>invoice</b>.</li>
+  </ol>
+  <p class="small">Jobs that don't go ahead are deleted after 30 days. Finished jobs are kept: <b>archive</b> them to tidy up.</p>
+{% endcall %}
+<nav class="subnav">{% for key, label in filters %}<a href="{{ url_for('portal.jobs', show=key) }}" {% if show == key %}aria-current="page"{% endif %}>{{ label }}{% if counts.get(key) %} ({{ counts[key] }}){% endif %}</a>{% endfor %}</nav>
+{% if rows %}
+<section class="card card--flush">
+  {% for l in rows %}
+  <a class="job-row" href="{{ url_for('portal.job', lid=l.id) }}">
+    <strong>{{ l.name }}</strong>{{ status_badge(l.status if l.status != 'declined' else 'cancelled') }}
+    <span class="job-row__meta">
+      <span>{{ l.label }}</span>
+      {% if l.start_at %}<span>📅 {{ l.start_at | ukdate('%a %-d %b, %H:%M') }}</span>{% endif %}
+      {% if l.postcode %}<span>📍 {{ l.postcode }}</span>{% endif %}
+      {% if l.source in ('website', 'booking') %}<span class="badge">{{ 'Booking request' if l.source == 'booking' else 'From website' }}</span>{% endif %}
+      <span>{{ l.created_at | ago }}</span>
+    </span>
+  </a>
+  {% endfor %}
+</section>
+{% else %}{{ empty('Nothing here', 'New enquiries from your website appear here automatically.' if show != 'archive' else 'Archived jobs are kept here until you delete them.') }}{% endif %}
+{% endblock %}

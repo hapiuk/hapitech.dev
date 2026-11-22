@@ -1,0 +1,42 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import howto with context %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<div class="page-top"><div><h1>Settings</h1></div></div>
+<div class="grid grid--2">
+  <section class="card {{ 'card--accent' if g.account.is_away }}">
+    <div class="card__head"><h2>🏖️ Away mode</h2>{% if g.account.is_away %}<span class="badge badge--warn">On</span>{% endif %}</div>
+    <p class="small muted">Going on holiday? Your website shows a short notice and booking requests are paused until you're back.</p>
+    <form method="post" class="stack" style="margin-top:12px">
+      <input type="hidden" name="action" value="away">
+      <label class="field"><span>Back on</span><input type="date" name="away_until" min="{{ today }}" value="{{ g.account.away_until or '' }}"></label>
+      <label class="field"><span>Message <small>optional</small></span><input name="away_message" maxlength="200" value="{{ g.account.away_message or '' }}" placeholder="Away until 3 January. Quote requests are still welcome!"></label>
+      <div class="row"><button class="btn btn--sm">Save</button>{% if g.account.is_away %}<button class="btn btn--ghost btn--sm" name="action" value="back">I'm back</button>{% endif %}</div>
+    </form>
+  </section>
+  <section class="card">
+    <div class="card__head"><h2>Logins</h2></div>
+    <ul class="list">{% for u in staff %}
+      <li><span><strong>{{ u.name or u.email }}</strong><br><span class="small muted">{{ u.email }} · {{ 'Owner' if u.role == 'owner' else 'Helper' }}{% if not u.is_active %} · removed{% endif %}</span></span>
+        {% if u.role == 'staff' and u.is_active %}<form method="post"><input type="hidden" name="action" value="remove-staff"><input type="hidden" name="uid" value="{{ u.id }}"><button class="btn btn--ghost btn--sm" data-confirm="Stop {{ u.email }} logging in?">Remove</button></form>{% endif %}</li>
+    {% endfor %}</ul>
+    <details class="fold" style="margin-top:8px"><summary>+ Add a helper</summary>
+      {% call howto('What can helpers do?') %}<p>Helpers (a partner or apprentice) can see jobs and the calendar, mark jobs done, ask for reviews and post updates. They can't see quotes, invoices or settings, or change the website.</p>{% endcall %}
+      <form method="post" class="stack"><input type="hidden" name="action" value="invite">
+        <label class="field"><span>Name</span><input name="name"></label>
+        <label class="field"><span>Email</span><input type="email" name="email" required></label>
+        <div><button class="btn btn--sm">Add helper</button></div></form>
+    </details>
+  </section>
+</div>
+<form method="post" class="card form-grid" style="margin-top:16px">
+  <input type="hidden" name="action" value="business">
+  <div class="card__head full"><h2>On your quotes &amp; invoices</h2></div>
+  <label class="field"><span>Email customers reply to</span><input type="email" name="contact_email" value="{{ g.account.contact_email or '' }}"></label>
+  <label class="field"><span>VAT number <small>leave blank if you're not VAT registered</small></span><input name="vat_number" value="{{ g.account.vat_number or '' }}"></label>
+  <label class="field full"><span>Business address <small>optional</small></span><textarea name="business_address" rows="3">{{ g.account.business_address or '' }}</textarea></label>
+  <label class="field full"><span>How customers pay you <small>shown on invoices, e.g. bank, sort code, account number</small></span><textarea name="payment_details" rows="3">{{ g.account.payment_details or '' }}</textarea></label>
+  <label class="field full"><span>Terms <small>optional, shown on quotes</small></span><textarea name="quote_terms" rows="3" placeholder="Quote valid for 30 days. Materials charged at cost.">{{ g.account.quote_terms or '' }}</textarea></label>
+  <div class="form-actions full"><button class="btn btn--sm">Save</button></div>
+</form>
+{% endblock %}

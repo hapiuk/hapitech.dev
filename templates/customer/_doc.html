@@ -1,0 +1,26 @@
+{# shared quote/invoice body. `d` = Quote or Invoice, `kind` = 'Quote' | 'Invoice' #}
+{% set net, vat, total = d.totals %}
+<div class="doc">
+  <div class="doc__head">
+    <div><p class="doc__kind">{{ kind }}</p><h1 class="rv__title">{{ d.number }}</h1></div>
+    <div class="doc__from"><strong>{{ a.name }}</strong>{% if a.business_address %}<br>{{ a.business_address | nl2br }}{% endif %}
+      {% if a.contact_phone %}<br>{{ a.contact_phone }}{% endif %}{% if a.contact_email %}<br>{{ a.contact_email }}{% endif %}
+      {% if a.vat_number %}<br>VAT {{ a.vat_number }}{% endif %}</div>
+  </div>
+  <div class="doc__meta">
+    <div><span>For</span><strong>{{ lead.name }}</strong>{% if lead.postcode %}<br>{{ lead.postcode }}{% endif %}</div>
+    <div><span>Date</span><strong>{{ (d.sent_at or d.created_at) | ukdate }}</strong></div>
+    {% if d.valid_until is defined and d.valid_until %}<div><span>Valid until</span><strong>{{ d.valid_until | ukdate }}</strong></div>{% endif %}
+    {% if d.due_date is defined and d.due_date %}<div><span>Pay by</span><strong>{{ d.due_date | ukdate }}</strong></div>{% endif %}
+  </div>
+  <p class="doc__job">{{ lead.label }}</p>
+  <table class="doc__items">
+    <thead><tr><th>Description</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Amount</th></tr></thead>
+    <tbody>{% for it in d.item_list %}<tr><td>{{ it.desc }}</td><td class="r">{{ '%g' % it.qty }}</td><td class="r">{{ it.price | gbp(true) }}</td><td class="r">{{ (it.qty * it.price) | gbp(true) }}</td></tr>{% endfor %}</tbody>
+  </table>
+  <div class="doc__totals">
+    {% if vat %}<p>Subtotal <span>{{ net | gbp(true) }}</span></p><p>VAT ({{ '%g' % (d.vat_rate | float) }}%) <span>{{ vat | gbp(true) }}</span></p>{% endif %}
+    <p class="doc__total">Total <span>{{ total | gbp(true) }}</span></p>
+  </div>
+  {% if d.notes %}<p class="doc__notes">{{ d.notes | nl2br }}</p>{% endif %}
+</div>

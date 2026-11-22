@@ -1,0 +1,26 @@
+/* customer quote / invoice pages (printable) */
+.doc{display:grid;gap:18px}
+.doc__head{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.doc__kind{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:#7a7f89;font-weight:700}
+.doc__from{text-align:right;font-size:.88rem;color:#4a4f5a;line-height:1.5}
+.doc__meta{display:flex;gap:24px;flex-wrap:wrap;font-size:.9rem}
+.doc__meta span{display:block;font-size:.74rem;color:#7a7f89;text-transform:uppercase;letter-spacing:.05em}
+.doc__job{font-weight:600}
+.doc__items{width:100%;border-collapse:collapse;font-size:.92rem}
+.doc__items th{text-align:left;font-size:.74rem;color:#7a7f89;text-transform:uppercase;letter-spacing:.04em;padding:8px 6px;border-bottom:2px solid #16181d}
+.doc__items td{padding:10px 6px;border-bottom:1px solid rgba(0,0,0,.08)}
+.doc__items .r{text-align:right;white-space:nowrap}
+.doc__totals{display:grid;justify-content:end;gap:4px;font-size:.95rem}
+.doc__totals p{display:flex;gap:24px;justify-content:space-between}
+.doc__total{font-size:1.25rem;font-weight:700;border-top:2px solid #16181d;padding-top:6px}
+.doc__notes{color:#4a4f5a;white-space:normal}
+.doc__answer{display:grid;gap:10px}
+.doc__answer .btn{width:100%;min-height:54px}
+.doc__state{padding:14px 16px;border-radius:12px;background:#f4f2ee;font-weight:600}
+.doc__state.ok{background:#e8f6ec;color:#15803d}
+.doc__pay{padding:16px;border-radius:12px;background:#f7f6f3;display:grid;gap:6px}
+@media print{
+  body.rv{background:#fff}
+  .rv__head,.rv__foot,.noprint{display:none!important}
+  .rv__card{box-shadow:none;border:0;padding:0}
+}

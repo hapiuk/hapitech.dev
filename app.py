@@ -79,8 +79,9 @@ def create_app(test_config: dict | None = None):
     from routes.site_api import site_api_bp
     from routes.lab import lab_bp
     from routes.pwa import pwa_bp
+    from routes.customer import customer_bp
 
-    for bp in (pwa_bp, public_bp, auth_bp, news_bp, admin_bp, portal_bp, reviews_public_bp, site_api_bp, lab_bp):
+    for bp in (pwa_bp, customer_bp, public_bp, auth_bp, news_bp, admin_bp, portal_bp, reviews_public_bp, site_api_bp, lab_bp):
         app.register_blueprint(bp)
 
     from cli import register_cli
@@ -88,6 +89,12 @@ def create_app(test_config: dict | None = None):
 
     from utils.templating import init_templating
     init_templating(app)
+
+    from utils.tasks import maybe_run
+
+    @app.before_request
+    def _background_tasks():
+        maybe_run(app)
 
     # ---------------------------------------------------------------- errors
     JSON_PREFIXES = ("/api/", "/auth/", "/admin/api/", "/portal/api/")

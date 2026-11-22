@@ -1,0 +1,31 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import empty, howto with context %}
+{% block title %}Calendar{% endblock %}
+{% block content %}
+<div class="page-top"><div><h1>Calendar</h1><p>Your booked jobs. They can show in your phone's calendar too.</p></div></div>
+<div class="grid grid--side">
+  <section>
+    {% if days %}
+      {% for day, jobs in days.items() %}
+      <div class="cal-day {{ 'cal-day--today' if day == today }}">
+        <h3>{{ 'Today' if day == today else day.strftime('%A %-d %B') }}</h3>
+        <div class="card card--flush">{% for l in jobs %}
+          <a class="job-row" href="{{ url_for('portal.job', lid=l.id) }}"><strong>{{ l.start_at.strftime('%H:%M') }} · {{ l.name }}</strong><span class="small muted">{% if l.days > 1 %}{{ l.days }} days{% endif %}</span>
+            <span class="job-row__meta"><span>{{ l.label }}</span>{% if l.postcode %}<span>📍 {{ l.postcode }}</span>{% endif %}</span></a>
+        {% endfor %}</div>
+      </div>
+      {% endfor %}
+    {% else %}{{ empty('Nothing booked yet', 'When you book a job in, it shows here.') }}{% endif %}
+  </section>
+  <aside class="card">
+    <div class="card__head"><h3>Add to your phone's calendar</h3></div>
+    {% call howto('How?') %}
+      <p><b>iPhone:</b> tap <b>Copy link</b>, then Settings → Calendar → Accounts → Add Account → Other → <b>Add Subscribed Calendar</b>, and paste.</p>
+      <p><b>Android / Google Calendar:</b> on a computer, open calendar.google.com → Other calendars → <b>+</b> → <b>From URL</b>, and paste. It appears on your phone automatically.</p>
+      <p>New bookings show up within an hour or so. Keep this link private: it shows your customers' names and postcodes.</p>
+    {% endcall %}
+    <div class="copy"><input id="feed" value="{{ feed }}" readonly class="mono" style="flex:1;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--bg);font-size:.8rem"><button class="btn btn--sm" type="button" data-copy="#feed">Copy link</button></div>
+    {% if current_user.is_owner %}<form method="post" action="{{ url_for('portal.calendar_reset') }}" style="margin-top:12px"><button class="linkish" data-confirm="Make a new link? The old one stops working.">Make a new link (if this one was shared by mistake)</button></form>{% endif %}
+  </aside>
+</div>
+{% endblock %}

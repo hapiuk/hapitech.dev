@@ -40,6 +40,21 @@ class Account(TimestampMixin, db.Model):
     brand_colour = db.Column(db.String(9))                                   # "#f97316"
     notes = db.Column(db.Text)
     site_api_key_hash = db.Column(db.String(255))                            # client-site read key (hashed)
+    # quotes & invoices (shown on the customer's copy)
+    business_address = db.Column(db.Text)
+    vat_number = db.Column(db.String(40))                                    # blank = not VAT registered
+    payment_details = db.Column(db.Text)                                     # e.g. bank name / sort code / account
+    quote_terms = db.Column(db.Text)
+    # holiday / away mode (shown on their website while active)
+    away_until = db.Column(db.Date)
+    away_message = db.Column(db.String(200))
+    # secret for the phone-calendar feed (.ics); regenerate to revoke
+    calendar_token = db.Column(db.String(48))
+
+    @property
+    def is_away(self):
+        import datetime as _dt
+        return bool(self.away_until and self.away_until >= _dt.date.today())
 
     users = db.relationship("User", back_populates="account", lazy=True)
     jobs = db.relationship("Job", back_populates="account", lazy=True, order_by="Job.created_at.desc()",
@@ -85,6 +100,11 @@ class User(UserMixin, TimestampMixin, db.Model):
     @property
     def is_admin(self):
         return self.role == "admin"
+
+    @property
+    def is_owner(self):
+        """Owners (and admins viewing a client) can manage money, website and staff; staff can't."""
+        return self.role in ("owner", "admin")
 
     @property
     def home_url(self):
@@ -221,3 +241,11 @@ class LoginAttempt(db.Model):
     kind = db.Column(db.String(20), nullable=False, default="password")      # password | code
     success = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime, default=utcnow, nullable=False, index=True)
+
+
+class SystemState(db.Model):
+    """Small key/value store: scheduler lease, last-run times."""
+    __tablename__ = "system_state"
+    key = db.Column(db.String(60), primary_key=True)
+    value = db.Column(db.Text)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow, nullable=False)

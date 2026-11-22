@@ -27,7 +27,11 @@ def _shell():
         return {}
     unreplied = (Review.query.filter(Review.account_id == g.account.id, Review.status.in_(["published", "reported"]),
                                      ~Review.replies.any(), Review.reviewed_at.isnot(None)).count()) or None
-    return {"area": "portal", "nav": portal_nav({"unreplied": unreplied}), "addon": g.account.addon()}
+    from models.work import Lead
+    new_jobs = Lead.query.filter_by(account_id=g.account.id, status="new", archived_at=None).count() or None
+    return {"area": "portal", "nav": portal_nav({"unreplied": unreplied, "new_jobs": new_jobs},
+                                                owner=current_user.is_owner),
+            "addon": g.account.addon()}
 
 
 def addon_required(fn):
@@ -250,6 +254,9 @@ def post_edit(pid=None):
 @owner_required
 @addon_required
 def website():
+    if not current_user.is_owner:
+        flash("Only the business owner can change the website.", "err")
+        return redirect(url_for("portal.home"))
     blocks = scoped(ContentBlock).order_by(ContentBlock.group, ContentBlock.sort, ContentBlock.id).all()
     groups = {}
     for b in blocks:
@@ -261,6 +268,8 @@ def website():
 @owner_required
 @addon_required
 def block_edit(bid):
+    if not current_user.is_owner:
+        abort(403)
     from utils.content_blocks import BlockError, parse_block_form
     b = scoped(ContentBlock, id=bid).first_or_404()
     if request.method == "POST":
@@ -313,3 +322,6 @@ def help():
         return redirect(url_for("portal.help"))
     rows = scoped(ChangeRequest).order_by(ChangeRequest.created_at.desc()).limit(20).all()
     return render_template("portal/help.html", rows=rows)
+
+
+from . import portal_work  # noqa: E402,F401  (jobs, quotes, invoices, calendar, settings)

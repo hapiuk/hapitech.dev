@@ -1,0 +1,17 @@
+{% extends "app/base.html" %}
+{% block title %}Add a job{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ url_for('portal.jobs') }}">Jobs</a> / New</p>
+<div class="page-top"><h1>Add a job</h1></div>
+<form method="post" class="card form-grid" style="max-width:720px">
+  <label class="field full"><span>Customer's name</span><input name="name" value="{{ f.get('name','') }}" required autofocus></label>
+  <label class="field"><span>Email <small>for quotes, reminders and invoices</small></span><input type="email" name="email" value="{{ f.get('email','') }}"></label>
+  <label class="field"><span>Phone</span><input name="phone" inputmode="tel" value="{{ f.get('phone','') }}"></label>
+  <label class="field"><span>Postcode</span><input name="postcode" value="{{ f.get('postcode','') }}" autocapitalize="characters"></label>
+  <label class="field"><span>How did they get in touch?</span><select name="source"><option value="phone">Phone / text</option><option value="manual">Other</option></select></label>
+  <label class="field full"><span>The job</span><input name="title" value="{{ f.get('title','') }}" placeholder="e.g. Fit two wardrobes"></label>
+  <label class="field full"><span>Details <small>optional</small></span><textarea name="message" rows="3">{{ f.get('message','') }}</textarea></label>
+  <label class="field full"><span>Address <small>optional, only if you need it</small></span><textarea name="address" rows="2">{{ f.get('address','') }}</textarea></label>
+  <div class="form-actions full"><button class="btn">Add job</button></div>
+</form>
+{% endblock %}

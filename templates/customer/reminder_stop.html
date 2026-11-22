@@ -1,0 +1,11 @@
+{% extends "reviews/_base.html" %}
+{% block title %}Reminders | {{ a.name }}{% endblock %}
+{% block meta %}<meta name="robots" content="noindex">{% endblock %}
+{% block footnote %}Sent with{% endblock %}
+{% block content %}
+<section class="rv__card rv__thanks">
+  {% if rem.cancelled_at %}<h1 class="rv__title">Done: no more reminders</h1><p class="rv__sub">You won't get this reminder from {{ a.name }}.</p>
+  {% else %}<h1 class="rv__title">Stop this reminder?</h1><p class="rv__sub">“{{ rem.note }}” on {{ rem.remind_on | ukdate }}</p>
+    <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Stop the reminder</button></form>{% endif %}
+</section>
+{% endblock %}

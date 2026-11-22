@@ -101,4 +101,47 @@ def content(slug):
             v = imgs
         out[b.key] = v
     updated = max((b.updated_at for b in blocks), default=None)
-    return _ok({"content": out, "updated": updated.isoformat() if updated else None})
+    away = {"until": a.away_until.isoformat(), "message": a.away_message} if a.is_away else None
+    return _ok({"content": out, "away": away, "updated": updated.isoformat() if updated else None})
+
+
+ENQUIRIES_PER_DAY = 60          # per site, a ceiling against a broken or abused form
+
+
+@site_api_bp.route("/sites/<slug>/enquiries", methods=["POST"])
+def enquiry(slug):
+    """The client site's quote / booking forms send a copy here, so it lands in their Jobs list.
+    (The site keeps emailing the owner as it always has.)"""
+    import datetime as dt
+
+    from flask import jsonify
+
+    from models.work import Lead
+    a = _account(slug)
+    since = dt.datetime.utcnow() - dt.timedelta(days=1)
+    if Lead.query.filter(Lead.account_id == a.id, Lead.source.in_(["website", "booking"]),
+                         Lead.created_at >= since).count() >= ENQUIRIES_PER_DAY:
+        return jsonify({"ok": False, "message": "Daily limit reached."}), 429
+    d = request.get_json(silent=True) or {}
+    name = (d.get("name") or "").strip()[:120]
+    if not name:
+        return jsonify({"ok": False, "message": "Name required."}), 400
+    source = "booking" if d.get("source") == "booking" else "website"
+    lead = Lead(account_id=a.id, source=source, name=name, email=(d.get("email") or "").strip()[:255] or None,
+                phone=(d.get("phone") or "").strip()[:40] or None,
+                postcode=(d.get("postcode") or "").strip().upper()[:12] or None,
+                title=(d.get("job") or "").strip()[:160] or None, message=(d.get("message") or "").strip()[:5000] or None,
+                preferred=(d.get("preferred") or "").strip()[:200] or None,
+                travel_note=(d.get("travel_note") or "").strip()[:200] or None)
+    db.session.add(lead)
+    db.session.commit()
+    if source == "booking" and a.contact_email:
+        from utils.mailer import send_email
+        try:
+            send_email(to=a.contact_email, subject=f"Booking request from {name}",
+                       text=f"{name} would like to book: {lead.title or lead.message or ''}\n"
+                            f"Preferred: {lead.preferred or 'any time'}\nPostcode: {lead.postcode or '—'}\n\n"
+                            f"Confirm it in your dashboard: Jobs.")
+        except Exception as exc:
+            print(f"[BOOKING_NOTIFY] {exc}")
+    return jsonify({"ok": True, "id": lead.id}), 201

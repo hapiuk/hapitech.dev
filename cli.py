@@ -22,7 +22,7 @@ from models import db
 
 
 def register_cli(app):
-    for cmd in (deploy, create_admin, setup_clients, import_site_reviews, import_bench, seed_dev):
+    for cmd in (deploy, create_admin, setup_clients, import_site_reviews, import_bench, seed_dev, tick):
         app.cli.add_command(cmd)
 
 
@@ -241,3 +241,10 @@ def seed_dev(clients_dir, bench_dir):
     os.chmod(path, 0o600)
     click.echo("\n".join(lines[4:]))
     click.echo(f"\nSaved to {path}")
+
+
+@click.command("tick")
+def tick():
+    """Run background jobs now (reminders, retention). They also run automatically every few minutes."""
+    from utils.tasks import run_all
+    click.echo(run_all(current_app._get_current_object(), force=True))

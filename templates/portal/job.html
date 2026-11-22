@@ -1,0 +1,134 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import status_badge, howto with context %}
+{% block title %}{{ lead.name }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ url_for('portal.jobs') }}">Jobs</a> / {{ lead.name }}</p>
+<div class="page-top">
+  <div>
+    <h1>{{ lead.name }}</h1>
+    <p>{{ lead.label }} · {{ status_badge(lead.status if lead.status != 'declined' else 'cancelled') }}{% if lead.archived_at %} <span class="badge">Archived</span>{% endif %}</p>
+  </div>
+  <div class="page-top__actions">
+    {% if lead.phone %}<a class="btn btn--ghost btn--sm" href="tel:{{ lead.phone }}">Call</a>{% endif %}
+    {% if lead.email %}<a class="btn btn--ghost btn--sm" href="mailto:{{ lead.email }}">Email</a>{% endif %}
+  </div>
+</div>
+
+<div class="grid grid--side">
+  <div>
+    {# ---------------- next step ---------------- #}
+    <section class="card card--accent" id="book">
+      {% if lead.status in ('new', 'quoted', 'accepted') %}
+        <div class="card__head"><h2>{{ 'They accepted your quote. Pick a date' if lead.status == 'accepted' else 'Next step' }}</h2></div>
+        <div class="stack">
+          {% if lead.status != 'accepted' and current_user.is_owner %}
+            <a class="btn btn--block" href="{{ url_for('portal.priced', lid=lead.id, kind='quote') }}">{{ 'Send another quote' if lead.quotes else 'Write a quote' }}</a>
+            <p class="small muted" style="text-align:center">or, if it's already agreed:</p>
+          {% endif %}
+          <form method="post" class="form-grid">
+            <input type="hidden" name="action" value="book">
+            <label class="field"><span>Date</span><input type="date" name="date" min="{{ today }}" required></label>
+            <label class="field"><span>Start time</span><input type="time" name="time" value="09:00"></label>
+            <label class="field"><span>How many days?</span><input type="number" name="days" min="1" max="60" value="1"></label>
+            <label class="check full"><input type="checkbox" name="notify" value="1" {{ 'checked' if lead.email else 'disabled' }}> <span>Email {{ lead.name.split()[0] }} a confirmation{% if not lead.email %} (add their email first){% endif %}</span></label>
+            <div class="form-actions full"><button class="btn">Book it in</button></div>
+          </form>
+        </div>
+      {% elif lead.status == 'booked' %}
+        <div class="card__head"><h2>📅 {{ lead.start_at | ukdate('%A %-d %B, %H:%M') }}{% if lead.days > 1 %} · {{ lead.days }} days{% endif %}</h2></div>
+        <p class="small muted">{% if lead.reminder_sent_at %}Reminder emailed {{ lead.reminder_sent_at | ago }}.{% elif lead.email %}We'll email them a reminder the day before.{% else %}No email, so no automatic reminder.{% endif %}</p>
+        <form method="post" class="stack" style="margin-top:14px">
+          <input type="hidden" name="action" value="done">
+          <label class="check"><input type="checkbox" name="ask_review" value="1" {{ 'checked' if lead.email else 'disabled' }}> <span>Email them a review link</span></label>
+          <button class="btn btn--block">Job done ✓</button>
+        </form>
+        <details class="fold" style="margin-top:10px"><summary class="small">Change the date</summary>
+          <form method="post" class="form-grid">
+            <input type="hidden" name="action" value="book">
+            <label class="field"><span>Date</span><input type="date" name="date" value="{{ lead.start_at.date() }}" required></label>
+            <label class="field"><span>Start time</span><input type="time" name="time" value="{{ lead.start_at.strftime('%H:%M') }}"></label>
+            <label class="field"><span>Days</span><input type="number" name="days" min="1" max="60" value="{{ lead.days }}"></label>
+            <label class="check full"><input type="checkbox" name="notify" value="1" {{ 'checked' if lead.email else 'disabled' }}> <span>Email the new date</span></label>
+            <div class="form-actions full"><button class="btn btn--sm">Save new date</button></div>
+          </form>
+        </details>
+      {% elif lead.status == 'done' %}
+        <div class="card__head"><h2>Done{% if lead.done_at %} {{ lead.done_at | ukdate }}{% endif %} ✓</h2></div>
+        <div class="stack">
+          {% set unpaid = lead.invoices | selectattr('status', 'ne', 'paid') | list %}
+          {% if current_user.is_owner and not lead.invoices %}<a class="btn btn--block" href="{{ url_for('portal.priced', lid=lead.id, kind='invoice') }}">Send the invoice</a>{% endif %}
+          {% if lead.review_requested_at %}<p class="small muted">Review link emailed {{ lead.review_requested_at | ago }}.</p>
+          {% else %}<a class="btn btn--ghost btn--block" href="{{ url_for('portal.ask') }}">Ask for a review (QR code)</a>{% endif %}
+        </div>
+      {% else %}
+        <div class="card__head"><h2>Not going ahead</h2></div>
+        <p class="small muted">Deleted automatically on {{ lead.delete_on | ukdate }}, with the customer's details.</p>
+        <form method="post" style="margin-top:12px"><button class="btn btn--ghost btn--sm" name="action" value="reopen">Reopen</button></form>
+      {% endif %}
+    </section>
+
+    {# ---------------- what they asked for ---------------- #}
+    {% if lead.message or lead.preferred or lead.travel_note %}
+    <section class="card">
+      <div class="card__head"><h3>What they asked</h3><span class="small muted">{{ {'website':'From your website','booking':'Booking request','phone':'Phone','manual':'Added by you'}.get(lead.source, lead.source) }} · {{ lead.created_at | ago }}</span></div>
+      {% if lead.message %}<p style="white-space:pre-wrap">{{ lead.message }}</p>{% endif %}
+      {% if lead.preferred %}<p class="small" style="margin-top:8px"><b>Preferred:</b> {{ lead.preferred }}</p>{% endif %}
+      {% if lead.travel_note %}<p class="small"><b>Travel:</b> {{ lead.travel_note }}</p>{% endif %}
+    </section>
+    {% endif %}
+
+    {# ---------------- quotes & invoices ---------------- #}
+    {% if (lead.quotes or lead.invoices) and current_user.is_owner %}
+    <section class="card">
+      <div class="card__head"><h3>Quotes &amp; invoices</h3></div>
+      <ul class="list">
+        {% for q in lead.quotes %}<li><a href="{{ url_for('portal.priced', lid=lead.id, kind='quote', did=q.id) }}">{{ q.number }} · quote</a><span>{{ q.totals[2] | gbp(true) }} {{ status_badge(q.status) }}</span></li>{% endfor %}
+        {% for i in lead.invoices %}<li><a href="{{ url_for('portal.priced', lid=lead.id, kind='invoice', did=i.id) }}">{{ i.number }} · invoice</a><span>{{ i.totals[2] | gbp(true) }} {{ status_badge(i.status) }}</span></li>{% endfor %}
+      </ul>
+      {% if lead.status == 'done' and lead.invoices %}<a class="small" href="{{ url_for('portal.priced', lid=lead.id, kind='invoice') }}">+ another invoice</a>{% endif %}
+    </section>
+    {% endif %}
+
+    {# ---------------- repeat reminders ---------------- #}
+    {% if lead.status == 'done' %}
+    <section class="card">
+      <div class="card__head"><h3>Remind them next time</h3></div>
+      {% call howto('When should I use this?') %}<p>Only if the customer asks, e.g. "remind me about the gutters next autumn". We email them on the date, and the email has a link to stop it.</p>{% endcall %}
+      {% for r in lead.repeat_reminders if not r.cancelled_at %}
+        <p class="small">⏰ {{ r.remind_on | ukdate }}: {{ r.note }} {% if r.sent_at %}<span class="badge badge--ok">Sent</span>{% else %}<form method="post" class="inline-form"><input type="hidden" name="action" value="cancel-reminder"><input type="hidden" name="rid" value="{{ r.id }}"><button class="linkish">cancel</button></form>{% endif %}</p>
+      {% endfor %}
+      <form method="post" class="form-grid" style="margin-top:8px">
+        <input type="hidden" name="action" value="remind">
+        <label class="field"><span>On</span><input type="date" name="remind_on" min="{{ today }}"></label>
+        <label class="field"><span>About</span><input name="note" maxlength="200" placeholder="Clearing the gutters"></label>
+        <label class="check full"><input type="checkbox" name="consent" value="1" {{ '' if lead.email else 'disabled' }}> <span>{{ lead.name.split()[0] }} asked for this reminder{% if not lead.email %} (needs their email){% endif %}</span></label>
+        <div class="form-actions full"><button class="btn btn--ghost btn--sm">Set reminder</button></div>
+      </form>
+    </section>
+    {% endif %}
+  </div>
+
+  {# ---------------- side: contact + housekeeping ---------------- #}
+  <div>
+    <form method="post" class="card stack">
+      <input type="hidden" name="action" value="save">
+      <div class="card__head"><h3>Customer</h3></div>
+      <label class="field"><span>Name</span><input name="name" value="{{ lead.name }}" required></label>
+      <label class="field"><span>Email</span><input type="email" name="email" value="{{ lead.email or '' }}"></label>
+      <label class="field"><span>Phone</span><input name="phone" value="{{ lead.phone or '' }}"></label>
+      <label class="field"><span>Postcode</span><input name="postcode" value="{{ lead.postcode or '' }}"></label>
+      <label class="field"><span>The job</span><input name="title" value="{{ lead.title or '' }}"></label>
+      <label class="field"><span>Address</span><textarea name="address" rows="2">{{ lead.address or '' }}</textarea></label>
+      <label class="field"><span>Private notes</span><textarea name="notes" rows="3">{{ lead.notes or '' }}</textarea></label>
+      <div><button class="btn btn--sm">Save</button></div>
+    </form>
+    <form method="post" class="card stack">
+      {% if lead.status in ('new', 'quoted', 'accepted', 'booked') %}<button class="btn btn--ghost btn--sm" name="action" value="decline" data-confirm="Mark as not going ahead? It'll be deleted in 30 days.">Not going ahead</button>{% endif %}
+      {% if lead.archived_at %}<button class="btn btn--ghost btn--sm" name="action" value="unarchive">Move back to jobs</button>
+      {% elif lead.status in ('done', 'declined') %}<button class="btn btn--ghost btn--sm" name="action" value="archive">Archive</button>{% endif %}
+      {% if lead.can_delete %}<button class="btn btn--danger btn--sm" name="action" value="delete" data-confirm="Delete this job and the customer's details for good?">Delete</button>
+      {% else %}<p class="small muted">Accepted jobs are kept. Archive it first if you want to delete it.</p>{% endif %}
+    </form>
+  </div>
+</div>
+{% endblock %}

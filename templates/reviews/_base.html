@@ -20,7 +20,7 @@
   <main class="rv__main">{% block content %}{% endblock %}</main>
   <footer class="rv__foot">
     {% if a.domain %}<a href="https://{{ a.domain }}">{{ a.domain }}</a> · {% endif %}
-    Reviews collected by <a href="https://hapitech.dev">HapiTech</a> · <a href="/privacy">Privacy</a>
+    {% block footnote %}Reviews collected by{% endblock %} <a href="https://hapitech.dev">HapiTech</a> · <a href="/privacy">Privacy</a>
   </footer>
   {% block scripts %}{% endblock %}
 </body>

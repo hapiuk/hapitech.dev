@@ -1,0 +1,19 @@
+{% extends "reviews/_base.html" %}
+{% block title %}Quote {{ q.number }} | {{ a.name }}{% endblock %}
+{% block meta %}<meta name="robots" content="noindex"><link rel="stylesheet" href="{{ url_for('static', filename='css/docs.css') }}">{% endblock %}
+{% block footnote %}Sent with{% endblock %}
+{% block content %}
+<section class="rv__card">
+  {% with d=q, kind='Quote' %}{% include "customer/_doc.html" %}{% endwith %}
+  {% if a.quote_terms %}<p class="doc__notes small">{{ a.quote_terms | nl2br }}</p>{% endif %}
+  {% if q.status == 'sent' %}
+    <form method="post" class="doc__answer noprint">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn" name="answer" value="accept">Accept this quote</button>
+      <button class="btn btn--ghost" name="answer" value="decline" onclick="return confirm('Let {{ a.first_name }} know it\'s not for you?')">No thanks</button>
+    </form>
+  {% elif q.status == 'accepted' %}<p class="doc__state ok">✓ You accepted this quote. {{ a.first_name }} will be in touch to arrange a date.</p>
+  {% elif q.status == 'declined' %}<p class="doc__state">You said no to this quote. Thanks for letting us know.</p>{% endif %}
+  <p class="noprint small" style="text-align:center"><a href="#" onclick="window.print();return false">Print or save as PDF</a></p>
+</section>
+{% endblock %}

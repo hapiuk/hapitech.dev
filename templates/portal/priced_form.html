@@ -1,0 +1,59 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import status_badge, howto with context %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+{% set items = doc.item_list if doc else [] %}
+<p class="crumbs"><a href="{{ url_for('portal.jobs') }}">Jobs</a> / <a href="{{ url_for('portal.job', lid=lead.id) }}">{{ lead.name }}</a> / {{ title }}</p>
+<div class="page-top"><div><h1>{{ title }}{% if doc and doc.number %} {{ doc.number }}{% endif %}</h1><p>For {{ lead.name }} · {{ lead.label }}{% if doc and doc.status %} · {{ status_badge(doc.status) }}{% endif %}</p></div>
+  {% if doc and doc.token and doc.status != 'draft' %}<a class="btn btn--ghost btn--sm" target="_blank" href="{{ url_for('customer.' ~ kind, token=doc.token) }}">See what they see ↗</a>{% endif %}</div>
+{% if not g.account.business_address and not g.account.payment_details %}
+<p class="trial">ℹ️ <span>Add your address{{ ' and bank details' if kind == 'invoice' }} in <a href="{{ url_for('portal.settings') }}">Settings</a> so they show on the {{ kind }}.</span></p>
+{% endif %}
+{% call howto() %}<p>Add a line for each part of the job, e.g. "Labour, 1 day" or "Materials". <b>Send</b> emails {{ lead.name.split()[0] }} a link to view it{{ ' and accept it' if kind == 'quote' }}. They can print it or save it as a PDF from there.</p>{% endcall %}
+<form method="post" class="card stack" id="pricedForm">
+  <table class="items"><thead><tr><th class="small muted" style="text-align:left">What</th><th class="small muted q">Qty</th><th class="small muted p">£ each</th></tr></thead>
+    <tbody id="lines">
+      {% for it in (items or [{'desc':'','qty':1,'price':''}]) %}
+      <tr><td><input name="desc" value="{{ it.desc }}" placeholder="Labour"></td><td class="q"><input name="qty" value="{{ it.qty }}" inputmode="decimal"></td><td class="p"><input name="price" value="{{ it.price }}" inputmode="decimal" placeholder="0.00"></td></tr>
+      {% endfor %}
+    </tbody></table>
+  <div><button type="button" class="btn btn--ghost btn--sm" id="addLine">+ Add a line</button></div>
+  <div class="form-grid">
+    <label class="field"><span>VAT %</span><input name="vat_rate" inputmode="decimal" value="{{ '%g' % ((doc.vat_rate if doc and doc.vat_rate is not none else vat_default) | float) }}"></label>
+    {% if kind == 'quote' %}<label class="field"><span>Valid until <small>optional</small></span><input type="date" name="valid_until" value="{{ doc.valid_until if doc and doc.valid_until else '' }}"></label>
+    {% else %}<label class="field"><span>Pay by <small>optional</small></span><input type="date" name="due_date" value="{{ doc.due_date if doc and doc.due_date else '' }}"></label>{% endif %}
+    <label class="field full"><span>Notes for the customer <small>optional</small></span><textarea name="notes" rows="3">{{ doc.notes if doc and doc.notes else '' }}</textarea></label>
+  </div>
+  <div class="totals" id="totals"></div>
+  <div class="form-actions">
+    <button class="btn" name="action" value="send">{{ 'Save and email it' if lead.email else 'Save' }}</button>
+    <button class="btn btn--ghost" name="action" value="save">Save draft</button>
+    {% if kind == 'invoice' and doc and doc.id and doc.status != 'paid' %}<button class="btn btn--ghost" name="action" value="paid">Mark as paid</button>{% endif %}
+    {% if doc and doc.id and doc.status == 'draft' %}<button class="btn btn--danger" name="action" value="delete" data-confirm="Delete this draft?" style="margin-left:auto">Delete draft</button>{% endif %}
+  </div>
+  {% if not lead.email %}<p class="small muted">No email on this job, so you can save it but not send it. Add their email on the job page.</p>{% endif %}
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var lines = document.getElementById("lines"), totals = document.getElementById("totals"), form = document.getElementById("pricedForm");
+  function money(n) { return "£" + n.toLocaleString("en-GB", {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+  function calc() {
+    var net = 0;
+    lines.querySelectorAll("tr").forEach(function (tr) {
+      var q = parseFloat(tr.querySelector("[name=qty]").value) || 0, p = parseFloat((tr.querySelector("[name=price]").value || "").replace(/[£,]/g, "")) || 0;
+      net += q * p;
+    });
+    var vat = net * (parseFloat(form.vat_rate.value) || 0) / 100;
+    totals.innerHTML = (vat ? "<span>Subtotal " + money(net) + "</span><span>VAT " + money(vat) + "</span>" : "") + "<strong>Total " + money(net + vat) + "</strong>";
+  }
+  document.getElementById("addLine").addEventListener("click", function () {
+    var tr = lines.querySelector("tr").cloneNode(true);
+    tr.querySelectorAll("input").forEach(function (i) { i.value = i.name === "qty" ? "1" : ""; });
+    lines.appendChild(tr); tr.querySelector("input").focus(); calc();
+  });
+  form.addEventListener("input", calc); calc();
+})();
+</script>
+{% endblock %}

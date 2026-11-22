@@ -242,3 +242,32 @@ details.fold[open] > summary{margin-bottom:8px}
 .install__close:hover{background:var(--card-2);color:var(--ink)}
 .install [hidden]{display:none!important}
 .install .btn{flex:none}
+
+/* "How does this work?" help */
+.howto{margin:0 0 16px;border-radius:12px;background:var(--acc-soft);border:1px solid var(--line);font-size:.9rem}
+.howto summary{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-weight:600;color:var(--acc);list-style:none}
+.howto summary::-webkit-details-marker{display:none}
+.howto summary svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.howto__body{padding:0 16px 14px 40px;color:var(--ink-2);display:grid;gap:6px}
+.howto__body ol{list-style:decimal;padding-left:18px;display:grid;gap:4px}
+/* jobs */
+.job-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:14px 16px;border-bottom:1px solid var(--line);color:var(--ink)}
+.job-row:last-child{border-bottom:0}
+.job-row:hover{background:color-mix(in srgb,var(--card-2) 60%,transparent)}
+.job-row strong{font-size:1rem}
+.job-row__meta{grid-column:1/-1;font-size:.84rem;color:var(--ink-3);display:flex;gap:10px;flex-wrap:wrap}
+.items{width:100%;border-collapse:collapse}
+.items td{padding:6px 4px;vertical-align:top}
+.items input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--bg);font-size:.95rem}
+.items .q{width:70px}.items .p{width:110px}
+.totals{display:grid;justify-content:end;gap:4px;text-align:right;margin-top:10px}
+.totals strong{font-size:1.2rem}
+.cal-day{margin-bottom:14px}
+.cal-day h3{font-size:.86rem;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.cal-day--today h3{color:var(--acc)}
+.guides .fold{border-bottom:1px solid var(--line);padding:4px 0}
+.guides .fold:last-child{border-bottom:0}
+.guides .fold summary{font-size:1rem;padding:12px 0}
+.guides ol{list-style:decimal;padding-left:20px;display:grid;gap:6px;color:var(--ink-2);margin-bottom:10px}
+.guides p{color:var(--ink-2);margin-bottom:10px}
+.guides a{color:var(--acc);font-weight:600}

@@ -1,0 +1,23 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import empty, status_badge with context %}
+{% block title %}Clients' jobs{% endblock %}
+{% block content %}
+<div class="page-top"><div><h1>Clients' jobs</h1><p>Every client's enquiries and bookings. Open one to manage it as if you were them.</p></div></div>
+<nav class="subnav">{% for k, label in [('open','Open'),('new','New enquiries'),('done','Done'),('all','All')] %}<a href="{{ url_for('admin.work', show=k) }}" {% if show == k %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+<div class="grid grid--side">
+  <section class="card card--flush">
+    {% for l in rows %}
+      <a class="job-row" href="{{ url_for('admin.view_portal', slug=l.account.slug, next='/portal/jobs/' ~ l.id) }}">
+        <strong>{{ l.name }} <span class="small muted">· {{ l.account.name }}</span></strong>{{ status_badge(l.status if l.status != 'declined' else 'cancelled') }}
+        <span class="job-row__meta"><span>{{ l.label }}</span>{% if l.start_at %}<span>📅 {{ l.start_at | ukdate('%a %-d %b %H:%M') }}</span>{% endif %}{% if l.postcode %}<span>📍 {{ l.postcode }}</span>{% endif %}<span>{{ l.created_at | ago }}</span></span>
+      </a>
+    {% else %}<div style="padding:22px">{{ empty('Nothing here') }}</div>{% endfor %}
+  </section>
+  <section class="card">
+    <div class="card__head"><h3>Invoices waiting to be paid</h3></div>
+    {% if unpaid %}<ul class="list">{% for i in unpaid %}
+      <li><a href="{{ url_for('admin.view_portal', slug=i.lead.account.slug, next='/portal/jobs/' ~ i.lead_id) }}">{{ i.lead.account.name }} · {{ i.number }}</a><span class="small">{{ i.totals[2] | gbp(true) }}{% if i.due_date and i.due_date < now.date() %} <span class="badge badge--err">overdue</span>{% endif %}</span></li>
+    {% endfor %}</ul>{% else %}<p class="small muted">None.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}
