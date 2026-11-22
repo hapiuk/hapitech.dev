@@ -31,6 +31,7 @@ _Drafted 22 Nov 2026, revised the same day with Aaron's answers. Status: plan on
 | 22 Nov 2026 | Install as app | ✅ Built locally | Dashboards install to the home screen as the **client's own app** (their name + logo icon, brand colour); admin installs as HapiTech. Banner: Install button on Android/Chrome, "Share → Add to Home Screen" on iPhone; hidden once installed; "not now" hides it for 2 weeks |
 | 22 Nov 2026 | 10, batch 1: jobs | ✅ Built locally | Jobs (enquiries from site API or added by hand) → quotes (customer accepts online) → booking (confirmation + day-before reminder email) → done (auto review email) → invoice (printable link, mark paid); opt-in repeat reminders with unsubscribe link; phone calendar feed (.ics); away mode; helper logins (no money/settings/website); admin "Clients' jobs" view; in-app help + Help page. Retention as agreed: declined auto-deleted after 30 days, accepted/done only deleted from archive. Background jobs run themselves (no cron). 30 tests |
 | 22 Nov 2026 | 10, batch 2: client sites | ✅ Built locally; pixel-checked against live `main`: identical when not connected, only the review-button text differs when connected | Sites: enquiry copy to Jobs, optional "Preferred day" field (only when connected), away banner (only while away), invisible search-engine markup, sitemap.xml + robots.txt, `/work/<town>` pages from real posts, cookie-free visit counts, editable hero/gallery photos (unedited = site's own folders). hapitech: `/defaults` + `/visits` endpoints, migration `d4e5f6a7b8c9`. Photo lists reported by the sites become the editable defaults (Roland: 74 hero + 25 gallery locally) |
+| 22 Nov 2026 | **DEPLOYED** | ✅ Live | hapitech.dev `6bbba2c → 1a6f536` (v5 site + platform); rolandshandyman.co.uk `0d00c16 → 9a77687`; rayghandymanservice.co.uk `b81cd7a → 064cbc0`. Migrations tested first on a copy of the live PostgreSQL 16 DB (caught a £500→£1000 double count). DB backed up (`instance/backups/hapitech-db.20261122T234035Z.sql.gz` on the server). Live phone + desktop screenshots before/after: identical except the review button text. Client add-ons **not** switched on and owners **not** invited yet |
 | — | 10, batch 3 | ⏳ Not started | Public work near you (Contracts Finder), planning activity, Search Console report, speed checks, monthly summary email, phone notifications, "copy for Google" buttons |
 | 22 Nov 2026 | Changes after review | ✅ Built locally | Logout fixed (remember-me cookie survived); login is email-code only, with passwords wiped by migration `b2c3d4e5f6a7`; "Ask for a review" is QR-first plus an emailed link (no phone, email not stored); open review form for each site's review button with honeypot, time check and per-visitor daily limit; hashed IPs; privacy policy updated; 21 tests |
 | — | 7: Google sync | ⏸ Parked | Decided against Google API submission for small sites; the site button feeds the HapiTech form instead |
@@ -263,36 +264,28 @@ Each phase ships on its own: deploy it, check it on the live site, then move to 
 
 ---
 
-## 8. Deploying (Aaron runs this on the server)
+## 8. Deploying
 
-The app runs as the systemd service `hapitech` from a git checkout under `/var/www`. After each phase is pushed to GitHub `main`, run this one line on the server:
+**Server facts (checked 22 Nov 2026):** AlmaLinux 9, user `hapi` (no passwordless sudo), SSH alias `hapitech-server`.
+| Site | Folder | systemd service | Settings |
+|---|---|---|---|
+| hapitech.dev | `/opt/hapitech/apps/hapi/hapitech` | `hapitech` | `/etc/hapitech/hapitech.env` (root-owned, readable by hapi) |
+| rolandshandyman.co.uk | `/opt/hapitech/apps/clients/rolands-handyman` | `rolands-handyman` | `/etc/hapitech/rolands-handyman.env` + `.env` in the folder (HapiTech key) |
+| rayghandymanservice.co.uk | `/opt/hapitech/apps/clients/rayg-handyman-service` | `rayghandymanservice` | `/etc/hapitech/rayghandymanservice.env` + `.env` in the folder |
 
+Database: PostgreSQL 16 (`DATABASE_URL` in hapitech.env). The apps run as `hapi`, so a reload is `kill -HUP` on the gunicorn master (no sudo needed).
+
+**hapitech.dev, after pushing to GitHub `main`:**
 ```bash
-cd "$(systemctl show -p WorkingDirectory --value hapitech | grep . || echo /var/www/hapitech.dev)" && git pull --ff-only && "$(ls -d .venv/bin/python venv/bin/python 2>/dev/null | head -1)" -m flask deploy && sudo systemctl restart hapitech && sleep 3 && curl -s -o /dev/null -w "hapitech.dev -> %{http_code}\n" https://hapitech.dev/
+cd /opt/hapitech/apps/hapi/hapitech && git pull --ff-only origin main && set -a && . /etc/hapitech/hapitech.env && set +a && ./venv/bin/python -m flask --app app deploy && kill -HUP $(systemctl show hapitech -p MainPID --value) && sleep 5 && curl -s -o /dev/null -w "hapitech.dev -> %{http_code}\n" https://hapitech.dev/
 ```
+`flask deploy` takes a `pg_dump` backup into `instance/backups/` first and stops if that fails.
 
-It changes to the service's folder, pulls (refusing to overwrite local edits), runs `flask deploy` (backs up the SQLite database to `instance/backups/`, then applies any migrations, safely stamping an old un-versioned database first), restarts, and prints `200` if the site is up. It's safe to run when nothing has changed.
+**A client site:** `cd <folder> && git pull --ff-only origin main && kill -HUP $(systemctl show <service> -p MainPID --value)`
 
-### Go-live order (platform + client sites)
+**Rollback:** `git reset --hard <previous commit>` in the folder + the reload above; database: `gunzip -c instance/backups/<file>.sql.gz | psql "$DATABASE_URL"` (into an emptied database).
 
-1. **hapitech.dev:** pull with the one-liner above (it migrates and backs up the database).
-2. **One-off setup** on the server (below), then log in and, for each client, go to **Admin → client → Website → Create key**. Copy the key.
-3. **Each client site:** add to its `.env` (next to `app.py`):
-   ```
-   HAPITECH_SITE_KEY=<the key>
-   HAPITECH_SITE_SLUG=rolands-handyman        # or ray-g-handyman
-   ```
-   Then merge the site repo's `hapitech-connect` branch, pull on the server and restart that site's service. Until the key is set, the site carries on exactly as now.
-4. Turn on the Reviews & Updates trial for each client (Admin → client → Overview) and invite them (Logins tab).
-5. ✅ **Real contact emails set:** enquiries@rolandshandyman.co.uk and enquiries@rayghandymanservice.co.uk (account contact email + owner login). `flask setup-clients` creates the owner logins **switched off**; they only work after Admin → Logins → Send invite. ~~Before inviting: set each client's real contact email~~ (Admin → client → Edit details). Both accounts still have aaron@hapitech.dev from the old system, and that address appears on their quotes and receives "quote accepted" and booking-request emails.
-
-**One-off after the first platform deploy** (from the same folder; `.venv` or `venv`, whichever exists):
-
-```bash
-.venv/bin/python -m flask setup-clients && .venv/bin/python -m flask import-site-reviews rolands-handyman /var/www/rolandshandyman.co.uk && .venv/bin/python -m flask import-site-reviews ray-g-handyman /var/www/rayghandymanservice.co.uk
-```
-
-Then, from your own machine, import the Lab data (models, prompts, results) the same way with `flask import-bench <folder>`, or upload result files through Admin → Benchmark runs.
+**Still needs sudo (Aaron):** nginx upload limit for photos: add `client_max_body_size 40m;` to `/etc/nginx/conf.d/hapitech.dev.conf`, then `sudo nginx -t && sudo systemctl reload nginx`.
 
 ---
 
