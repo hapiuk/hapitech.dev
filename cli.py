@@ -36,6 +36,25 @@ def _sqlite_path():
     return p if os.path.isabs(p) else os.path.join(current_app.instance_path, p)
 
 
+def _pg_backup():
+    """PostgreSQL: pg_dump to <instance>/backups/<db>-<time>.sql.gz. Stops the deploy if it fails."""
+    import gzip
+    import subprocess
+    uri = current_app.config["SQLALCHEMY_DATABASE_URI"].replace("+psycopg", "").replace("+psycopg2", "")
+    bdir = os.path.join(current_app.instance_path, "backups")
+    os.makedirs(bdir, exist_ok=True)
+    dest = os.path.join(bdir, f"hapitech-db.{dt.datetime.utcnow():%Y%m%dT%H%M%SZ}.sql.gz")
+    try:
+        out = subprocess.run(["pg_dump", uri, "--no-owner", "--no-privileges"], check=True,
+                             capture_output=True, timeout=600).stdout
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise click.ClickException(f"Database backup failed, so nothing was changed: {exc}")
+    with gzip.open(dest, "wb") as f:
+        f.write(out)
+    os.chmod(dest, 0o600)
+    click.echo(f"Backed up database -> {dest} ({len(out) // 1024} KB)")
+
+
 @click.command("deploy")
 @click.option("--no-backup", is_flag=True)
 def deploy(no_backup):
@@ -50,8 +69,8 @@ def deploy(no_backup):
         dest = os.path.join(bdir, f"{os.path.basename(db_path)}.{dt.datetime.utcnow():%Y%m%dT%H%M%SZ}")
         shutil.copy2(db_path, dest)
         click.echo(f"Backed up database -> {dest}")
-    elif not db_path:
-        click.echo("Not SQLite: take a database backup with your usual tool before continuing.")
+    elif not db_path and not no_backup:
+        _pg_backup()
 
     tables = set(inspect(db.engine).get_table_names())
     if "alembic_version" not in tables and "users" in tables:

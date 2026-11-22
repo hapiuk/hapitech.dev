@@ -446,6 +446,8 @@ def _copy_legacy_data():
     existing = set(insp.get_table_names())
     now = dt.datetime.utcnow()
     used, acct_for_webdev, acct_for_client = set(), {}, {}
+    paid_target, paid_so_far = {}, {}          # per webdev client: recorded total vs what we've copied
+    WEBDEV = ("webdev", "webdev_client")       # both spellings exist in live data
 
     if "webdev_clients" in existing:
         for r in conn.execute(sa.text("SELECT * FROM webdev_clients ORDER BY id")).mappings():
@@ -456,8 +458,10 @@ def _copy_legacy_data():
                 dict(n=r["name"], s=slug, st=r.get("status") or "active", d=r.get("domain"),
                      cn=r.get("contact_name"), ce=r.get("contact_email"), cp=r.get("contact_phone"),
                      no=r.get("notes"), c=r.get("created_at") or now, u=r.get("updated_at") or now))
-            acct_for_webdev[r["id"]] = res.lastrowid if res.lastrowid else conn.execute(
-                sa.text("SELECT id FROM accounts WHERE slug=:s"), dict(s=slug)).scalar()
+            acct_for_webdev[r["id"]] = conn.execute(sa.text("SELECT id FROM accounts WHERE slug=:s"),
+                                                    dict(s=slug)).scalar()
+            paid_target[r["id"]] = float(r.get("total_paid_gbp") or 0)
+            paid_so_far[r["id"]] = 0.0
 
     if "clients" in existing:
         for r in conn.execute(sa.text("SELECT * FROM clients ORDER BY id")).mappings():
@@ -494,7 +498,7 @@ def _copy_legacy_data():
                 dict(a=acct, t=r["title"], ty=type_map.get(r.get("job_type"), "other"),
                      st=status_map.get(r.get("status"), "booked"), p=r.get("price_gbp") or 0,
                      no=r.get("description"), c=r.get("created_at") or now, u=r.get("updated_at") or now))
-            job_id = res.lastrowid or conn.execute(sa.text("SELECT max(id) FROM jobs")).scalar()
+            job_id = conn.execute(sa.text("SELECT max(id) FROM jobs WHERE account_id=:a"), dict(a=acct)).scalar()
             if (r.get("payment_status") or "").upper() == "PAID" and float(r.get("price_gbp") or 0) > 0:
                 paid = r.get("updated_at") or r.get("created_at") or now
                 paid = paid.date() if hasattr(paid, "date") else str(paid)[:10]
@@ -502,10 +506,11 @@ def _copy_legacy_data():
                     "INSERT INTO payments (account_id, job_id, amount_gbp, paid_at, method, ref, created_at) "
                     "VALUES (:a, :j, :amt, :d, 'other', 'migrated from webdev_jobs', :c)"),
                     dict(a=acct, j=job_id, amt=r["price_gbp"], d=paid, c=now))
+                paid_so_far[r["client_id"]] = paid_so_far.get(r["client_id"], 0.0) + float(r["price_gbp"])
 
     if "recurring_payments" in existing:
         for r in conn.execute(sa.text(
-                "SELECT * FROM recurring_payments WHERE client_type='webdev' ORDER BY id")).mappings():
+                "SELECT * FROM recurring_payments WHERE client_type IN ('webdev', 'webdev_client') ORDER BY id")).mappings():
             acct = acct_for_webdev.get(r["client_id"])
             if not acct:
                 continue
@@ -519,10 +524,17 @@ def _copy_legacy_data():
 
     if "monthly_payment_status" in existing:
         for r in conn.execute(sa.text(
-                "SELECT * FROM monthly_payment_status WHERE entity_type='webdev' AND status='PAID'")).mappings():
+                "SELECT * FROM monthly_payment_status WHERE entity_type IN ('webdev', 'webdev_client') "
+                "AND status='PAID' ORDER BY id")).mappings():
             acct = acct_for_webdev.get(r["entity_id"])
             if not acct:
                 continue
+            # The old admin recorded the same money twice (job "paid" + a monthly "paid" row).
+            # Only copy a monthly row if it adds money the client's recorded total says exists.
+            amt = float(r.get("amount_gbp") or 0)
+            if paid_so_far.get(r["entity_id"], 0.0) + amt > paid_target.get(r["entity_id"], 0.0) + 0.005:
+                continue
+            paid_so_far[r["entity_id"]] = paid_so_far.get(r["entity_id"], 0.0) + amt
             paid = r.get("marked_paid_at") or (str(r["month"]) + "-01")
             paid = paid.date() if hasattr(paid, "date") else str(paid)[:10]
             conn.execute(sa.text(
