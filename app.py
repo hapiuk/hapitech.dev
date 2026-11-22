@@ -78,8 +78,9 @@ def create_app(test_config: dict | None = None):
     from routes.reviews_public import reviews_public_bp
     from routes.site_api import site_api_bp
     from routes.lab import lab_bp
+    from routes.pwa import pwa_bp
 
-    for bp in (public_bp, auth_bp, news_bp, admin_bp, portal_bp, reviews_public_bp, site_api_bp, lab_bp):
+    for bp in (pwa_bp, public_bp, auth_bp, news_bp, admin_bp, portal_bp, reviews_public_bp, site_api_bp, lab_bp):
         app.register_blueprint(bp)
 
     from cli import register_cli

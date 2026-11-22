@@ -68,3 +68,44 @@
     s.addEventListener("change", function () { s.form.submit(); });
   });
 })();
+
+/* install-as-app banner (dashboards). Shown on phones/tablets until installed or dismissed. */
+(function () {
+  "use strict";
+  var bar = document.getElementById("installBanner");
+  if (!bar) return;
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register(bar.getAttribute("data-sw"), { scope: bar.getAttribute("data-scope") }).catch(function () {});
+  }
+  var standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone;
+  var key = "installDismissed:" + bar.getAttribute("data-scope");
+  var dismissed = false;
+  try { dismissed = Number(localStorage.getItem(key) || 0) > Date.now(); } catch (e) {}
+  var ua = navigator.userAgent || "";
+  var touch = (navigator.maxTouchPoints || 0) > 0 || /Android|iPhone|iPad|Mobile/i.test(ua);
+  if (standalone || dismissed || !touch) return;
+
+  var ios = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  function hint(which) {
+    bar.querySelectorAll("[data-install-hint]").forEach(function (h) { h.hidden = h.getAttribute("data-install-hint") !== which; });
+  }
+  var deferred = null, go = bar.querySelector("[data-install-go]");
+  if (ios) { hint("ios"); bar.hidden = false; }
+  else {
+    window.addEventListener("beforeinstallprompt", function (e) {
+      e.preventDefault(); deferred = e; hint("prompt"); go.hidden = false; bar.hidden = false;
+    });
+    /* browsers without an install prompt (e.g. Firefox): show the menu instructions instead */
+    setTimeout(function () { if (!deferred) { hint("other"); bar.hidden = false; } }, 2500);
+  }
+  go.addEventListener("click", function () {
+    if (!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.then(function () { deferred = null; bar.hidden = true; });
+  });
+  window.addEventListener("appinstalled", function () { bar.hidden = true; });
+  bar.querySelector("[data-install-close]").addEventListener("click", function () {
+    bar.hidden = true;
+    try { localStorage.setItem(key, String(Date.now() + 14 * 864e5)); } catch (e) {}   /* ask again in 2 weeks */
+  });
+})();

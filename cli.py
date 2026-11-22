@@ -113,8 +113,11 @@ def setup_clients():
                 continue
             setattr(acct, k, v)
         acct.domain = domain
+        db.session.flush()
+        from utils.content_blocks import ensure_blocks
+        ensure_blocks(acct, None)
     db.session.commit()
-    click.echo("Client accounts up to date: " + ", ".join(d["slug"] for d in CLIENT_DETAILS.values()))
+    click.echo("Client accounts (and their editable website blocks) up to date: " + ", ".join(d["slug"] for d in CLIENT_DETAILS.values()))
 
 
 def _extract_list(path, var="reviews"):

@@ -15,7 +15,15 @@
       document.documentElement.classList.add("js");
     })();
   </script>
-  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='media/favicon/favicon.svg') }}">
+  {% set app_slug = g.account.slug if area == 'portal' else '_hapitech' %}
+  {% set app_name = g.account.name if area == 'portal' else 'HapiTech Admin' %}
+  <link rel="manifest" href="/app/{{ app_slug }}/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/app/{{ app_slug }}/icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/app/{{ app_slug }}/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="{{ app_name }}">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preload" href="{{ url_for('static', filename='fonts/geist-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
@@ -80,6 +88,17 @@
     </header>
 
     <main id="main" class="content">
+      <div class="install" id="installBanner" hidden data-sw="/{{ area }}/sw.js" data-scope="/{{ area }}/">
+        <img src="/app/{{ app_slug }}/icon-192.png" alt="" width="44" height="44" class="install__icon">
+        <div class="install__text">
+          <strong>Add this app to your home screen</strong>
+          <span data-install-hint="prompt">Open your dashboard in one tap.</span>
+          <span data-install-hint="ios" hidden>Tap <svg viewBox="0 0 24 24" aria-label="the Share button" class="install__share"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 11v9h14v-9"/></svg> then <b>Add to Home Screen</b>.</span>
+          <span data-install-hint="other" hidden>Browser menu (⋮) → <b>Add to Home screen</b>.</span>
+        </div>
+        <button class="btn btn--sm" type="button" data-install-go hidden>Install</button>
+        <button class="install__close" type="button" data-install-close aria-label="Not now">×</button>
+      </div>
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           <div class="flashes">

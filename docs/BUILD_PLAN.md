@@ -27,7 +27,8 @@ _Drafted 22 Nov 2026, revised the same day with Aaron's answers. Status: plan on
 | 22 Nov 2026 | 3: Admin clients & money | ✅ Built locally | Overview (money, overdue, unpaid jobs, live site + SSL check), clients, jobs, subscriptions, payments, notes, logins, add-on switch, site keys, change requests |
 | 22 Nov 2026 | 4: Benchmarks | ✅ Built locally | 3 models, all 8 prompts (+ fixtures, versioned), 11 published runs imported; upload → draft → publish; public `/lab`; Lab results in AI news |
 | 22 Nov 2026 | 5: Reviews core | ✅ Built locally | "Job done → ask" (SMS/WhatsApp from own phone, email, QR, link); client-branded review form; Google hand-off; inbox, replies, reports; review pages; 16 existing Google reviews imported (dates left blank: real dates unknown) |
-| 22 Nov 2026 | 6: Portal posts + client sites | 🟡 Portal side built (posts, photo upload, content-block editor, site API). **Not yet done:** switching Roland's/Ray's sites to read from the API, and defining each site's editable blocks | Sites must look identical afterwards |
+| 22 Nov 2026 | 6: Portal posts + client sites | ✅ Built locally | hapitech.dev serves reviews/posts/editable text; both sites read it via `hapitech_client.py` (branch `hapitech-connect` in each site repo). Pixel-compared: **identical** when not connected; when connected the only change is the button text "Leave a Google Review" → "Leave a Review". 20 editable service blocks (4×2 Roland, 6×2 Ray). End-to-end checked: block edit, post, review + reply all appear on the site |
+| 22 Nov 2026 | Install as app | ✅ Built locally | Dashboards install to the home screen as the **client's own app** (their name + logo icon, brand colour); admin installs as HapiTech. Banner: Install button on Android/Chrome, "Share → Add to Home Screen" on iPhone; hidden once installed; "not now" hides it for 2 weeks |
 | 22 Nov 2026 | Changes after review | ✅ Built locally | Logout fixed (remember-me cookie survived); login is email-code only, with passwords wiped by migration `b2c3d4e5f6a7`; "Ask for a review" is QR-first plus an emailed link (no phone, email not stored); open review form for each site's review button with honeypot, time check and per-visitor daily limit; hashed IPs; privacy policy updated; 21 tests |
 | — | 7: Google sync | ⏸ Parked | Decided against Google API submission for small sites; the site button feeds the HapiTech form instead |
 | — | 8: Polish | ⏳ Not started | |
@@ -268,6 +269,18 @@ cd "$(systemctl show -p WorkingDirectory --value hapitech | grep . || echo /var/
 ```
 
 It changes to the service's folder, pulls (refusing to overwrite local edits), runs `flask deploy` (backs up the SQLite database to `instance/backups/`, then applies any migrations, safely stamping an old un-versioned database first), restarts, and prints `200` if the site is up. It's safe to run when nothing has changed.
+
+### Go-live order (platform + client sites)
+
+1. **hapitech.dev:** pull with the one-liner above (it migrates and backs up the database).
+2. **One-off setup** on the server (below), then log in and, for each client, go to **Admin → client → Website → Create key**. Copy the key.
+3. **Each client site:** add to its `.env` (next to `app.py`):
+   ```
+   HAPITECH_SITE_KEY=<the key>
+   HAPITECH_SITE_SLUG=rolands-handyman        # or ray-g-handyman
+   ```
+   Then merge the site repo's `hapitech-connect` branch, pull on the server and restart that site's service. Until the key is set, the site carries on exactly as now.
+4. Turn on the Reviews & Updates trial for each client (Admin → client → Overview) and invite them (Logins tab).
 
 **One-off after the first platform deploy** (from the same folder; `.venv` or `venv`, whichever exists):
 

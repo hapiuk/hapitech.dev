@@ -369,3 +369,34 @@ def test_write_form_forwards_to_google_without_addon(app):
         db.session.commit()
     r = app.test_client().get("/reviews/rolands/write")
     assert r.status_code == 302 and r.headers["Location"] == "https://g.page/r/x/review"
+
+
+def test_app_manifest_is_client_branded(app):
+    c = app.test_client()
+    m = c.get("/app/rolands/manifest.webmanifest")
+    assert m.status_code == 200 and m.headers["Content-Type"].startswith("application/manifest+json")
+    data = json.loads(m.get_data(as_text=True))
+    assert data["name"] == "Roland's Handyman" and data["start_url"] == "/portal/" and "HapiTech" not in data["name"]
+    assert c.get("/app/_hapitech/manifest.webmanifest").json["name"] == "HapiTech Admin"
+    icon = c.get("/app/rolands/icon-192.png")
+    assert icon.status_code == 200 and icon.data[:8] == b"\x89PNG\r\n\x1a\n"
+    assert c.get("/app/rolands/icon-999.png").status_code == 404
+    assert c.get("/app/nope/manifest.webmanifest").status_code == 404
+    assert "serviceWorker" not in c.get("/portal/sw.js").get_data(as_text=True)  # it's the worker itself
+    _login(c, "roland@test")
+    page = c.get("/portal/").get_data(as_text=True)
+    assert '/app/rolands/manifest.webmanifest' in page and 'id="installBanner"' in page
+
+
+def test_site_blocks_match_definitions(app):
+    from models.core import Account
+    from models.content import ContentBlock
+    from utils.content_blocks import ensure_blocks
+    from models import db
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        a.domain = "rolandshandyman.co.uk"
+        assert ensure_blocks(a, None) == 8
+        db.session.commit()
+        assert ensure_blocks(a, None) == 0                     # idempotent
+        assert ContentBlock.query.filter_by(account_id=a.id, key="services.wall.title").first().data == "Wall Mounting Service"
