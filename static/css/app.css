@@ -429,3 +429,8 @@ a.stat:hover{border-color:var(--line-2)}
 .seg i{width:12px;height:12px;border-radius:50%;display:inline-block}
 .to-list{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px 18px}
 .to-list legend{width:100%;margin-bottom:4px}
+.report-link{margin-top:28px;text-align:center;font-size:.84rem;opacity:.75}
+.report-link .linkish{color:var(--muted,inherit)}
+.report{margin:auto;max-height:calc(100dvh - 24px);overflow:auto;width:min(520px,calc(100vw - 24px));border:1px solid var(--line);border-radius:18px;background:var(--card);color:var(--ink);padding:20px}
+.report::backdrop{background:rgba(0,0,0,.55)}
+.report h2{font-size:1.15rem}

@@ -118,6 +118,20 @@
         {% endif %}
       {% endwith %}
       {% block content %}{% endblock %}
+      {% if area == 'portal' and g.account.kind != 'internal' %}
+      <p class="report-link"><button type="button" class="linkish" data-report-open>⚑ Report an issue with this page</button></p>
+      <dialog class="report" id="reportDialog" aria-labelledby="reportTitle">
+        <form method="dialog" class="stack" data-report-form>
+          <h2 id="reportTitle">Report an issue</h2>
+          <p class="small muted">Something not working, confusing, or looks wrong? Tell Aaron and he'll sort it.</p>
+          <label class="field"><span>What went wrong?</span><textarea name="what" rows="4" maxlength="3000" required placeholder="e.g. I pressed Save and nothing happened"></textarea></label>
+          <label class="check" data-report-before hidden><input type="checkbox" name="on_before"> <span>It happened on the page before this one</span></label>
+          <p class="small muted">We'll include which page you're on and your type of phone or computer, to help find the problem.</p>
+          <p class="small" data-report-msg role="status"></p>
+          <div class="row"><button class="btn btn--sm" type="submit" value="send">Send to Aaron</button><button class="btn btn--ghost btn--sm" type="button" data-report-close>Cancel</button></div>
+        </form>
+      </dialog>
+      {% endif %}
     </main>
   </div>
 

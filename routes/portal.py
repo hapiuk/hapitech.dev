@@ -444,4 +444,50 @@ def help():
     return render_template("portal/help.html", rows=rows)
 
 
+# ---------------------------------------------------------------- report an issue (every page)
+
+@portal_bp.route("/issue", methods=["POST"])
+@owner_required
+def report_issue():
+    """'Report an issue' on any dashboard page: lands in HapiTech's own Jobs, and Aaron gets an email."""
+    import datetime as _dt
+    from models.work import Lead
+    from utils.hapitech_account import get as hapitech
+    d = request.get_json(silent=True) or {}
+    what = (d.get("what") or "").strip()[:3000]
+    if not what:
+        return jsonify({"ok": False, "message": "Tell us what went wrong."}), 400
+    ht = hapitech()
+    since = _dt.datetime.utcnow() - _dt.timedelta(hours=1)
+    if Lead.query.filter(Lead.account_id == ht.id, Lead.source == "issue", Lead.email == current_user.email,
+                         Lead.created_at >= since).count() >= 10:
+        return jsonify({"ok": False, "message": "Thanks, we've got a few from you already. Aaron will be in touch."}), 429
+    page, before = (d.get("page") or "")[:300], (d.get("before") or "")[:300]
+    where = before if d.get("on_before") and before else page
+    details = [what, "", f"Page: {where}"]
+    if d.get("on_before") and page:
+        details.append(f"(Reported from: {page})")
+    elif before:
+        details.append(f"Page before: {before}")
+    details += [f"Device: {(d.get('device') or request.user_agent.string or '')[:300]}",
+                f"Screen: {(d.get('screen') or '')[:40]}",
+                f"Business: {g.account.name}  ·  Reported by {current_user.name or current_user.email}"]
+    lead = Lead(account_id=ht.id, source="issue", name=f"{g.account.name}: issue",
+                email=current_user.email, title=f"Issue on {where.split('?')[0][:120] or 'the dashboard'}",
+                message="\n".join(details))
+    db.session.add(lead)
+    db.session.commit()
+    try:
+        from utils import email_html
+        email_html.send("aaron@hapitech.dev", f"Issue reported: {g.account.name}", heading="Someone reported an issue",
+                        lines=[f"{current_user.name or current_user.email} ({g.account.name}) says:", what],
+                        box=[("Page", where or "-"), ("Device", (d.get("device") or "")[:120] or "-"),
+                             ("Screen", d.get("screen") or "-"), ("Reply to", current_user.email)],
+                        button={"label": "Open it in your jobs", "url": public_url(url_for("portal.job", lid=lead.id, **{"as": ht.slug}))},
+                        reply_to=current_user.email)
+    except Exception as exc:
+        print(f"[ISSUE_NOTIFY] {exc}")
+    return jsonify({"ok": True, "message": "Thanks! Aaron has been told and will look into it."})
+
+
 from . import portal_work  # noqa: E402,F401  (jobs, quotes, invoices, calendar, settings)

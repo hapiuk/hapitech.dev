@@ -1057,3 +1057,30 @@ def test_write_a_message_to_clients(app):
     with app.app_context():
         assert Note.query.filter_by(body="Message emailed: Small update").count() == 2
     assert "Sent messages (2)" in adm.get("/admin/updates").get_data(as_text=True)
+
+
+def test_report_an_issue(app):
+    from models.work import Lead
+    o = app.test_client(); _login(o, "roland@test")
+    page = o.get("/portal/jobs").get_data(as_text=True)
+    assert "Report an issue with this page" in page
+    tok = _csrf(o, "/portal/jobs")
+    n = len(_outbox(app))
+    r = o.post("/portal/issue", headers={"X-CSRF-Token": tok}, json={
+        "what": "Save button does nothing", "on_before": True, "page": "/portal/help", "before": "/portal/website/3",
+        "device": "iPhone Safari", "screen": "390x844"})
+    assert r.json["ok"]
+    with app.app_context():
+        lead = Lead.query.filter_by(source="issue").first()
+        assert lead.account.slug == "hapitech" and lead.title == "Issue on /portal/website/3"
+        assert "Save button does nothing" in lead.message and "iPhone Safari" in lead.message
+    mail = _outbox(app)[n:]
+    assert len(mail) == 1 and "aaron@hapitech.dev" in mail[0] and "Save button does nothing" in mail[0]
+    assert o.post("/portal/issue", headers={"X-CSRF-Token": tok}, json={"what": ""}).status_code == 400
+    adm = app.test_client(); _login(adm, "admin@test")
+    home = adm.get("/admin/").get_data(as_text=True)
+    assert "Reported issues" in home
+    adm.get("/admin/me/jobs")
+    assert "Roland" in adm.get("/portal/jobs").get_data(as_text=True)
+    # Roland's own Jobs never shows it
+    assert "Save button does nothing" not in o.get("/portal/jobs").get_data(as_text=True)

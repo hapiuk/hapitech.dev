@@ -20,6 +20,8 @@ def _shell():
     from utils.nav import admin_nav
     counts = {"reported": Review.query.filter_by(status="reported").count() or None,
               "requests": ChangeRequest.query.filter_by(status="new").count() or None}
+    from models.work import Lead
+    counts["issues"] = Lead.query.filter_by(source="issue", status="new", archived_at=None).count() or None
     return {"area": "admin", "nav": admin_nav(counts)}
 
 

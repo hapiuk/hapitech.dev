@@ -229,3 +229,32 @@ document.querySelectorAll("[data-check-all]").forEach(function (all) {
   all.addEventListener("change", function () { boxes.forEach(function (b) { b.checked = all.checked; }); });
   boxes.forEach(function (b) { b.addEventListener("change", sync); }); sync();
 });
+
+/* Report an issue: remembers the previous dashboard page, sends page + device details */
+(function () {
+  var KEY = "lastPage", prev = null;
+  try { prev = sessionStorage.getItem(KEY); sessionStorage.setItem(KEY, location.pathname + location.search); } catch (e) {}
+  if (prev === location.pathname + location.search) prev = null;
+  var dlg = document.getElementById("reportDialog"), open = document.querySelector("[data-report-open]");
+  if (!dlg || !open) return;
+  var form = dlg.querySelector("[data-report-form]"), msg = dlg.querySelector("[data-report-msg]");
+  if (prev) dlg.querySelector("[data-report-before]").hidden = false;
+  open.addEventListener("click", function () {
+    msg.textContent = ""; form.reset();
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+    form.querySelector("textarea").focus();
+  });
+  dlg.querySelector("[data-report-close]").addEventListener("click", function () { dlg.close(); });
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var btn = form.querySelector("button[type=submit]"); btn.disabled = true; msg.textContent = "Sending…";
+    var token = (document.querySelector('meta[name="csrf-token"]') || {}).content;
+    fetch("/portal/issue", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-Token": token },
+      body: JSON.stringify({ what: form.what.value, on_before: form.on_before.checked, page: location.pathname + location.search,
+        before: prev || "", device: navigator.userAgent, screen: screen.width + "x" + screen.height + " (window " + innerWidth + "x" + innerHeight + ")" }) })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { msg.textContent = d.message || (d.ok ? "Sent." : "Something went wrong."); if (d.ok) setTimeout(function () { dlg.close(); }, 1800); })
+      .catch(function () { msg.textContent = "Couldn't send. Please try again, or email aaron@hapitech.dev."; })
+      .then(function () { btn.disabled = false; });
+  });
+})();

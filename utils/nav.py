@@ -42,6 +42,7 @@ def admin_nav(counts=None):
         _item("Change requests", "admin.change_requests", "inbox", prefix="/admin/requests", badge=c.get("requests")),
         _item("Emails to clients", "admin.updates", "send", prefix="/admin/updates"),
         {"section": "My site (hapitech.dev)"},
+        _item("Reported issues", "admin.me", "inbox", url="/admin/me/jobs", prefix="/admin/me/jobs", badge=c.get("issues")),
         _item("My updates", "admin.me", "image", url="/admin/me/posts", prefix="/admin/me/posts"),
         _item("My reviews", "admin.me", "star", url="/admin/me/reviews", prefix="/admin/me/reviews"),
         _item("Ask for a review", "admin.me", "send", url="/admin/me/ask", prefix="/admin/me/ask"),

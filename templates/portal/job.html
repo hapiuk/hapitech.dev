@@ -70,7 +70,7 @@
     {# ---------------- what they asked for ---------------- #}
     {% if lead.message or lead.preferred or lead.travel_note %}
     <section class="card">
-      <div class="card__head"><h3>What they asked</h3><span class="small muted">{{ {'website':'From your website','booking':'Booking request','phone':'Phone','manual':'Added by you'}.get(lead.source, lead.source) }} · {{ lead.created_at | ago }}</span></div>
+      <div class="card__head"><h3>What they asked</h3><span class="small muted">{{ {'website':'From your website','booking':'Booking request','phone':'Phone','manual':'Added by you','issue':'Reported issue'}.get(lead.source, lead.source) }} · {{ lead.created_at | ago }}</span></div>
       {% if lead.message %}<p style="white-space:pre-wrap">{{ lead.message }}</p>{% endif %}
       {% if lead.preferred %}<p class="small" style="margin-top:8px"><b>Preferred:</b> {{ lead.preferred }}</p>{% endif %}
       {% if lead.travel_note %}<p class="small"><b>Travel:</b> {{ lead.travel_note }}</p>{% endif %}

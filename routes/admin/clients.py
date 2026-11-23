@@ -546,5 +546,5 @@ def me(what):
     a = get()
     session["portal_as"] = a.slug
     target = {"post": "/portal/posts/new", "posts": "/portal/posts", "reviews": "/portal/reviews",
-              "ask": "/portal/ask"}.get(what, "/portal/posts")
+              "ask": "/portal/ask", "jobs": "/portal/jobs"}.get(what, "/portal/posts")
     return redirect(target)
