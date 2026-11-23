@@ -403,3 +403,15 @@ document.querySelectorAll("[data-check-all]").forEach(function (all) {
     box.after(btn); draw();
   });
 })();
+
+/* Emails: one preview at a time, with a "Preview for" switch */
+(function () {
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-prev]"); if (!b) return;
+    var id = b.getAttribute("data-prev"), sec = id.split("-")[0];
+    document.querySelectorAll('[data-prev^="' + sec + '-"]').forEach(function (x) { x.setAttribute("aria-selected", x === b ? "true" : "false"); });
+    document.querySelectorAll('[data-prev-box^="' + sec + '-"]').forEach(function (x) { x.hidden = x.getAttribute("data-prev-box") !== id; });
+  });
+  var h = location.hash && document.querySelector(location.hash + "[data-prev-box]");
+  if (h) { var t = document.querySelector('[data-prev="' + h.getAttribute("data-prev-box") + '"]'); if (t) t.click(); }
+})();

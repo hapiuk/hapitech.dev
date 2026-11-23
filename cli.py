@@ -22,7 +22,7 @@ from models import db
 
 
 def register_cli(app):
-    for cmd in (deploy, create_admin, setup_clients, import_site_reviews, import_google_reviews, import_review_file, import_bench, seed_dev, tick):
+    for cmd in (deploy, create_admin, setup_clients, import_site_reviews, import_google_reviews, import_review_file, import_bench, seed_dev, tick, add_draft_posts):
         app.cli.add_command(cmd)
 
 
@@ -335,3 +335,26 @@ def import_review_file(slug, export_file, no_photos, dry_run):
     res = import_file(a, json.load(open(export_file, encoding="utf-8")), photos=not no_photos, dry_run=dry_run)
     click.echo(f"{a.name} · {res['source']}: {res['in_file']} in file · {len(res['added'])} added · {len(res['updated'])} updated · "
                f"{len(res['skipped'])} skipped · {res['photos']} photos" + (" (dry run)" if dry_run else ""))
+
+
+@click.command("add-draft-posts")
+@click.argument("md_file", type=click.Path(exists=True, dir_okay=False))
+def add_draft_posts(md_file):
+    """Add each "## " section of a Markdown file as a DRAFT post on HapiTech's own account (skips existing titles)."""
+    import re
+
+    from models import db
+    from models.content import Post
+    from utils.hapitech_account import get
+    a = get()
+    raw = re.sub(r"<!--.*?-->", "", open(md_file, encoding="utf-8").read(), flags=re.S)
+    added = 0
+    for block in re.split(r"^## ", raw, flags=re.M)[1:]:
+        title, _, body = block.partition("\n")
+        title, body = title.strip()[:160], body.strip()
+        if not title or Post.query.filter_by(account_id=a.id, title=title).first():
+            continue
+        db.session.add(Post(account_id=a.id, title=title, body=body, status="draft"))
+        added += 1
+    db.session.commit()
+    click.echo(f"{added} draft post(s) added to {a.name}. Open Admin → HapiTech posts to check and publish.")

@@ -110,6 +110,11 @@ def _fill_account(a: Account, form):
             a.balance_gbp = _money(form.get("balance_gbp")) or None
         except Exception:
             pass
+    if "features_sent" in form:
+        import json as _json
+        from utils.features import ALL
+        picked = [f for f in ALL if f in form.getlist("features")]
+        a.features = None if not picked or len(picked) == len(ALL) else _json.dumps(picked)
     if "shortcuts_text" in form:
         import json as _json
         rows = []
@@ -446,6 +451,14 @@ def change_request_set(rid):
 # ---------------------------------------------------------------- update notes for clients (docs/client-updates.md)
 
 ADDED_NOTE = "Added from Emails to clients, ready to invite"
+GENERIC_NOTE = "Added for a dashboard invite (no website from us)"
+GENERIC_FILE = "docs/dashboard-invite.md"
+
+
+def _invite_mode():
+    from models.core import SystemState
+    row = db.session.get(SystemState, "invite_mode")
+    return row.value if row and row.value in ("personal", "generic") else "personal"
 
 
 @admin_bp.route("/updates", methods=["GET", "POST"])
@@ -454,9 +467,11 @@ def updates():
     docs/client-updates.md), Dashboard invite (docs/client-invite.md), Invite new clients."""
     from utils import updates as upd
     from utils.plans import start_friends
-    invites, notes = upd.sections(upd.INVITE_FILE), upd.sections(upd.FILE)
+    invites, notes, generic = upd.sections(upd.INVITE_FILE), upd.sections(upd.FILE), upd.sections(GENERIC_FILE)
+    mode = _invite_mode()
     clients = Account.query.filter(Account.kind == "client", Account.status != "archived").order_by(Account.name).all()
     added_ids = {n.account_id for n in Note.query.filter_by(body=ADDED_NOTE).all()}
+    generic_ids = {n.account_id for n in Note.query.filter_by(body=GENERIC_NOTE).all()}
     show = request.values.get("show") or request.form.get("kind") or "update"
     if show not in ("update", "invite", "new", "message"):
         show = "update"
@@ -465,6 +480,14 @@ def updates():
     if request.method == "POST":
         kind = request.form.get("kind")
         action = request.form.get("action")
+        if kind == "invite-mode":
+            from models.core import SystemState
+            row = db.session.get(SystemState, "invite_mode") or SystemState(key="invite_mode")
+            row.value = "generic" if request.form.get("mode") == "generic" else "personal"
+            db.session.add(row)
+            db.session.commit()
+            flash("Dashboard invite switched to the generic invite." if row.value == "generic" else "Back to Ray and Roland's invite.", "ok")
+            return redirect(url_for("admin.updates", show="invite"))
         if kind == "message":
             # a one-off message written here, to the ticked clients
             subject = (request.form.get("subject") or "").strip()[:150]
@@ -505,18 +528,28 @@ def updates():
                         flash("Not sent: " + "; ".join(failed), "err")
             show = "update"
         else:
-            secs, label = (invites, "Invite emailed") if kind == "invite" else (notes, "Update emailed")
-            try:
-                sec = secs[int(request.form.get("section", -1))]
-            except (ValueError, IndexError):
-                abort(400)
             a = Account.query.filter_by(slug=request.form.get("client")).first_or_404()
+            if kind == "generic":
+                secs = generic
+                sec = secs[0 if a.has_feature("jobs") or len(secs) < 2 else 1] if secs else abort(400)
+                label = "Invite emailed"
+            else:
+                secs, label = (invites, "Invite emailed") if kind == "invite" else (notes, "Update emailed")
+                try:
+                    sec = secs[int(request.form.get("section", -1))]
+                except (ValueError, IndexError):
+                    abort(400)
             back = request.form.get("back") or kind
             test = action == "test"
             to = current_user.email if test else upd.owner_email(a)
             if not to:
                 flash(f"{a.name} has no owner login or contact email.", "err")
                 return redirect(url_for("admin.updates", show=back))
+            if kind == "generic" and not test:
+                owner = User.query.filter_by(account_id=a.id, role="owner").order_by(User.id).first()
+                if owner:
+                    owner.is_active_flag = True
+                db.session.commit()
             if kind == "invite" and not test:
                 # switch on their login and the Friends plan (unless they're already on it)
                 owner = User.query.filter_by(account_id=a.id, role="owner").order_by(User.id).first()
@@ -540,7 +573,8 @@ def updates():
             else:
                 db.session.add(Note(account_id=a.id, author_id=current_user.id, body=f"{label}: {sec['title']}"))
                 db.session.commit()
-                flash(f"Sent to {a.name} ({to})." + (" Their login and Friends plan are switched on." if kind == "invite" else ""), "ok")
+                flash(f"Sent to {a.name} ({to})." + (" Their login and Friends plan are switched on." if kind == "invite" else
+                                                       " Their login is switched on." if kind == "generic" else ""), "ok")
             return redirect(url_for("admin.updates", show=back) + f"#c-{a.slug}")
 
     sent = {}
@@ -550,14 +584,66 @@ def updates():
                if show == "update" else [])
     if show == "update":
         secs, people = notes, clients
+    elif show == "invite" and mode == "generic":
+        people = [c for c in clients if c.id in generic_ids]
+        full, rev = (generic + generic)[:2] if generic else (None, None)
+        previews = [[(a, upd.page(a, full if a.has_feature("jobs") else rev)[1], upd.owner_email(a)) for a in people]] if generic else [[]]
+        secs = [{"title": "Dashboard invite"}]
+        return render_template("admin/updates.html", secs=secs, clients=clients, previews=previews, sent=_sent_any(people), show=show,
+                               compose={}, compose_previews=[], history=[], kind="generic", mode=mode)
     elif show == "invite":
-        secs, people = invites, [c for c in clients if c.id not in added_ids]
+        secs, people = invites, [c for c in clients if c.id not in added_ids | generic_ids]
     else:
         secs, people = invites, [c for c in clients if c.id in added_ids]
+    if show == "update":
+        people = [c for c in people if c.id not in generic_ids]   # What's new is about their website
     previews = [[(a, upd.page(a, s)[1], upd.owner_email(a)) for a in people] for s in secs]
     return render_template("admin/updates.html", secs=secs, clients=clients, previews=previews, sent=sent, show=show,
                            compose=compose, compose_previews=compose_previews, history=history,
-                           kind="update" if show == "update" else "invite")
+                           kind="update" if show == "update" else "invite", mode=mode)
+
+
+def _sent_any(people):
+    """Generic invites: {(account id, "Dashboard invite"): when} for anyone who's had an invite."""
+    out = {}
+    for n in Note.query.filter(Note.account_id.in_([p.id for p in people] or [-1]), Note.body.like("Invite emailed: %")).all():
+        out.setdefault((n.account_id, "Dashboard invite"), n.created_at)
+    return out
+
+
+@admin_bp.route("/updates/generic", methods=["POST"])
+def invite_generic():
+    """Generic dashboard invite: someone we haven't built a website for, maybe only after reviews."""
+    from utils.features import PRESETS
+    from utils.plans import start_friends
+    f = request.form
+    name, who = (f.get("business") or "").strip()[:160], (f.get("contact_name") or "").strip()[:120]
+    email = (f.get("email") or "").strip().lower()
+    if not name or "@" not in email:
+        flash("Add their business name and email.", "err")
+        return redirect(url_for("admin.updates", show="invite"))
+    if User.query.filter(db.func.lower(User.email) == email).first():
+        flash("That email already has a login.", "err")
+        return redirect(url_for("admin.updates", show="invite"))
+    base, n, slug = slugify(name), 2, slugify(name)
+    while Account.query.filter_by(slug=slug).first():
+        slug, n = f"{base}-{n}", n + 1
+    import json as _json
+    preset = f.get("features") if f.get("features") in PRESETS else "reviews"
+    a = Account(kind="client", name=name, slug=slug, contact_name=who or None, contact_email=email,
+                trade=(f.get("trade") or "").strip()[:120] or None, town=(f.get("town") or "").strip()[:120] or None,
+                features=None if preset == "all" else _json.dumps(PRESETS[preset]))
+    db.session.add(a)
+    db.session.flush()
+    db.session.add(User(email=email, username=email, name=who or None, role="owner", account_id=a.id, is_active_flag=False))
+    ad = AddOn(account_id=a.id, kind="reviews_updates")
+    if f.get("friends"):
+        start_friends(ad)
+    db.session.add(ad)
+    db.session.add(Note(account_id=a.id, author_id=current_user.id, body=GENERIC_NOTE))
+    db.session.commit()
+    flash(f"{name} added. Check their invite below, then send it.", "ok")
+    return redirect(url_for("admin.updates", show="invite") + f"#c-{a.slug}")
 
 
 @admin_bp.route("/updates/new", methods=["POST"])

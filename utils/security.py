@@ -133,6 +133,12 @@ def owner_required(fn):
             if not acct or acct.status == "archived":
                 abort(403)
         g.account = acct
+        from utils.features import needed
+        f = needed(request.path)
+        if f and not acct.has_feature(f):
+            from flask import flash
+            flash("That part of the dashboard isn't switched on for you. Ask Aaron if you'd like it.", "err")
+            return redirect(url_for("portal.home"))
         return fn(*a, **kw)
     return wrapper
 

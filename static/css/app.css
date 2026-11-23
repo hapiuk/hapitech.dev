@@ -620,3 +620,6 @@ details.platforms[open] > summary::after{content:" ▴"}
 .report input[name=what]{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line-2,var(--line));background:var(--bg);color:var(--ink);font:inherit;font-size:1rem}
 .report input[name=what]:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
 .report label .row{flex-wrap:nowrap}
+.prev-pick{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.prev-pick .chip-pick[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.invite-mode{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:14px}

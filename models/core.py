@@ -47,6 +47,21 @@ class Account(TimestampMixin, db.Model):
     facebook_count = db.Column(db.Integer)
     reviews_synced_at = db.Column(db.DateTime)
     shortcuts = db.Column(db.Text)                                           # JSON [[label, url], …] on their Jobs page
+    features = db.Column(db.Text)                                            # JSON ["reviews", …]; blank = everything
+
+    @property
+    def feature_set(self):
+        """Dashboard sections they get: reviews, website, jobs. Blank = all (everyone set up before this existed)."""
+        import json as _json
+        from utils.features import ALL
+        try:
+            got = [f for f in _json.loads(self.features or "null") or ALL if f in ALL]
+        except (ValueError, TypeError):
+            got = list(ALL)
+        return set(got or ALL)
+
+    def has_feature(self, name):
+        return name in self.feature_set
 
     @property
     def shortcut_list(self):

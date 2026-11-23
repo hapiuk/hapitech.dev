@@ -12,32 +12,29 @@
 
 Hi {name},
 
-I've built something to make running {business} a bit easier: your own dashboard. It's an extra on top of me looking after your website. It works on your phone like an app, and it's linked to your website, so anything you do in it shows on your site.
+I've built {business} its own dashboard. It works on your phone like an app, and it's linked to your website, so anything you do in it shows on your site.
 
-**What you can do with it**
+**New: all your reviews in one place**
 
-- **Get more reviews:** after a job, show your customer a QR code (or email them a link). They tap the stars and it appears on your website.
-- **Keep on top of jobs:** website enquiries land here. Send a quote, book a date (your customer gets a reminder the day before), then send the invoice.
-- **Post your latest work:** add a few photos and a line about the job. It goes on your website and into your gallery, and one tap shares it to Facebook, Instagram or WhatsApp.
-- **Edit your website yourself:** change your services, wording and photos whenever you like.
-- **See your visitors:** how many people found your website, and whether they came from Google, Facebook and so on.
-- **Away mode:** off on holiday? Your website tells customers when you're back.
-- **Finances:** see your plan and anything owed at a glance (nothing, for now!).
-- **Made for you:** it's in your own colours, and you can switch to light mode in Settings if you prefer.
+Your website has a brand new reviews section. It brings in your **Google** and **Facebook** reviews automatically, alongside reviews customers leave with you directly, each one clearly marked with where it came from.
 
-**A little extra, on the house**
+- (Roland) All your Google and Facebook reviews are already in: have a look on rolandshandyman.co.uk.
+- (Ray) All your Google and Facebook reviews are already in: have a look on rayghandymanservice.co.uk.
+
+**What else you can do**
+
+- **Ask for reviews** with a QR code or a link, and reply to them.
+- **Handle enquiries:** quote, book the date, then send the invoice.
+- **Post your latest work** to your website, and share it to Facebook in one tap.
+- **Change your website** (words and photos) yourself.
 
 [[plan]]
-
-Use as much or as little of it as you like. Your website carries on just as it is either way, and I'll keep adding useful bits over time.
 
 **Getting started**
 
 [[login]]
 
-- Tap the button and enter your email. I'll send you a 6-digit code: no password to remember.
-- Once you're in, follow the tip at the top of the screen to add it to your home screen.
-- Every page has a short **"How does this work?"** tip, and there's a **Help** page if you get stuck.
+Tap the button, enter your email, and type in the 6-digit code I send you. No password to remember. Every page has a short **"How does this work?"** tip.
 
 Any questions, just reply to this email.
 

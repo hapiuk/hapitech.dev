@@ -42,6 +42,11 @@ def send_email(*, to: str, subject: str, text: str, html: str | None = None,
     msg["To"] = to
     if reply_to:
         msg["Reply-To"] = reply_to
+    # a hidden copy of everything the system sends, so Aaron can see outgoing mail is working
+    # (MAIL_COPY_TO in the env; set it to "off" to stop). Bcc: recipients never see it.
+    copy = os.getenv("MAIL_COPY_TO", "aaron+sent@hapitech.dev").strip()
+    if copy and copy.lower() != "off" and copy.lower() not in to.lower():
+        msg["Bcc"] = copy
     msg.set_content(text)
     if html:
         msg.add_alternative(html, subtype="html")

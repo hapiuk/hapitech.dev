@@ -43,6 +43,26 @@
 {% call howto('Ready-written updates') %}
   <p>Longer "what's new" notes live in <span class="mono">docs/client-updates.md</span>: each <b>## heading</b> is one email, newest at the top. Lines starting <b>- (Roland)</b> or <b>- (Ray)</b> only go to that person.</p>
 {% endcall %}
+{% elif show == 'invite' and mode == 'generic' %}
+<details class="card fold" style="margin-bottom:12px" {% if not previews[0] %}open{% endif %}>
+  <summary><strong>+ Invite someone to a dashboard</strong> <span class="small muted">· anyone, website from us or not</span></summary>
+  <form method="post" action="{{ url_for('admin.invite_generic') }}" class="form-grid" style="margin-top:12px">
+    <label class="field"><span>Business name</span><input name="business" required placeholder="Smith Plumbing"></label>
+    <label class="field"><span>Their name</span><input name="contact_name" placeholder="Dave Smith"></label>
+    <label class="field"><span>Email <small>their login</small></span><input type="email" name="email" required></label>
+    <label class="field"><span>Trade <small>optional, shows on their review page</small></span><input name="trade" placeholder="Plumber"></label>
+    <label class="field"><span>Town <small>optional</small></span><input name="town" placeholder="Wolverhampton"></label>
+    <fieldset class="field full"><legend class="small muted">What they get</legend>
+      <label class="check"><input type="radio" name="features" value="reviews" checked> <span><strong>Reviews only</strong> <small class="muted">collect, ask, reply, their hapitech.report page</small></span></label>
+      <label class="check"><input type="radio" name="features" value="all"> <span><strong>Everything</strong> <small class="muted">reviews, jobs, posts, website</small></span></label>
+      <label class="check"><input type="checkbox" name="friends" value="1"> <span>Put them on the <strong>Friends plan</strong> <small class="muted">(free; otherwise a trial you set up on their client page)</small></span></label>
+    </fieldset>
+    <div class="form-actions full"><button class="btn btn--sm">Add and preview the invite</button></div>
+  </form>
+</details>
+{% call howto('What happens when I send it?') %}
+  <p>Their login is switched on and they get the dashboard sections you picked (change them later on their client page). The wording lives in <span class="mono">docs/dashboard-invite.md</span>: the first part is for "Everything", the second for "Reviews only".</p>
+{% endcall %}
 {% elif show == 'invite' %}
 {% call howto('What happens when I send the invite?') %}
   <p>Their owner login is switched on and they're put on the <b>Friends plan</b> (auto-renewing every 3 months; change it on their client page), unless they're already on it. The wording lives in <span class="mono">docs/client-invite.md</span>.</p>
@@ -63,10 +83,14 @@
 {% for s in secs %}{% set si = loop.index0 %}
 <section class="card">
   <div class="card__head"><h2>{{ s.title }}</h2>{% if loop.first and show == 'update' %}<span class="badge badge--acc">Latest</span>{% endif %}</div>
-  {% if not previews[si] %}<p class="small muted">{{ 'Nobody added yet. Add someone above.' if show == 'new' else 'No clients yet.' }}</p>{% endif %}
-  <div class="grid grid--2">
+  {% if not previews[si] %}<p class="small muted">{{ 'Nobody added yet. Add someone above.' if show in ('new', 'invite') else 'No clients yet.' }}</p>{% endif %}
+  {% if previews[si] | length > 1 %}<div class="prev-pick" role="tablist" aria-label="Preview for">
+    <span class="small muted">Preview for:</span>
+    {% for a, html, to in previews[si] %}{% set when = sent.get((a.id, s.title)) %}<button type="button" class="chip-pick" role="tab" data-prev="{{ si }}-{{ loop.index0 }}" aria-selected="{{ 'true' if loop.first else 'false' }}">{{ a.first_name if a.contact_name else a.name }}{% if when %} ✓{% endif %}</button>{% endfor %}
+  </div>{% endif %}
+  <div>
     {% for a, html, to in previews[si] %}
-    <div class="mail-prev" id="c-{{ a.slug }}">
+    <div class="mail-prev" id="c-{{ a.slug }}" data-prev-box="{{ si }}-{{ loop.index0 }}" {% if not loop.first %}hidden{% endif %}>
       <div class="row row--between" style="margin-bottom:8px">
         <span><strong>{{ a.name }}</strong><br><span class="small muted">To: {{ to or 'no email!' }}</span></span>
         {% set when = sent.get((a.id, s.title)) %}
@@ -77,11 +101,20 @@
         <input type="hidden" name="kind" value="{{ kind }}"><input type="hidden" name="back" value="{{ show }}"><input type="hidden" name="section" value="{{ si }}"><input type="hidden" name="client" value="{{ a.slug }}">
         <button class="btn btn--ghost btn--sm" name="action" value="test">Send a test to me</button>
         <button class="btn btn--sm" name="action" value="send" {% if not to %}disabled{% endif %}
-          data-confirm="{{ ('Send the dashboard invite to ' ~ a.name ~ ' (' ~ to ~ ')? This switches on their login and Friends plan.') if kind == 'invite' else ('Email this update to ' ~ a.name ~ ' (' ~ to ~ ')?') }}">{{ 'Send again' if when else ('Send invite' if kind == 'invite' else 'Send update') }}</button>
+          data-confirm="{{ ('Send the dashboard invite to ' ~ a.name ~ ' (' ~ to ~ ')? This switches on their login and Friends plan.') if kind == 'invite' else ('Send the dashboard invite to ' ~ a.name ~ ' (' ~ to ~ ')? This switches on their login.') if kind == 'generic' else ('Email this update to ' ~ a.name ~ ' (' ~ to ~ ')?') }}">{{ 'Send again' if when else ('Send invite' if kind in ('invite', 'generic') else 'Send update') }}</button>
       </form>
     </div>
     {% endfor %}
   </div>
 </section>
 {% else %}{% if show != 'update' %}{{ empty('Nothing written yet', 'Add a ## section to the file.') }}{% endif %}{% endfor %}
+{% if show == 'invite' %}
+<form method="post" class="card invite-mode">
+  <input type="hidden" name="kind" value="invite-mode">
+  {% if mode == 'generic' %}<span class="small muted">Need Ray and Roland's personal invite again?</span>
+    <button class="btn btn--ghost btn--sm" name="mode" value="personal">Show their invite</button>
+  {% else %}<span><strong>Done inviting Ray and Roland?</strong><br><span class="small muted">Swap this tab for a general dashboard invite you can send anyone, including people who only want reviews.</span></span>
+    <button class="btn btn--ghost btn--sm" name="mode" value="generic" data-confirm="Switch this tab to the general dashboard invite? You can switch back any time.">Switch to the general invite</button>{% endif %}
+</form>
+{% endif %}
 {% endblock %}

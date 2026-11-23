@@ -15,6 +15,10 @@
     <label class="field full"><span>Google review link <small>the "write a review" link from their Google Business Profile</small></span><input name="google_profile_url" value="{{ a.google_profile_url or '' if a else '' }}" placeholder="https://g.page/r/…/review"></label>
     <label class="field full"><span>Google reviews page <small>where "via Google" links go: search Google for the business + "reviews" and copy the link</small></span><input name="google_reviews_url" value="{{ a.google_reviews_url or '' if a else '' }}" placeholder="https://www.google.com/search?q=…+Reviews"></label>
     <label class="field full"><span>Google Maps page <small>where the Google review script is run</small></span><input name="google_maps_url" value="{{ a.google_maps_url or '' if a else '' }}" placeholder="https://www.google.com/maps/place/…"></label>
+    <fieldset class="field full"><legend class="small muted">Dashboard sections they get <small>(Home, My plan, Settings and Help are always there)</small></legend>
+      <input type="hidden" name="features_sent" value="1">
+      {% for k, label in feature_labels.items() %}<label class="check"><input type="checkbox" name="features" value="{{ k }}" {{ 'checked' if not a or a.has_feature(k) }}> <span>{{ label }}</span></label>{% endfor %}
+    </fieldset>
     <label class="field full"><span>Jobs shortcuts <small>one per line: Name | https://…  (shown on their Jobs page)</small></span><textarea name="shortcuts_text" rows="3" placeholder="Bark | https://www.bark.com/en/gb/login/">{% if a %}{% for l, u in a.shortcut_list %}{{ l }} | {{ u }}
 {% endfor %}{% endif %}</textarea></label>
     <label class="field full"><span>Facebook reviews page</span><input name="facebook_url" value="{{ a.facebook_url or '' if a else '' }}" placeholder="https://www.facebook.com/…/reviews"></label>

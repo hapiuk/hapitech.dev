@@ -43,7 +43,7 @@ def _shell():
     from models.work import Lead
     new_jobs = Lead.query.filter_by(account_id=g.account.id, status="new", archived_at=None).count() or None   # spam has its own status
     return {"area": "portal", "nav": portal_nav({"unreplied": unreplied, "new_jobs": new_jobs},
-                                                owner=current_user.is_owner),
+                                                owner=current_user.is_owner, features=g.account.feature_set),
             "addon": g.account.addon(), "brand_accent": brand_accent(g.account)}
 
 

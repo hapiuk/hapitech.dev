@@ -676,7 +676,7 @@ def test_client_update_notes(app):
     from models.core import Account
     from utils import updates
     with app.test_request_context("/"):
-        secs = updates.sections("docs/drafts/whats-new-after-invite.md")
+        secs = updates.sections("docs/client-updates.md")
         assert secs and secs[0]["title"]
         roland = Account.query.filter_by(slug="rolands").first()
         ray = Account.query.filter_by(slug="rayg").first()
@@ -684,13 +684,13 @@ def test_client_update_notes(app):
         t_roland, h_roland = updates.render(roland, secs[0])
         t_ray, h_ray = updates.render(ray, secs[0])
         assert "Hi Roland," in t_roland and "Hi Ray," in t_ray
-        assert "jumping about" in t_roland and "jumping about" not in t_ray        # (Roland)-only line
-        assert "back on your website" in t_ray and "back on your website" not in t_roland
+        assert "jumps about" in t_roland and "jumps about" not in t_ray            # (Roland)-only line
+        assert "photos are back" in t_ray and "photos are back" not in t_roland
         assert "(Roland)" not in h_roland and "<ul" in h_roland and "<strong>" in h_roland
     a = app.test_client()
     _login(a, "admin@test")
     page = a.get("/admin/updates?show=update").get_data(as_text=True)
-    assert "Write a message" in page and "A few improvements" not in page          # draft kept off the tab
+    assert "Write a message" in page and "Everything that&#39;s new" in page
 
 
 def test_dashboard_invite_friends_plan(app):
@@ -1477,3 +1477,39 @@ def test_google_new_badge_is_not_part_of_review():
     item = {"date": "2 weeks ago", "text": "", "raw": "Lamia\n2 weeks ago\nNEW\nRolands did an amazing job\nLike\nShare"}
     out = google_text(item)
     assert (out[0] if isinstance(out, tuple) else out).startswith("Rolands did an amazing job")
+
+
+def test_generic_invite_reviews_only_and_mail_copy(app):
+    import email
+    import glob
+    import os
+    from models import db
+    from models.core import Account, SystemState
+    a = app.test_client(); _login(a, "admin@test")
+    page = a.get("/admin/updates?show=invite").get_data(as_text=True)
+    assert "Done inviting Ray and Roland?" in page and "Preview for:" in page
+    _form(a, "/admin/updates", {"kind": "invite-mode", "mode": "generic"}, page="/admin/updates?show=invite")
+    page = a.get("/admin/updates?show=invite").get_data(as_text=True)
+    assert "Invite someone to a dashboard" in page
+    _form(a, "/admin/updates/generic", {"business": "Shine Cleaners", "contact_name": "Sam Shine", "email": "sam@shine.test",
+                                        "features": "reviews"}, page="/admin/updates?show=invite")
+    page = a.get("/admin/updates?show=invite").get_data(as_text=True)
+    assert "Shine Cleaners" in page and "HapiTech Reviews dashboard is ready" in page
+    with app.app_context():
+        acc = Account.query.filter_by(name="Shine Cleaners").first()
+        assert acc.feature_set == {"reviews"}
+        slug = acc.slug
+    out = os.path.join(app.instance_path, "mail_outbox")
+    before = set(glob.glob(out + "/*.eml"))
+    _form(a, "/admin/updates", {"kind": "generic", "client": slug, "action": "send", "back": "invite"}, page="/admin/updates?show=invite")
+    new = set(glob.glob(out + "/*.eml")) - before
+    assert len(new) == 1
+    msg = email.message_from_string(open(new.pop()).read())
+    assert msg["To"] == "sam@shine.test" and msg["Bcc"] == "aaron+sent@hapitech.dev"
+    s = app.test_client(); _login(s, "sam@shine.test")
+    home = s.get("/portal/").get_data(as_text=True)
+    assert "/portal/reviews" in home and "/portal/jobs" not in home and "Edit my website" not in home
+    r = s.get("/portal/jobs")
+    assert r.status_code == 302
+    with app.app_context():
+        db.session.delete(db.session.get(SystemState, "invite_mode")); db.session.commit()

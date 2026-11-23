@@ -55,8 +55,10 @@ def admin_nav(counts=None):
     ]
 
 
-def portal_nav(counts=None, owner=True):
+def portal_nav(counts=None, owner=True, features=None):
     c = counts or {}
+    from utils.features import ALL, PATHS
+    on = set(features or ALL)
     # sidebar order: Home, My website, Visitors, Reviews, Posts, Jobs, Calendar, Finances, Settings, Help.
     # `tab` = position in the phone's bottom bar (Home, Jobs, Ask, Reviews); `tab_only` = bottom bar only.
     items = [_item("Home", "portal.home", "home", url="/portal", tab=1)]
@@ -74,4 +76,5 @@ def portal_nav(counts=None, owner=True):
         items.append(_item("My plan", "portal.plan", "pound", prefix="/portal/plan"))
         items.append(_item("Settings", "portal.settings", "cog", prefix="/portal/settings"))
     items.append(_item("Help", "portal.help", "help", prefix="/portal/help"))
-    return items
+    off = [p for f, ps in PATHS.items() if f not in on for p in ps]
+    return [i for i in items if not any(i["url"].rstrip("/") == p or i["url"].startswith(p + "/") for p in off)]

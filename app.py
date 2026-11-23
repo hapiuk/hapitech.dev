@@ -87,6 +87,8 @@ def create_app(test_config: dict | None = None):
     app.jinja_env.globals["hub_url"] = hub_url
     from utils.review_platforms import logo_for
     app.jinja_env.globals["platform_logo"] = logo_for
+    from utils.features import LABELS as _feature_labels
+    app.jinja_env.globals["feature_labels"] = _feature_labels
     app.wsgi_app = HubHost(app.wsgi_app)          # hapitech.report -> /r/... (the reviews site)
 
     from cli import register_cli
