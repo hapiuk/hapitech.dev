@@ -70,10 +70,12 @@
     {# ---------------- what they asked for ---------------- #}
     {% if lead.message or lead.preferred or lead.travel_note %}
     <section class="card">
-      <div class="card__head"><h3>What they asked</h3><span class="small muted">{{ {'website':'From your website','booking':'Booking request','phone':'Phone','manual':'Added by you','issue':'Reported issue'}.get(lead.source, lead.source) }} · {{ lead.created_at | ago }}</span></div>
+      <div class="card__head"><h3>What they asked</h3><span class="small muted">{{ {'website':'From your website','booking':'Booking request','phone':'Phone','manual':'Added by you','issue':'Reported issue','request':'Work request from their dashboard','enquiry':'hapitech.dev enquiry'}.get(lead.source, lead.source) }} · {{ lead.created_at | ago }}</span></div>
       {% if lead.message %}<p style="white-space:pre-wrap">{{ lead.message }}</p>{% endif %}
       {% if lead.preferred %}<p class="small" style="margin-top:8px"><b>Preferred:</b> {{ lead.preferred }}</p>{% endif %}
       {% if lead.travel_note %}<p class="small"><b>Travel:</b> {{ lead.travel_note }}</p>{% endif %}
+      {% if lead.for_account %}<p class="small" style="margin-top:8px"><b>Client:</b> {% if current_user.is_admin %}<a href="{{ url_for('admin.client', slug=lead.for_account.slug) }}">{{ lead.for_account.name }}</a>{% else %}{{ lead.for_account.name }}{% endif %}</p>{% endif %}
+      {% if lead.offer_gbp %}<p class="small"><b>They offered:</b> {{ lead.offer_gbp | gbp(true) }}</p>{% elif lead.source == 'request' %}<p class="small"><b>Offer:</b> none, send them a quote</p>{% endif %}
     </section>
     {% endif %}
 
@@ -126,7 +128,8 @@
     </details>
     <form method="post" class="card stack">
       {% if lead.status in ('new', 'quoted', 'accepted', 'booked') %}<button class="btn btn--ghost btn--sm" name="action" value="decline" data-confirm="Mark as not going ahead? It'll be deleted in 30 days.">Not going ahead</button>{% endif %}
-      {% if lead.status == 'new' and lead.source in ('website', 'booking') %}<button class="btn btn--ghost btn--sm" name="action" value="spam" data-confirm="Delete this as spam?">It's spam</button>{% endif %}
+      {% if current_user.is_admin and g.account.kind == 'internal' and lead.source in ('enquiry', 'website', 'manual', 'phone') and not lead.for_account_id %}<button class="btn btn--sm" name="action" value="make-client" data-confirm="Set {{ lead.name }} up as a client with their own dashboard? (Their login stays off until you send the invite.)">Make them a client</button>{% endif %}
+      {% if lead.status == 'new' and lead.source in ('website', 'booking', 'enquiry') %}<button class="btn btn--ghost btn--sm" name="action" value="spam" data-confirm="Delete this as spam?">It's spam</button>{% endif %}
       {% if lead.archived_at %}<button class="btn btn--ghost btn--sm" name="action" value="unarchive">Move back to jobs</button>
       {% elif lead.status in ('done', 'declined') %}<button class="btn btn--ghost btn--sm" name="action" value="archive">Archive</button>{% endif %}
       {% if lead.can_delete %}<button class="btn btn--danger btn--sm" name="action" value="delete" data-confirm="Delete this job and the customer's details for good?">Delete</button>

@@ -24,9 +24,17 @@
 <section class="card txn" style="margin-top:12px">
   <div class="card__head"><h2>Transaction history</h2>{% if v.since %}<span class="small muted">since {{ v.since | ukdate('%B %Y') }}</span>{% endif %}</div>
   <div class="txn__filters">
-    <label class="txn__filter"><span class="small muted">Month</span><input type="month" data-txn-month aria-label="Show one month"></label>
-    <label class="txn__filter txn__filter--grow"><span class="small muted">Search</span><input type="search" data-txn-search placeholder="e.g. hosting, 2025, HT-001…" aria-label="Search transactions"></label>
-    <button type="button" class="btn btn--ghost btn--sm" data-txn-clear>Show all</button>
+    <label class="txn__filter"><span class="small muted">Show</span>
+      <select data-txn-period aria-label="Show a year or month">
+        <option value="">Everything</option>
+        {% for y, months in v.periods.items() %}
+        <optgroup label="{{ y }}">
+          <option value="{{ y }}">All of {{ y }}</option>
+          {% for m, label in months %}<option value="{{ m }}">{{ label }}</option>{% endfor %}
+        </optgroup>
+        {% endfor %}
+      </select></label>
+    <label class="txn__filter txn__filter--grow"><span class="small muted">Search</span><input type="search" data-txn-search placeholder="e.g. hosting, HT-001…" aria-label="Search transactions"></label>
   </div>
   <ul class="txn__list" data-txn-list>
   {% for t in v.transactions %}
@@ -34,7 +42,7 @@
         data-text="{{ t.ref }} {{ t.date | ukdate('%-d %B %Y') }} {% for l in t.lines %}{{ l.title }} {% endfor %}{{ t.status }}">
       <details>
         <summary class="txn__row">
-          <span class="txn__date"><strong>{{ t.date.strftime('%-d') }}</strong><small>{{ t.date.strftime('%b %Y') }}</small></span>
+          <span class="txn__date"><small>{{ t.date.strftime('%b') }}</small><strong>{{ t.date.strftime('%-d') }}</strong><small>{{ t.date.strftime('%Y') }}</small></span>
           <span class="txn__what"><strong>{{ t.summary }}</strong><small class="muted">{{ t.ref }}</small></span>
           <span class="txn__amt"><strong>{{ t.charges | gbp(true) if t.charges else t.paid | gbp(true) }}</strong>
             <span class="badge {{ {'Paid':'badge--ok','Covered':'badge--ok','Upcoming':'','Due':'badge--warn','Payment':'badge--ok'}[t.status] }}">{{ t.status }}</span></span>
@@ -53,6 +61,7 @@
   {% endfor %}
   </ul>
   <p class="small muted txn__none" hidden>Nothing for that month or search.</p>
+  <div class="txn__more" hidden><button type="button" class="btn btn--ghost btn--sm" data-txn-more>Show older</button></div>
   <dl class="statement__totals">
     <dt>Total so far</dt><dd>{{ v.total_price | gbp(true) }}</dd>
     {% if v.saved %}<dt>{{ 'Friends plan' if addon and addon.status == 'friends' else 'Covered by HapiTech' }}</dt><dd class="statement__minus">−{{ v.saved | gbp(true) }}</dd>{% endif %}
@@ -106,5 +115,6 @@
   </div>
 </dialog>
 {% endif %}
+{% with back='plan' %}<div style="margin-top:12px">{% include "portal/_work_request.html" %}</div>{% endwith %}
 <p class="small muted" style="margin-top:14px">Questions about anything here? <a href="{{ url_for('portal.help') }}">Message Aaron</a>.</p>
 {% endblock %}

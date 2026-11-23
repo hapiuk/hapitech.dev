@@ -1189,3 +1189,58 @@ def test_needs_attention_counts_payments_across_order_stages(app):
         db.session.commit()
     adm = app.test_client(); _login(adm, "admin@test")
     assert "unpaid</span>" not in adm.get("/admin/").get_data(as_text=True)
+
+
+def test_work_request_with_and_without_offer(app):
+    from models.work import Lead
+    o = app.test_client(); _login(o, "roland@test")
+    page = o.get("/portal/plan").get_data(as_text=True)
+    assert "Need something doing?" in page
+    n = len(_outbox(app))
+    _form(o, "/portal/requests/work", {"kind": "feature", "what": "Add a kitchen fitting page", "offer": "£150"}, page="/portal/plan")
+    _form(o, "/portal/requests/work", {"kind": "change", "what": "New phone number on the site", "offer": ""}, page="/portal/plan")
+    with app.app_context():
+        reqs = Lead.query.filter_by(source="request").order_by(Lead.id).all()
+        assert len(reqs) == 2 and reqs[0].account.slug == "hapitech" and reqs[0].for_account.slug == "rolands"
+        assert float(reqs[0].offer_gbp) == 150 and reqs[1].offer_gbp is None
+        assert reqs[0].title == "A new feature or page: Add a kitchen fitting page"
+        rid = reqs[0].id
+    assert len(_outbox(app)) == n + 2
+    page = o.get("/portal/plan").get_data(as_text=True)
+    assert "Add a kitchen fitting page" in page and "you offered £150.00" in page and "Received" in page
+    adm = app.test_client(); _login(adm, "admin@test")
+    adm.get("/admin/me/jobs")
+    job = adm.get(f"/portal/jobs/{rid}").get_data(as_text=True)
+    assert "They offered:" in job and "Roland" in job
+
+
+def test_site_enquiry_becomes_a_client_with_a_project_page(app):
+    from models.core import Account, User
+    from models.work import Lead
+    c = app.test_client()
+    tok = _csrf(c, "/")
+    r = c.post("/contact", headers={"X-CSRF-Token": tok}, json={
+        "name": "Dave Smith", "email": "dave@smithplumbing.test", "message": "Looking for: A website\\n\\nNeed a site",
+        "business": "Smith Plumbing", "phone": "07700900111", "need": "A website"})
+    c.post("/contact", headers={"X-CSRF-Token": tok}, json={"name": "Spam", "email": "x@y.z",
+        "message": 'casino payid <a href="https://x.example">win</a>'})
+    with app.app_context():
+        lead = Lead.query.filter_by(source="enquiry", name="Dave Smith").first()
+        assert lead and lead.account.slug == "hapitech" and lead.title == "A website for Smith Plumbing"
+        assert Lead.query.filter_by(source="enquiry", name="Spam").first().status == "spam"
+        lid = lead.id
+    adm = app.test_client(); _login(adm, "admin@test")
+    adm.get("/admin/me/jobs")
+    assert "Make them a client" in adm.get(f"/portal/jobs/{lid}").get_data(as_text=True)
+    r = _form(adm, f"/portal/jobs/{lid}", {"action": "make-client"}, page=f"/portal/jobs/{lid}")
+    assert r.headers["Location"].endswith("/admin/clients/smith-plumbing")
+    with app.app_context():
+        acc = Account.query.filter_by(slug="smith-plumbing").first()
+        u = User.query.filter_by(email="dave@smithplumbing.test").first()
+        assert acc.contact_phone == "07700900111" and u.account_id == acc.id and not u.is_active_flag
+        assert Lead.query.get(lid).for_account_id == acc.id
+    assert 'id="c-smith-plumbing"' in adm.get("/admin/updates?show=new").get_data(as_text=True)
+    _form(adm, "/admin/updates", {"kind": "invite", "section": "0", "client": "smith-plumbing", "action": "send"}, page="/admin/updates")
+    adm.get("/admin/clients/smith-plumbing/portal")
+    site = adm.get("/portal/website").get_data(as_text=True)
+    assert "Your new website is on its way" in site and "Your website project" in site

@@ -1,0 +1,25 @@
+{# templates/portal/_work_request.html — ask HapiTech for extra work; expects `work` (their requests) and `back`. #}
+{% from "app/_macros.html" import howto with context %}
+<section class="card work" id="work">
+  <div class="card__head"><h2>{{ title or 'Need something doing?' }}</h2>{% if work %}<span class="small muted">{{ work | length }} request{{ '' if work | length == 1 else 's' }}</span>{% endif %}</div>
+  <p class="small muted">{{ intro or "Changes, new features, a rework, anything extra for your website. Offer an amount if you like, or leave it blank and Aaron will send you a quote." }}</p>
+  {% if work %}
+  <ul class="work__list">
+    {% for r in work %}{% set st = work_status.get(r.status, (r.status, '')) %}
+    <li><span><strong>{{ r.title.split(': ', 1)[-1] }}</strong><small class="muted">{{ r.created_at | ago }}{% if r.offer_gbp %} · you offered {{ r.offer_gbp | gbp(true) }}{% endif %}{% if r.status == 'booked' and r.start_at %} · {{ r.start_at | ukdate }}{% endif %}</small></span>
+      <span class="work__right">{% set q = r.quotes | selectattr('status', 'in', ['sent', 'accepted']) | first %}{% if q %}<a class="small" href="{{ url_for('customer.quote', token=q.token) }}" target="_blank" rel="noopener">View quote</a>{% endif %}
+        <span class="badge {{ st[1] }}">{{ st[0] }}</span></span></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <details class="work__ask" {% if not work %}open{% endif %}>
+    <summary class="btn btn--sm">+ Ask for something</summary>
+    <form method="post" action="{{ url_for('portal.work_request') }}" class="form-grid" style="margin-top:12px">
+      <input type="hidden" name="back" value="{{ back }}">
+      <label class="field"><span>What kind?</span><select name="kind">{% for k, lbl in work_kinds %}<option value="{{ k }}">{{ lbl }}</option>{% endfor %}</select></label>
+      <label class="field"><span>Your offer (£) <small>optional</small></span><input name="offer" inputmode="decimal" placeholder="Leave blank for a quote"></label>
+      <label class="field full"><span>What would you like?</span><textarea name="what" rows="4" maxlength="4000" required placeholder="e.g. Add a page about kitchen fitting, with a few photos and a price guide."></textarea></label>
+      <div class="form-actions full"><button class="btn btn--sm">Send to Aaron</button></div>
+    </form>
+  </details>
+</section>

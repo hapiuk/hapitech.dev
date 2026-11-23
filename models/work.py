@@ -51,7 +51,11 @@ class Lead(TimestampMixin, db.Model):
     declined_at = db.Column(db.DateTime)
     archived_at = db.Column(db.DateTime, index=True)
     assigned_to = db.Column(db.Integer, db.ForeignKey("users.id"))
-    account = db.relationship("Account")
+    # HapiTech's own jobs: which client a work request / issue is for, and what they offered (blank = quote me)
+    for_account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), index=True)
+    offer_gbp = db.Column(db.Numeric(10, 2))
+    account = db.relationship("Account", foreign_keys=[account_id])
+    for_account = db.relationship("Account", foreign_keys=[for_account_id])
     quotes = db.relationship("Quote", back_populates="lead", cascade="all, delete-orphan",
                              order_by="Quote.created_at.desc()")
     invoices = db.relationship("Invoice", back_populates="lead", cascade="all, delete-orphan",

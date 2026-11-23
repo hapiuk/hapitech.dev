@@ -273,22 +273,30 @@ document.querySelectorAll("[data-check-all]").forEach(function (all) {
   });
 })();
 
-/* My plan: filter the transaction history by month or text */
+/* My plan: transaction history: latest 8 first ("Show older" adds 8 more), filter by year / month or text */
 (function () {
   var list = document.querySelector("[data-txn-list]");
   if (!list) return;
-  var month = document.querySelector("[data-txn-month]"), search = document.querySelector("[data-txn-search]");
-  var none = document.querySelector(".txn__none");
+  var period = document.querySelector("[data-txn-period]"), search = document.querySelector("[data-txn-search]");
+  var none = document.querySelector(".txn__none"), more = document.querySelector(".txn__more");
+  var STEP = 8, limit = STEP;
   function apply() {
-    var m = month.value, q = search.value.trim().toLowerCase(), any = false;
+    var p = period.value, q = search.value.trim().toLowerCase(), shown = 0, matches = 0;
+    var filtering = !!(p || q);
     list.querySelectorAll(".txn__item").forEach(function (li) {
-      var hit = (!m || li.getAttribute("data-month") === m) && (!q || li.getAttribute("data-text").toLowerCase().indexOf(q) > -1);
-      li.hidden = !hit; any = any || hit;
+      var m = li.getAttribute("data-month");
+      var hit = (!p || m === p || m.slice(0, 4) === p) && (!q || li.getAttribute("data-text").toLowerCase().indexOf(q) > -1);
+      if (hit) matches++;
+      var show = hit && (filtering || shown < limit);
+      if (show) shown++;
+      li.hidden = !show;
     });
-    if (none) none.hidden = any;
+    none.hidden = matches > 0;
+    more.hidden = filtering || matches <= limit;
   }
-  month.addEventListener("input", apply); search.addEventListener("input", apply);
-  document.querySelector("[data-txn-clear]").addEventListener("click", function () { month.value = ""; search.value = ""; apply(); });
+  period.addEventListener("change", apply); search.addEventListener("input", apply);
+  more.querySelector("button").addEventListener("click", function () { limit += STEP; apply(); });
+  apply();
 })();
 
 /* Support HapiTech: small button -> choose PayPal / Revolut -> (PayPal only) choose amount -> thank-you.

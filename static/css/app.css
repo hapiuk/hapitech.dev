@@ -530,3 +530,29 @@ button.support__way{width:100%;font:inherit;text-align:left;cursor:pointer}
 .money-costs__form{padding:4px 0 14px}
 .money-costs__note{margin:-6px 0 12px}
 @media (max-width:700px){.money-costs__row{grid-template-columns:1fr auto;}.money-costs__row > span:nth-child(3),.money-costs__row > span:nth-child(5){display:none}}
+.txn__filter select{padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:16px;min-width:170px}
+.txn__more{display:flex;justify-content:center;padding:10px 0 2px}
+.txn__list{max-height:none}
+.work__list{list-style:none;margin:0 0 12px;padding:0}
+.work__list li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.work__list li > span:first-child{display:grid;min-width:0}
+.work__list small{font-size:.78rem}
+.work__right{display:flex;align-items:center;gap:10px;white-space:nowrap}
+.work__ask > summary{list-style:none;display:inline-flex;cursor:pointer}
+.work__ask > summary::-webkit-details-marker{display:none}
+.work__ask[open] > summary{display:none}
+.project{display:flex;gap:14px;align-items:flex-start}
+.project__icon{font-size:2rem;line-height:1}
+.project h2{font-size:1.15rem;margin-bottom:4px}
+.project__steps{list-style:none;margin:12px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;counter-reset:step}
+.project__steps li{counter-increment:step;padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--card);display:grid;gap:2px;position:relative}
+.project__steps li::before{content:counter(step);display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--bg);border:1px solid var(--line);font-size:.78rem;font-weight:700;margin-bottom:4px}
+.project__steps li.is-done::before{content:"✓";background:var(--ok,#22c55e);border-color:var(--ok,#22c55e);color:#fff}
+.project__steps li.is-now{border-color:var(--acc)}
+.project__steps li.is-now::before{background:var(--acc);border-color:var(--acc);color:#fff}
+.project__steps small{color:var(--muted);font-size:.78rem}
+@media (max-width:700px){.project__steps{grid-template-columns:1fr 1fr}}
+.txn__row{grid-template-columns:50px 1fr auto}
+.txn__date{width:50px;height:56px;align-content:center;gap:1px;padding:0}
+.txn__date small{font-size:.62rem;letter-spacing:.04em;line-height:1}
+.txn__date strong{font-size:1.1rem;line-height:1.05}

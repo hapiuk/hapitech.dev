@@ -49,6 +49,7 @@ def contact():
         "referer": request.headers.get("Referer", ""),
         "utc": datetime.datetime.utcnow().isoformat(),
     }
+    _save_enquiry(name, email, message, data)
     try:
         send_contact_email(name=name, email=email, message=message, meta=meta)
     except Exception as e:
@@ -98,3 +99,25 @@ def post_link(pid):
     """The dashboard's share links use /posts/<id> on every site; on hapitech.dev those are /updates/<id>."""
     from flask import url_for
     return redirect(url_for("public.updates", pid=pid), code=301)
+
+
+def _save_enquiry(name, email, message, data):
+    """hapitech.dev enquiries also land in HapiTech's own Jobs (spam kept out), ready to quote or turn into a client."""
+    try:
+        from models import db
+        from models.work import Lead
+        from utils.hapitech_account import get
+        from utils.spam import looks_like_spam
+        need = (data.get("need") or "").strip()[:80]
+        business = (data.get("business") or "").strip()[:160]
+        lead = Lead(account_id=get().id, source="enquiry", name=name, email=email,
+                    phone=(data.get("phone") or "").strip()[:40] or None,
+                    title=(f"{need}" + (f" for {business}" if business else ""))[:160] or "Website enquiry",
+                    message=message, notes=f"Business: {business}" if business else None)
+        spam = looks_like_spam(name, email, message)
+        if spam:
+            lead.status, lead.notes = "spam", f"Blocked as spam: {spam}"
+        db.session.add(lead)
+        db.session.commit()
+    except Exception as exc:          # never lose the email over this
+        print(f"[ENQUIRY_SAVE] {exc}")

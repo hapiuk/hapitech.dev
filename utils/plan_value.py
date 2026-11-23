@@ -80,8 +80,14 @@ def summary(account, today=None):
     since = min(starts) if starts else None
     work = [j for j in account.jobs if j.status == "done" and float(j.price_gbp or 0) > 0]
     covered_so_far = round(sum(t["covered"] for t in past), 2)
+    periods = {}                                   # {2026: [("2026-11", "November 2026"), ...]} newest first
+    for t in tx:
+        key = t["date"].strftime("%Y-%m")
+        months = periods.setdefault(t["date"].year, [])
+        if key not in [k for k, _ in months]:
+            months.append((key, t["date"].strftime("%B %Y")))
     return {
-        "transactions": tx, "since": since,
+        "transactions": tx, "since": since, "periods": periods,
         "total_price": round(sum(t["charges"] for t in past), 2),
         "saved": covered_so_far, "covered_so_far": covered_so_far,
         "paid": round(sum(t["paid"] for t in past), 2),

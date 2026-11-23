@@ -252,6 +252,7 @@
         name: required.name.value.trim(),
         email: required.email.value.trim(),
         message: message,
+        business: business, phone: phone, need: need,
         client: "hapitech.dev quote form"
       })
     })

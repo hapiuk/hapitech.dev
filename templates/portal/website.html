@@ -8,7 +8,22 @@
 </div>
 
 {% if not photos and not groups %}
-  {{ empty('Not set up yet', 'HapiTech is connecting your website. Editable sections will appear here soon.') }}
+  {# a new client: their site isn't built / connected yet, so this page tracks the project instead #}
+  <section class="card card--accent project">
+    <p class="project__icon" aria-hidden="true">🚧</p>
+    <div><h2>Your new website is on its way</h2>
+      <p class="small muted">Once it's live, this is where you'll change your wording, services and photos yourself. Until then, tell Aaron what you'd like and follow the progress here.</p></div>
+  </section>
+  <ol class="project__steps">
+    {% set started = work | length > 0 %}
+    <li class="is-done"><strong>Dashboard set up</strong><small>You're in ✓</small></li>
+    <li class="{{ 'is-done' if started else 'is-now' }}"><strong>Tell us what you need</strong><small>Pages, features, photos, anything</small></li>
+    <li class="{{ 'is-now' if started else '' }}"><strong>Build &amp; preview</strong><small>Aaron builds it and shows you</small></li>
+    <li><strong>Go live</strong><small>Then edit it all from here</small></li>
+  </ol>
+  {% with back='website', title='Your website project', intro="Pages, features, photos, ideas from other sites you like: add as many as you want. Offer an amount if you have a budget in mind, or leave it blank for a quote." %}
+  <div style="margin-top:12px">{% include "portal/_work_request.html" %}</div>
+  {% endwith %}
 {% else %}
 <div class="site-stats small muted">
   <span>✏️ {{ edited }} of {{ total }} sections changed by you</span>

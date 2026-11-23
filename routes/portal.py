@@ -373,8 +373,10 @@ def website():
         groups.setdefault(b.group, {}).setdefault(item, []).append(b)
     edited = sum(1 for b in blocks if not b.is_default)
     last = max((b.updated_at for b in blocks if not b.is_default), default=None)
+    from utils import work_requests as wr
     return render_template("portal/website.html", photos=photos, groups=groups, edited=edited, total=len(blocks),
-                           last=last, hero_mode=hero_mode(g.account))
+                           last=last, hero_mode=hero_mode(g.account),
+                           work=wr.for_client(g.account), work_kinds=wr.KINDS, work_status=wr.CLIENT_STATUS)
 
 
 @portal_bp.route("/website/save", methods=["POST"])

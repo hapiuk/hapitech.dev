@@ -195,6 +195,20 @@
     "Card or PayPal": "Karte vai PayPal", "Card, Apple Pay or Google Pay": "Karte, Apple Pay vai Google Pay",
     "Totally optional, and your plan stays the same either way. If you'd like to chip in towards the running costs, thank you!": "Pilnīgi brīvprātīgi, un jūsu plāns jebkurā gadījumā paliek tāds pats. Ja vēlaties piedalīties uzturēšanas izmaksās, paldies!",
     "That really helps keep everything running. Aaron's been told, so expect a thank-you from him too.": "Tas tiešām palīdz visu uzturēt. Ārons ir informēts, tāpēc gaidiet paldies arī no viņa.",
+    /* history filter, work requests, project page */
+    "Show": "Rādīt", "Everything": "Visu", "Show older": "Rādīt vecākus", "Show a year or month": "Rādīt gadu vai mēnesi",
+    "e.g. hosting, HT-001…": "piem., mitināšana, HT-001…",
+    "Need something doing?": "Vajag kaut ko izdarīt?", "+ Ask for something": "+ Palūgt kaut ko", "What kind?": "Kāda veida?",
+    "A change to my website": "Izmaiņas manā vietnē", "A new feature or page": "Jauna funkcija vai lapa", "Rework something": "Pārstrādāt kaut ko",
+    "Something else": "Kaut kas cits", "What would you like?": "Ko jūs vēlētos?", "Leave blank for a quote": "Atstājiet tukšu, lai saņemtu tāmi",
+    "Received": "Saņemts", "Quote sent": "Tāme nosūtīta", "Booked in": "Ieplānots", "Done ✓": "Pabeigts ✓", "View quote": "Skatīt tāmi",
+    "Changes, new features, a rework, anything extra for your website. Offer an amount if you like, or leave it blank and Aaron will send you a quote.": "Izmaiņas, jaunas funkcijas, pārstrāde, jebkas papildus jūsu vietnei. Ja vēlaties, piedāvājiet summu, vai atstājiet tukšu, un Ārons nosūtīs tāmi.",
+    "Your new website is on its way": "Jūsu jaunā vietne ir ceļā", "Your website project": "Jūsu vietnes projekts",
+    "Once it's live, this is where you'll change your wording, services and photos yourself. Until then, tell Aaron what you'd like and follow the progress here.": "Kad tā būs gatava, šeit paši varēsiet mainīt tekstus, pakalpojumus un foto. Līdz tam pastāstiet Āronam, ko vēlaties, un sekojiet progresam šeit.",
+    "Dashboard set up": "Panelis iestatīts", "You're in ✓": "Jūs esat iekšā ✓", "Tell us what you need": "Pastāstiet, kas jums vajadzīgs",
+    "Pages, features, photos, anything": "Lapas, funkcijas, foto, jebkas", "Build & preview": "Izveide un priekšskatījums",
+    "Aaron builds it and shows you": "Ārons to izveido un parāda jums", "Go live": "Palaišana", "Then edit it all from here": "Tad visu rediģējiet šeit",
+    "Pages, features, photos, ideas from other sites you like: add as many as you want. Offer an amount if you have a budget in mind, or leave it blank for a quote.": "Lapas, funkcijas, foto, idejas no citām vietnēm, kas jums patīk: pievienojiet, cik vēlaties. Piedāvājiet summu, ja jums ir budžets, vai atstājiet tukšu, lai saņemtu tāmi.",
     /* fragments around bold words (help, calendar) */
     "iPhone:": "iPhone:", "tap": "pieskarieties", ", then Settings → Calendar → Accounts → Add Account → Other →": ", tad Iestatījumi → Kalendārs → Konti → Pievienot kontu → Cits →",
     "Add Subscribed Calendar": "Pievienot abonētu kalendāru", ", and paste.": ", un ielīmējiet.", "Android / Google Calendar:": "Android / Google kalendārs:",
@@ -227,6 +241,9 @@
     week: ["nedēļas", "nedēļām"], month: ["mēneša", "mēnešiem"], year: ["gada", "gadiem"] };
 
   var P = [
+    [/^Your offer \(£\)$/, "Jūsu piedāvājums (£)"], [/^All of (\d{4})$/, "Viss $1. gads"],
+    [/^(\d+) requests?$/, "$1 pieprasījumi"], [/^(.+) · you offered (£[\d,.]+)$/, function (m, a, p) { return tr(a) + " · jūs piedāvājāt " + p; }],
+    [/^Sent to Aaron\. (.+)$/, function (m, a) { return "Nosūtīts Āronam. " + (a.indexOf("quote") > -1 ? "Viņš atbildēs ar tāmi." : "Viņš to ar jums apstiprinās."); }],
     [/^Continue to (.+)$/, "Turpināt uz $1"], [/^You'll type the amount on (.+)\.$/, "Summu ievadīsiet $1."],
     [/^Receipt · download PDF$/, "Kvīts · lejupielādēt PDF"], [/^View · download PDF$/, "Skatīt · lejupielādēt PDF"],
     [/^(.+) \+ (\d+) more$/, function (m, a, n) { return tr(a) + " + vēl " + n; }],

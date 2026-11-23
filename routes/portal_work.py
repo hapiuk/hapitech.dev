@@ -165,6 +165,33 @@ def job(lid):
                 except Exception as exc:
                     msg += f" (Review email failed: {exc})"
             flash(msg, "ok")
+        elif action == "make-client" and current_user.is_admin and g.account.kind == "internal" and not lead.for_account_id:
+            from models.core import Account as _Acc, Note as _Note, User as _User, slugify as _slugify
+            from routes.admin.clients import ADDED_NOTE
+            email = (lead.email or "").strip().lower()
+            if not email or _User.query.filter(db.func.lower(_User.email) == email).first():
+                flash("They need an email address that doesn't already have a login.", "err")
+                return redirect(url_for("portal.job", lid=lead.id))
+            business = ""
+            for line in (lead.notes or "").splitlines() + (lead.message or "").splitlines():
+                if line.startswith("Business: "):
+                    business = line[len("Business: "):].strip()
+                    break
+            name = business or lead.name
+            base, n, slug = _slugify(name), 2, _slugify(name)
+            while _Acc.query.filter_by(slug=slug).first():
+                slug, n = f"{base}-{n}", n + 1
+            acc = _Acc(kind="client", name=name[:160], slug=slug, contact_name=lead.name, contact_email=email,
+                          contact_phone=lead.phone)
+            db.session.add(acc)
+            db.session.flush()
+            db.session.add(_User(email=email, username=email, name=lead.name, role="owner", account_id=acc.id, is_active_flag=False))
+            db.session.add(_Note(account_id=acc.id, author_id=current_user.id, body=ADDED_NOTE))
+            db.session.add(_Note(account_id=acc.id, author_id=current_user.id, body=f"From enquiry: {lead.title or ''}\n\n{lead.message or ''}"[:4000]))
+            lead.for_account_id = acc.id
+            db.session.commit()
+            flash(f"{acc.name} is now a client (login off). Send their invite from Emails to clients → Invite new clients.", "ok")
+            return redirect(url_for("admin.client", slug=acc.slug))
         elif action == "spam" and lead.status == "new":
             db.session.delete(lead)
             db.session.commit()
@@ -424,7 +451,9 @@ def plan():
     ad = a.addon()
     friends = bool(ad and ad.status == "friends")
     support = support_options() if friends else []      # a small "Support HapiTech" button, Friends plan only
-    return render_template("portal/plan.html", owed=Decimal(a.balance_gbp or 0), addon=ad, v=summary(a), support=support)
+    from utils import work_requests as wr
+    return render_template("portal/plan.html", owed=Decimal(a.balance_gbp or 0), addon=ad, v=summary(a), support=support,
+                           work=wr.for_client(a), work_kinds=wr.KINDS, work_status=wr.CLIENT_STATUS)
 
 
 @portal_bp.route("/support", methods=["POST"])
@@ -469,3 +498,27 @@ def receipt(ref):
     if not t:
         abort(404)
     return render_template("portal/receipt.html", t=t, a=g.account, addon=g.account.addon())
+
+
+
+# ---------------------------------------------------------------- asking HapiTech for extra work
+
+@portal_bp.route("/requests/work", methods=["POST"])
+@owner_required
+def work_request():
+    from utils import work_requests as wr
+    f = request.form
+    what = (f.get("what") or "").strip()[:4000]
+    back = f.get("back") if f.get("back") in ("plan", "website") else "plan"
+    if not what:
+        flash("Tell Aaron what you'd like done.", "err")
+    else:
+        offer = wr.parse_offer(f.get("offer"))
+        if (f.get("offer") or "").strip() and offer is None:
+            flash("That amount didn't look right, so it was sent without one. Aaron will quote you.", "err")
+        if current_user.is_admin and g.account.kind != "internal":
+            flash("(Viewing as admin: not sent.)", "ok")
+        else:
+            wr.create(g.account, current_user, f.get("kind"), what, offer)
+            flash("Sent to Aaron. " + ("He'll confirm it with you." if offer else "He'll reply with a quote."), "ok")
+    return redirect(url_for("portal.website" if back == "website" else "portal.plan") + "#work")
