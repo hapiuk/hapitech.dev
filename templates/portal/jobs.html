@@ -3,6 +3,18 @@
 {% block title %}Jobs{% endblock %}
 {% block content %}
 <div class="page-top"><div><h1>Jobs</h1><p>Every enquiry, from first contact to paid.</p></div><a class="btn btn--sm" href="{{ url_for('portal.job_new') }}">Add a job</a></div>
+<div class="shortcuts" aria-label="Find more work">
+  <span class="small muted">Find more work:</span>
+  {% for label, url in g.account.shortcut_list %}<a class="shortcut" href="{{ url }}" target="_blank" rel="noopener">{{ label }} ↗</a>{% endfor %}
+  <details class="shortcut-add"><summary class="shortcut" title="Ask for another shortcut">＋</summary>
+    <form method="post" action="{{ url_for('portal.work_request') }}" class="row" style="margin-top:8px">
+      <input type="hidden" name="kind" value="other"><input type="hidden" name="back" value="jobs">
+      <input class="input-sm" name="what" required placeholder="e.g. Checkatrade, Rated People, Nextdoor…" style="min-width:220px">
+      <input type="hidden" name="prefix" value="Please add a Jobs shortcut to: ">
+      <button class="btn btn--sm">Ask Aaron</button>
+    </form>
+  </details>
+</div>
 {% call howto() %}
   <ol>
     <li>Quote requests from your website land here automatically. Add phone enquiries with <b>Add a job</b>.</li>

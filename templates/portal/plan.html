@@ -79,6 +79,21 @@
   <p class="small muted">Hosting, maintenance, security, email and more{% if v.since %} since {{ v.since | ukdate('%B %Y') }}{% endif %}, covered by HapiTech.</p>
 </section>
 {% endif %}
+<section class="card extras" id="extras" style="margin-top:12px">
+  <div class="card__head"><h2>✨ Extras</h2><span class="small muted">add-ons Aaron can switch on for you</span></div>
+  {% for x in extras %}
+  <div class="extra">
+    <span class="extra__icon" aria-hidden="true">{{ x.icon }}</span>
+    <div class="extra__body"><strong>{{ x.name }}</strong><p class="small muted">{{ x.line }}</p><p class="small">{{ x.price }}</p></div>
+    <div class="extra__act">
+      {% if x.status == 'active' %}<span class="badge badge--ok">On</span>
+      {% elif x.status == 'requested' %}<span class="badge">Requested ✓</span>
+      {% elif x.status == 'paused' %}<span class="badge">Paused</span>
+      {% else %}<form method="post" action="{{ url_for('portal.extra_request', key=x.key) }}"><button class="btn btn--ghost btn--sm">I'm interested</button></form>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</section>
 <div class="support-row">
   <button type="button" class="btn btn--ghost btn--sm" data-work-open>🛠 Request work{% if work %} ({{ work | length }}){% endif %}</button>
   {% if support %}<button type="button" class="btn btn--ghost btn--sm" data-support-open>☕ Support HapiTech</button>{% endif %}

@@ -1,0 +1,407 @@
+[
+ {
+  "key": "hero.title",
+  "type": "text",
+  "label": "Top of page: heading",
+  "group": "Top of page",
+  "default": "Home maintenance done right",
+  "max_length": 60,
+  "sort": 0
+ },
+ {
+  "key": "hero.text",
+  "type": "longtext",
+  "label": "Top of page: text under the heading",
+  "group": "Top of page",
+  "default": "Fast, friendly, and tidy — everything from small fixes to carefully finished projects.",
+  "max_length": 160,
+  "sort": 1
+ },
+ {
+  "key": "services.furniture.title",
+  "type": "text",
+  "label": "Furniture Assembly: heading",
+  "group": "Services",
+  "default": "Furniture Assembly",
+  "max_length": 40,
+  "sort": 2
+ },
+ {
+  "key": "services.furniture.intro",
+  "type": "longtext",
+  "label": "Furniture Assembly: intro",
+  "group": "Services",
+  "default": "Professional flat-pack assembly you can trust. All work is completed personally by Rolands — no subcontractors, no shortcuts.",
+  "max_length": 260,
+  "sort": 3
+ },
+ {
+  "key": "services.furniture.acc1.title",
+  "type": "text",
+  "label": "Furniture Assembly: dropdown 1 title",
+  "group": "Services",
+  "default": "What’s Included",
+  "max_length": 50,
+  "sort": 4
+ },
+ {
+  "key": "services.furniture.acc1.text",
+  "type": "longtext",
+  "label": "Furniture Assembly: dropdown 1 text",
+  "group": "Services",
+  "default": "Flat-pack furniture assembly for homes and offices including\nbeds, wardrobes, desks, tables, storage units, shelving,\nand cabinets.",
+  "max_length": 600,
+  "sort": 5
+ },
+ {
+  "key": "services.furniture.acc2.title",
+  "type": "text",
+  "label": "Furniture Assembly: dropdown 2 title",
+  "group": "Services",
+  "default": "Why Choose Rolands",
+  "max_length": 50,
+  "sort": 6
+ },
+ {
+  "key": "services.furniture.acc2.text",
+  "type": "longtext",
+  "label": "Furniture Assembly: dropdown 2 text",
+  "group": "Services",
+  "default": "✔ Personally assembled by Rolands\n✔ Correct tools for every job\n✔ Careful, precise workmanship\n✔ Final safety and stability check\n✔ Clean, tidy finish",
+  "max_length": 600,
+  "sort": 7
+ },
+ {
+  "key": "services.furniture.acc3.title",
+  "type": "text",
+  "label": "Furniture Assembly: dropdown 3 title",
+  "group": "Services",
+  "default": "Simple & Stress-Free",
+  "max_length": 50,
+  "sort": 8
+ },
+ {
+  "key": "services.furniture.acc3.text",
+  "type": "longtext",
+  "label": "Furniture Assembly: dropdown 3 text",
+  "group": "Services",
+  "default": "Book your assembly → Rolands arrives on time →\nfurniture assembled properly → final check and clean-up.",
+  "max_length": 600,
+  "sort": 9
+ },
+ {
+  "key": "services.wall.title",
+  "type": "text",
+  "label": "Wall Mounting: heading",
+  "group": "Services",
+  "default": "Wall Mounting Service",
+  "max_length": 40,
+  "sort": 10
+ },
+ {
+  "key": "services.wall.intro",
+  "type": "longtext",
+  "label": "Wall Mounting: intro",
+  "group": "Services",
+  "default": "Secure, precise wall mounting — done properly by Rolands using the correct fixings for your wall type.",
+  "max_length": 260,
+  "sort": 11
+ },
+ {
+  "key": "services.wall.acc1.title",
+  "type": "text",
+  "label": "Wall Mounting: dropdown 1 title",
+  "group": "Services",
+  "default": "What Can Be Mounted",
+  "max_length": 50,
+  "sort": 12
+ },
+ {
+  "key": "services.wall.acc1.text",
+  "type": "longtext",
+  "label": "Wall Mounting: dropdown 1 text",
+  "group": "Services",
+  "default": "TVs and brackets, shelves, floating shelves, pictures,\nartwork, mirrors, small cabinets, and wall units.",
+  "max_length": 600,
+  "sort": 13
+ },
+ {
+  "key": "services.wall.acc2.title",
+  "type": "text",
+  "label": "Wall Mounting: dropdown 2 title",
+  "group": "Services",
+  "default": "Why Choose Rolands",
+  "max_length": 50,
+  "sort": 14
+ },
+ {
+  "key": "services.wall.acc2.text",
+  "type": "longtext",
+  "label": "Wall Mounting: dropdown 2 text",
+  "group": "Services",
+  "default": "✔ Personally completed by Rolands\n✔ Correct fixings for all wall types\n✔ Accurate measuring and levelling\n✔ Secure, safe installation\n✔ Clean, tidy finish",
+  "max_length": 600,
+  "sort": 15
+ },
+ {
+  "key": "services.wall.acc3.title",
+  "type": "text",
+  "label": "Wall Mounting: dropdown 3 title",
+  "group": "Services",
+  "default": "How It Works",
+  "max_length": 50,
+  "sort": 16
+ },
+ {
+  "key": "services.wall.acc3.text",
+  "type": "longtext",
+  "label": "Wall Mounting: dropdown 3 text",
+  "group": "Services",
+  "default": "You choose the position → wall type and load checked →\nitem securely mounted → final safety check and clean-up.",
+  "max_length": 600,
+  "sort": 17
+ },
+ {
+  "key": "services.electrical.title",
+  "type": "text",
+  "label": "Minor Electrical Work: heading",
+  "group": "Services",
+  "default": "Minor Electrical Work",
+  "max_length": 40,
+  "sort": 18
+ },
+ {
+  "key": "services.electrical.intro",
+  "type": "longtext",
+  "label": "Minor Electrical Work: intro",
+  "group": "Services",
+  "default": "Safe, careful minor electrical work completed professionally by Rolands. Work is limited to non-complex electrical tasks only.",
+  "max_length": 260,
+  "sort": 19
+ },
+ {
+  "key": "services.electrical.acc1.title",
+  "type": "text",
+  "label": "Minor Electrical Work: dropdown 1 title",
+  "group": "Services",
+  "default": "What I Can Help With",
+  "max_length": 50,
+  "sort": 20
+ },
+ {
+  "key": "services.electrical.acc1.text",
+  "type": "longtext",
+  "label": "Minor Electrical Work: dropdown 1 text",
+  "group": "Services",
+  "default": "Replacing light fittings and lamps\nChanging switches and power sockets\nInstalling ceiling and wall lights\nReplacing damaged faceplates\nBasic electrical fixes and adjustments",
+  "max_length": 600,
+  "sort": 21
+ },
+ {
+  "key": "services.electrical.acc2.title",
+  "type": "text",
+  "label": "Minor Electrical Work: dropdown 2 title",
+  "group": "Services",
+  "default": "Why Choose Rolands",
+  "max_length": 50,
+  "sort": 22
+ },
+ {
+  "key": "services.electrical.acc2.text",
+  "type": "longtext",
+  "label": "Minor Electrical Work: dropdown 2 text",
+  "group": "Services",
+  "default": "✔ Personally completed by Rolands\n✔ Careful, methodical approach\n✔ Clean, tidy workmanship\n✔ Respect for safety and your home\n✔ Honest advice",
+  "max_length": 600,
+  "sort": 23
+ },
+ {
+  "key": "services.electrical.acc3.title",
+  "type": "text",
+  "label": "Minor Electrical Work: dropdown 3 title",
+  "group": "Services",
+  "default": "Important Safety Note",
+  "max_length": 50,
+  "sort": 24
+ },
+ {
+  "key": "services.electrical.acc3.text",
+  "type": "longtext",
+  "label": "Minor Electrical Work: dropdown 3 text",
+  "group": "Services",
+  "default": "I only carry out minor electrical work within permitted limits.\nIf a job requires a licensed electrician, I’ll let you know\nimmediately — your safety always comes first.",
+  "max_length": 600,
+  "sort": 25
+ },
+ {
+  "key": "services.plumbing.title",
+  "type": "text",
+  "label": "Minor Plumbing Work: heading",
+  "group": "Services",
+  "default": "Minor Plumbing Work",
+  "max_length": 40,
+  "sort": 26
+ },
+ {
+  "key": "services.plumbing.intro",
+  "type": "longtext",
+  "label": "Minor Plumbing Work: intro",
+  "group": "Services",
+  "default": "Reliable minor plumbing work — completed carefully by Rolands. Small, non-complex tasks handled with attention to detail and cleanliness.",
+  "max_length": 260,
+  "sort": 27
+ },
+ {
+  "key": "services.plumbing.acc1.title",
+  "type": "text",
+  "label": "Minor Plumbing Work: dropdown 1 title",
+  "group": "Services",
+  "default": "What I Can Help With",
+  "max_length": 50,
+  "sort": 28
+ },
+ {
+  "key": "services.plumbing.acc1.text",
+  "type": "longtext",
+  "label": "Minor Plumbing Work: dropdown 1 text",
+  "group": "Services",
+  "default": "Replacing taps and mixers\nFixing minor leaks (taps, traps, connections)\nInstalling shower heads and hoses\nReplacing toilet seats and flush buttons\nConnecting washing machines and dishwashers\nReplacing waste traps and flexible hoses",
+  "max_length": 600,
+  "sort": 29
+ },
+ {
+  "key": "services.plumbing.acc2.title",
+  "type": "text",
+  "label": "Minor Plumbing Work: dropdown 2 title",
+  "group": "Services",
+  "default": "Why Choose Rolands",
+  "max_length": 50,
+  "sort": 30
+ },
+ {
+  "key": "services.plumbing.acc2.text",
+  "type": "longtext",
+  "label": "Minor Plumbing Work: dropdown 2 text",
+  "group": "Services",
+  "default": "✔ Personally completed by Rolands\n✔ Careful, methodical workmanship\n✔ Clean and tidy finish\n✔ Respect for your home\n✔ Honest advice on job suitability",
+  "max_length": 600,
+  "sort": 31
+ },
+ {
+  "key": "services.plumbing.acc3.title",
+  "type": "text",
+  "label": "Minor Plumbing Work: dropdown 3 title",
+  "group": "Services",
+  "default": "How It Works",
+  "max_length": 50,
+  "sort": 32
+ },
+ {
+  "key": "services.plumbing.acc3.text",
+  "type": "longtext",
+  "label": "Minor Plumbing Work: dropdown 3 text",
+  "group": "Services",
+  "default": "You explain the issue → suitability confirmed →\nwork completed neatly and safely →\nfinal check for leaks and proper operation.",
+  "max_length": 600,
+  "sort": 33
+ },
+ {
+  "key": "services.plumbing.acc4.title",
+  "type": "text",
+  "label": "Minor Plumbing Work: dropdown 4 title",
+  "group": "Services",
+  "default": "Important Note",
+  "max_length": 50,
+  "sort": 34
+ },
+ {
+  "key": "services.plumbing.acc4.text",
+  "type": "longtext",
+  "label": "Minor Plumbing Work: dropdown 4 text",
+  "group": "Services",
+  "default": "I carry out minor plumbing work only. If a job requires a licensed\nplumber, I’ll let you know straight away — your safety and property\nprotection always come first.",
+  "max_length": 600,
+  "sort": 35
+ },
+ {
+  "key": "area.title",
+  "type": "text",
+  "label": "Service area: heading",
+  "group": "Service area",
+  "default": "Service Area",
+  "max_length": 40,
+  "sort": 36
+ },
+ {
+  "key": "area.text",
+  "type": "longtext",
+  "label": "Service area: text",
+  "group": "Service area",
+  "default": "Roland’s Handyman is based in **Wolverhampton** and covers\n**up to a 30-mile radius** for most jobs.\n\nThis includes Wolverhampton and surrounding towns and villages.\nIf your job falls outside this area, it can still be arranged —\na **small additional mileage charge** will apply per mile.\n\nIf you’re unsure whether your location is covered, feel free to get in touch.",
+  "max_length": 900,
+  "sort": 37
+ },
+ {
+  "key": "gallery.title",
+  "type": "text",
+  "label": "Gallery: section name",
+  "group": "Gallery",
+  "default": "Featured Work",
+  "max_length": 40,
+  "sort": 38
+ },
+ {
+  "key": "gallery.sub",
+  "type": "text",
+  "label": "Gallery: line under the name",
+  "group": "Gallery",
+  "default": "A few recent jobs — tap any photo to browse the full gallery.",
+  "max_length": 120,
+  "sort": 39
+ },
+ {
+  "key": "posts.title",
+  "type": "text",
+  "label": "Latest work: section name",
+  "group": "Latest work",
+  "default": "Latest Work",
+  "max_length": 40,
+  "sort": 40
+ },
+ {
+  "key": "reviews.title",
+  "type": "text",
+  "label": "Reviews: section name",
+  "group": "Reviews",
+  "default": "Customer Reviews",
+  "max_length": 40,
+  "sort": 41
+ },
+ {
+  "key": "contact.title",
+  "type": "text",
+  "label": "Quote form: heading",
+  "group": "Quote form",
+  "default": "Request a quote",
+  "max_length": 40,
+  "sort": 42
+ },
+ {
+  "key": "legal.privacy.page",
+  "type": "page",
+  "label": "Privacy policy",
+  "group": "Legal pages",
+  "default": "## Who we are\n\nThis website is operated by Aaron Gomm trading as Hapitech, on behalf of Roland's Handyman. Registered address: 2 Deer Walk, Oxford, OX4 7XX. Contact: [aaron@hapitech.dev](mailto:aaron@hapitech.dev).\n\n## What we collect\n\nWhen you submit the \"Request a quote\" contact form, we collect the information you provide: your name, email address, phone number (optional), service area, postcode, and your message describing the job. We do not require you to create an account, and we do not store this data in a database — it is sent directly by email to Roland's Handyman's enquiries inbox for the purpose of responding to your request.\n\n## Postcode lookups\n\nWhen you enter a postcode in the quote form, it is sent to [postcodes.io](https://postcodes.io), a free, third-party UK postcode lookup service, in order to estimate any additional travel cost. This lookup happens directly from your browser. We do not control postcodes.io's own data handling; see their website for details.\n\n## Cookies and tracking\n\nThis site does not use cookies, analytics, or advertising trackers. No data about your visit is collected beyond what you submit through the contact form.\n\n## How we use your information\n\nYour contact form details are used solely to respond to your enquiry and, where you go on to book work, to arrange and carry out that work. We do not sell or share your information with third parties for marketing purposes.\n\n## Email and hosting\n\nThis website and its email are hosted through Namecheap. Enquiry emails are sent via Namecheap Private Email to enquiries@rolandshandyman.co.uk, and remain in that mailbox as part of normal email retention.\n\n## Your rights\n\nUnder UK GDPR, you have the right to ask what personal data we hold about you, to request a correction, or to ask us to delete it. To do so, contact [aaron@hapitech.dev](mailto:aaron@hapitech.dev). You also have the right to complain to the [Information Commissioner's Office (ICO)](https://ico.org.uk) if you believe your data has been mishandled.\n\n## Changes to this policy\n\nWe may update this policy if how the site handles data changes. Any updates will be posted on this page.",
+  "help": "## starts a heading, - starts a bullet point, **bold**, [link text](https://…). Leave a blank line between paragraphs.",
+  "sort": 43
+ },
+ {
+  "key": "legal.terms.page",
+  "type": "page",
+  "label": "Terms of service",
+  "group": "Legal pages",
+  "default": "## Who we are\n\nThis website is operated by Aaron Gomm trading as Hapitech, on behalf of Roland's Handyman. Registered address: 2 Deer Walk, Oxford, OX4 7XX. Contact: [aaron@hapitech.dev](mailto:aaron@hapitech.dev). These terms are governed by the laws of England & Wales.\n\n## Use of this website\n\nThis website provides information about Roland's Handyman's services and lets you submit an enquiry via the contact form. Content on this site — including images, text, and the before/after gallery — is provided for informational purposes and may not be copied or reused without permission.\n\n## Quotes and enquiries\n\nSubmitting the contact form sends an enquiry by email; it is not a booking or a binding contract. Any travel cost shown in the form is an automated estimate based on the postcode you enter, and is indicative only. Final pricing, availability, and scope of work are confirmed directly between you and Roland's Handyman before any work begins.\n\n## Reviews\n\nCustomer reviews shown on this site are genuine feedback left by past customers, linked to or sourced from Google. They reflect individual experiences and are not a guarantee of the outcome of future work.\n\n## No warranty on website availability\n\nWe aim to keep this website available and accurate, but we don't guarantee it will be uninterrupted or error-free, and we may update or take down content at any time without notice.\n\n## Limitation of liability\n\nTo the extent permitted by law, Roland's Handyman and Hapitech are not liable for any loss arising from your use of this website. This does not affect your statutory rights or any separate agreement made directly with Roland's Handyman for work carried out.\n\n## Changes to these terms\n\nWe may update these terms from time to time. Continued use of the site after changes are posted means you accept the updated terms.\n\n## Contact\n\nQuestions about these terms can be sent to [aaron@hapitech.dev](mailto:aaron@hapitech.dev).",
+  "help": "## starts a heading, - starts a bullet point, **bold**, [link text](https://…). Leave a blank line between paragraphs.",
+  "sort": 44
+ }
+]

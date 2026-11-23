@@ -560,3 +560,17 @@ button.support__way{width:100%;font:inherit;text-align:left;cursor:pointer}
 .support-row{gap:8px;flex-wrap:wrap}
 .work-dlg{width:min(560px,calc(100vw - 24px))}
 .work-dlg .work .card__head h2{font-size:1.1rem}
+.shortcuts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:-4px 0 14px}
+.shortcut{display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:.85rem;text-decoration:none;cursor:pointer;list-style:none}
+.shortcut:hover{border-color:var(--acc);color:var(--acc)}
+.shortcut-add > summary::-webkit-details-marker{display:none}
+.shortcut-add[open]{flex-basis:100%}
+.platforms > summary{list-style:none;cursor:pointer}
+.platforms__list{list-style:none;margin:12px 0 0;padding:0}
+.platforms__list li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+.platforms__act{white-space:nowrap}
+.extra{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.extra:first-of-type{border-top:0}
+.extra__icon{font-size:1.6rem}
+.extra__body p{margin-top:2px}
+@media (max-width:600px){.extra{grid-template-columns:auto 1fr}.extra__act{grid-column:2}}

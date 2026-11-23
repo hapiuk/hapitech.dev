@@ -1,0 +1,330 @@
+[
+ {
+  "key": "hero.title",
+  "type": "text",
+  "label": "Top of page: heading",
+  "group": "Top of page",
+  "default": "Professional Home Improvement Services",
+  "max_length": 60,
+  "sort": 0
+ },
+ {
+  "key": "hero.text",
+  "type": "longtext",
+  "label": "Top of page: text under the heading",
+  "group": "Top of page",
+  "default": "Bathrooms • Kitchens • Carpentry • Loft Conversions • Extensions • Paving",
+  "max_length": 160,
+  "sort": 1
+ },
+ {
+  "key": "about.title",
+  "type": "text",
+  "label": "About: heading",
+  "group": "About",
+  "default": "About Me",
+  "max_length": 40,
+  "sort": 2
+ },
+ {
+  "key": "about.text",
+  "type": "longtext",
+  "label": "About: text",
+  "group": "About",
+  "default": "I'm based in the Wolverhampton area, offering a wide range of handyman\nservices to homes and businesses across the local area. No job is too\nsmall — from a single repair to a full room refresh, I supply an honest,\nreliable service you can depend on.\n\nGet in touch to have a chat about your next job — I'm always happy to help.",
+  "max_length": 900,
+  "sort": 3
+ },
+ {
+  "key": "about.tags",
+  "type": "list",
+  "label": "About: the little tags",
+  "group": "About",
+  "default": [
+   "Painting & Decorating",
+   "Laminate Flooring",
+   "Woodwork & Carpentry",
+   "Decking",
+   "Curtain Poles & Blinds",
+   "TV Wall Mounting",
+   "Furniture Assembly",
+   "Door Installation",
+   "Minor Electrical",
+   "Plumbing",
+   "Kitchen Refurbishment",
+   "Bathroom Refurbishment"
+  ],
+  "help": "One per line.",
+  "sort": 4
+ },
+ {
+  "key": "services.heading",
+  "type": "text",
+  "label": "Services: section name",
+  "group": "Services",
+  "default": "Our Services",
+  "max_length": 40,
+  "sort": 5
+ },
+ {
+  "key": "services.bathrooms.title",
+  "type": "text",
+  "label": "Bathrooms: name",
+  "group": "Services",
+  "default": "Bathrooms",
+  "max_length": 32,
+  "sort": 6
+ },
+ {
+  "key": "services.bathrooms.text",
+  "type": "text",
+  "label": "Bathrooms: description",
+  "group": "Services",
+  "default": "Complete bathroom installations, renovations and repairs.",
+  "max_length": 110,
+  "sort": 7
+ },
+ {
+  "key": "services.kitchens.title",
+  "type": "text",
+  "label": "Kitchens: name",
+  "group": "Services",
+  "default": "Kitchens",
+  "max_length": 32,
+  "sort": 8
+ },
+ {
+  "key": "services.kitchens.text",
+  "type": "text",
+  "label": "Kitchens: description",
+  "group": "Services",
+  "default": "Kitchen fitting and refurbishment.",
+  "max_length": 110,
+  "sort": 9
+ },
+ {
+  "key": "services.carpentry.title",
+  "type": "text",
+  "label": "Carpentry: name",
+  "group": "Services",
+  "default": "Carpentry",
+  "max_length": 32,
+  "sort": 10
+ },
+ {
+  "key": "services.carpentry.text",
+  "type": "text",
+  "label": "Carpentry: description",
+  "group": "Services",
+  "default": "Doors, flooring, skirting, shelving and bespoke woodwork.",
+  "max_length": 110,
+  "sort": 11
+ },
+ {
+  "key": "services.lofts.title",
+  "type": "text",
+  "label": "Loft Conversions: name",
+  "group": "Services",
+  "default": "Loft Conversions",
+  "max_length": 32,
+  "sort": 12
+ },
+ {
+  "key": "services.lofts.text",
+  "type": "text",
+  "label": "Loft Conversions: description",
+  "group": "Services",
+  "default": "Turning unused loft space into practical living areas.",
+  "max_length": 110,
+  "sort": 13
+ },
+ {
+  "key": "services.extensions.title",
+  "type": "text",
+  "label": "Extensions: name",
+  "group": "Services",
+  "default": "Extensions",
+  "max_length": 32,
+  "sort": 14
+ },
+ {
+  "key": "services.extensions.text",
+  "type": "text",
+  "label": "Extensions: description",
+  "group": "Services",
+  "default": "Professional home extensions built to last.",
+  "max_length": 110,
+  "sort": 15
+ },
+ {
+  "key": "services.paving.title",
+  "type": "text",
+  "label": "Paving & Landscaping: name",
+  "group": "Services",
+  "default": "Paving & Landscaping",
+  "max_length": 32,
+  "sort": 16
+ },
+ {
+  "key": "services.paving.text",
+  "type": "text",
+  "label": "Paving & Landscaping: description",
+  "group": "Services",
+  "default": "Patios, paths, driveways and outdoor improvements.",
+  "max_length": 110,
+  "sort": 17
+ },
+ {
+  "key": "promo1.title",
+  "type": "text",
+  "label": "Feature box 1: heading",
+  "group": "Feature boxes",
+  "default": "Full Residential & Commercial Renovations",
+  "max_length": 60,
+  "sort": 18
+ },
+ {
+  "key": "promo1.text",
+  "type": "longtext",
+  "label": "Feature box 1: text",
+  "group": "Feature boxes",
+  "default": "Renovations are a big part of what I do. I offer full renovation and\nremodelling services for both residential and commercial properties,\ntaking care of the entire process — from strip-out to finishing touches,\nincluding painting, tiling, plastering and more. I always aim to complete\nwork on time and within budget, so get in touch to find out how I can help\nwith your next project.",
+  "max_length": 700,
+  "sort": 19
+ },
+ {
+  "key": "promo2.title",
+  "type": "text",
+  "label": "Feature box 2: heading",
+  "group": "Feature boxes",
+  "default": "A Fresh Lick of Paint",
+  "max_length": 60,
+  "sort": 20
+ },
+ {
+  "key": "promo2.text",
+  "type": "longtext",
+  "label": "Feature box 2: text",
+  "group": "Feature boxes",
+  "default": "Getting a smooth, professional finish takes more than a steady hand —\nit's easy to end up disappointed if you're not sure what you're doing.\nI'll turn up on time, work cleanly, finish to a high standard, and tidy\nup after myself. All you need to do is put the kettle on.",
+  "max_length": 700,
+  "sort": 21
+ },
+ {
+  "key": "intro.title",
+  "type": "text",
+  "label": "Intro: heading",
+  "group": "Intro",
+  "default": "Quality Work. Honest Service.",
+  "max_length": 60,
+  "sort": 22
+ },
+ {
+  "key": "intro.text",
+  "type": "longtext",
+  "label": "Intro: text",
+  "group": "Intro",
+  "default": "Whether you're renovating a kitchen, fitting a new bathroom, building an extension or simply\nneed reliable property maintenance, RayG Handyman Services delivers professional workmanship\nwith attention to every detail.",
+  "max_length": 500,
+  "sort": 23
+ },
+ {
+  "key": "gallery.title",
+  "type": "text",
+  "label": "Gallery: section name",
+  "group": "Gallery",
+  "default": "Our Work",
+  "max_length": 40,
+  "sort": 24
+ },
+ {
+  "key": "gallery.sub",
+  "type": "text",
+  "label": "Gallery: line under the name",
+  "group": "Gallery",
+  "default": "A few recent jobs — tap any photo to browse the full gallery.",
+  "max_length": 120,
+  "sort": 25
+ },
+ {
+  "key": "posts.title",
+  "type": "text",
+  "label": "Latest work: section name",
+  "group": "Latest work",
+  "default": "Latest Work",
+  "max_length": 40,
+  "sort": 26
+ },
+ {
+  "key": "reviews.title",
+  "type": "text",
+  "label": "Reviews: section name",
+  "group": "Reviews",
+  "default": "Customer Reviews",
+  "max_length": 40,
+  "sort": 27
+ },
+ {
+  "key": "cta.title",
+  "type": "text",
+  "label": "Call to action: heading",
+  "group": "Call to action",
+  "default": "Ready to Start Your Next Project?",
+  "max_length": 60,
+  "sort": 28
+ },
+ {
+  "key": "cta.text",
+  "type": "text",
+  "label": "Call to action: text",
+  "group": "Call to action",
+  "default": "Get in touch today for a free, no-obligation quotation.",
+  "max_length": 160,
+  "sort": 29
+ },
+ {
+  "key": "footer.tagline",
+  "type": "text",
+  "label": "Footer: tagline",
+  "group": "Footer",
+  "default": "Professional Home Improvements",
+  "max_length": 60,
+  "sort": 30
+ },
+ {
+  "key": "footer.payment",
+  "type": "text",
+  "label": "Footer: payment line",
+  "group": "Footer",
+  "default": "Payment accepted: Cash / Bank Transfer",
+  "max_length": 80,
+  "sort": 31
+ },
+ {
+  "key": "contact.title",
+  "type": "text",
+  "label": "Quote form: heading",
+  "group": "Quote form",
+  "default": "Request a Free Quote",
+  "max_length": 40,
+  "sort": 32
+ },
+ {
+  "key": "legal.privacy.page",
+  "type": "page",
+  "label": "Privacy policy",
+  "group": "Legal pages",
+  "default": "RayG Handyman Service (“we”, “us”, “our”) respects your privacy. This policy explains what personal data we collect through our website, how we use it, who we share it with, and your rights under UK data protection law.\n\n## 1. Who we are\n\nThe data controller is **RayG Handyman Service**, based at 45 Blackhalve Lane, Wolverhampton, WV11 1BQ, United Kingdom.\n\n- Email: [enquiries@rayghandymanservice.co.uk](mailto:enquiries@rayghandymanservice.co.uk)\n- Phone: [07379 195256](tel:+447379195256)\n\nThe site is developed and maintained by Hapitech on our behalf. Website and email hosting is provided by Namecheap.\n\n## 2. What data we collect\n\nWe only collect information that you voluntarily provide or that is necessary to run the site securely:\n\n- **Contact form:** name, email address, phone number (optional), location/area, postcode (optional), message, and any travel-cost estimate generated.\n- **Technical logs:** our hosting provider may collect standard server logs such as IP address, browser type, pages visited, and timestamps for security and troubleshooting.\n\nWe do not use analytics cookies or tracking pixels, and we do not ask you to create an account.\n\n## 3. How we use your data\n\n- To respond to your enquiry and provide a quote.\n- To estimate travel costs for jobs outside our standard free-service radius.\n- To keep a record of communications for customer service, warranty, and legal purposes.\n- To maintain the security and performance of the website.\n\nThe legal bases we rely on are **legitimate interests** and taking steps at your request prior to entering into a contract.\n\n## 4. Who we share data with\n\nWe do not sell your personal data. We share it only with trusted service providers who help us operate the site and respond to enquiries:\n\n- **Namecheap** – website hosting and email service (mail.privateemail.com). Messages you send through the contact form are delivered to our enquiries mailbox hosted by Namecheap.\n- **Hapitech** – site development and technical support.\n- **Postcodes.io** – when you enter a postcode in the contact form, it is sent from your browser to Postcodes.io to look up coordinates and calculate distance. Postcodes.io does not receive your name, email, or message.\n- **Google Fonts** – the site loads fonts from Google’s CDN. Your browser may share your IP address with Google when fetching fonts. Google Fonts does not set cookies.\n\n## 5. How long we keep your data\n\nWe keep enquiry emails for as long as necessary to fulfil your request, manage ongoing work, and meet legal or tax record-keeping requirements. You can ask us to delete your correspondence at any time (see below).\n\n## 6. Cookies\n\nWe do not use non-essential cookies, advertising cookies, or analytics tracking. Any cookies set are strictly necessary for the normal operation of the website or its hosting.\n\n## 7. Your rights\n\nUnder UK GDPR you have the right to:\n\n- Access the personal data we hold about you.\n- Ask us to correct inaccurate or incomplete data.\n- Ask us to erase your data in certain circumstances.\n- Restrict or object to our processing of your data.\n- Request a portable copy of your data.\n- Withdraw consent at any time, where processing is based on consent.\n- Lodge a complaint with the [Information Commissioner’s Office (ICO)](https://ico.org.uk/).\n\nTo exercise any of these rights, contact us using the details above.\n\n## 8. Security\n\nWe use appropriate technical and organisational measures to protect your data. Email is sent over TLS where supported by the receiving server. However, no method of transmission over the internet is completely secure, and we cannot guarantee absolute security.\n\n## 9. Changes to this policy\n\nWe may update this policy from time to time. The latest version will always be available on this page with the updated date.",
+  "help": "## starts a heading, - starts a bullet point, **bold**, [link text](https://…). Leave a blank line between paragraphs.",
+  "sort": 33
+ },
+ {
+  "key": "legal.terms.page",
+  "type": "page",
+  "label": "Terms of service",
+  "group": "Legal pages",
+  "default": "These terms apply to your use of the RayG Handyman Services website and to any work arranged through it. By submitting an enquiry or booking our services, you agree to these terms.\n\n## 1. About us\n\nRayG Handyman Service is a trading name of Ray Gomm, operating from 45 Blackhalve Lane, Wolverhampton, WV11 1BQ, United Kingdom. Contact: [enquiries@rayghandymanservice.co.uk](mailto:enquiries@rayghandymanservice.co.uk) / [07379 195256](tel:+447379195256).\n\n## 2. Services and quotations\n\n- We provide home improvement, maintenance, and handyman services including, but not limited to, bathrooms, kitchens, carpentry, loft conversions, extensions, paving, painting, decorating, and general repairs.\n- Information on this website is for general guidance only and does not constitute a binding quote.\n- All quotations are subject to a site assessment and may be revised if the scope of work changes or unforeseen issues arise.\n- A quote is valid for the period stated on it, or for 30 days if no period is stated.\n\n## 3. Bookings and cancellations\n\n- Appointments are confirmed in writing (email or text) once a date is agreed.\n- If you need to reschedule, please give as much notice as possible. We reserve the right to charge for wasted time or materials if a confirmed appointment is cancelled at short notice.\n\n## 4. Payments\n\n- Payment terms are agreed before work begins and are typically cash or bank transfer.\n- For larger projects, staged payments may be requested as the work progresses.\n- Materials already purchased specifically for your job may need to be paid for even if the work is cancelled.\n\n## 5. Travel costs\n\nWe cover travel within our standard free-service radius. For locations further away, we may charge a mileage-based travel cost, which will be discussed and agreed before any work is booked.\n\n## 6. Warranties and liability\n\n- We carry appropriate insurance for the work we undertake.\n- We guarantee our workmanship for a reasonable period following completion. Specific warranty terms for materials are provided by the manufacturer or supplier.\n- Our liability is limited to the value of the work performed, except where liability cannot be limited by law.\n- We are not liable for pre-existing defects, damage caused by third parties, or issues arising from work carried out by others.\n\n## 7. Website use\n\n- You may use this website for lawful purposes only.\n- Do not attempt to disrupt the site, gain unauthorised access, or use it to send spam or offensive material.\n- The content of this website is owned by RayG Handyman Service and Hapitech. You may not copy, reproduce, or redistribute it without permission.\n\n## 8. Links to third parties\n\nThis site may link to third-party websites or services (for example, Google Reviews). We are not responsible for their content, terms, or privacy practices.\n\n## 9. Governing law\n\nThese terms are governed by the laws of England and Wales. Any dispute will be subject to the exclusive jurisdiction of the courts of England and Wales.\n\n## 10. Changes to these terms\n\nWe may update these terms from time to time. Continued use of the website after changes means you accept the updated terms.\n\n## 11. Contact us\n\nIf you have any questions about these terms, please contact us at [enquiries@rayghandymanservice.co.uk](mailto:enquiries@rayghandymanservice.co.uk) or call [07379 195256](tel:+447379195256).",
+  "help": "## starts a heading, - starts a bullet point, **bold**, [link text](https://…). Leave a blank line between paragraphs.",
+  "sort": 34
+ }
+]

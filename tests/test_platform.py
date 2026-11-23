@@ -396,10 +396,20 @@ def test_site_blocks_match_definitions(app):
     with app.app_context():
         a = Account.query.filter_by(slug="rolands").first()
         a.domain = "rolandshandyman.co.uk"
-        assert ensure_blocks(a, None) == 8
+        assert ensure_blocks(a, None) == 45
         db.session.commit()
         assert ensure_blocks(a, None) == 0                     # idempotent
         assert ContentBlock.query.filter_by(account_id=a.id, key="services.wall.title").first().data == "Wall Mounting Service"
+        order = [b.key for b in ContentBlock.query.filter_by(account_id=a.id).order_by(ContentBlock.sort).all()]
+        assert order[0] == "hero.title" and order[-1] == "legal.terms.page" and order.index("area.title") > order.index("services.plumbing.title")
+        acc = ContentBlock.query.filter_by(account_id=a.id, key="services.furniture.acc2.text").first()
+        assert acc.data.startswith("✔ Personally assembled by Rolands\n✔")
+    # the dashboard's list and the site's own defaults must be the same file
+    import json, os
+    site = os.path.join(app.root_path, "..", "clients", "rolandshandyman.co.uk", "static", "hapitech", "blocks.json")
+    if os.path.exists(site):
+        mine = json.load(open(os.path.join(app.root_path, "utils", "site_blocks", "rolandshandyman.co.uk.json")))
+        assert json.load(open(site)) == mine
 
 
 # ---------------------------------------------------------------- jobs: enquiry -> quote -> booking -> done -> invoice
@@ -1373,3 +1383,42 @@ def test_review_export_files_google_and_facebook(app):
         assert Review.query.filter_by(account_id=a.id).count() == before + 3       # Paul updated, 3 new, none doubled
     pub = app.test_client().get("/rv/rayg").get_data(as_text=True)
     assert "98%" in pub and "4.8 ★" in pub and "👍 Recommends" in pub and "Doesn&#39;t recommend" in pub
+
+
+def test_reply_skip_rate_shortcuts_platforms_extras(app):
+    import datetime as dt
+    import json as _json
+    from models import db
+    from models.core import Account
+    from models.reviews import Review, ReviewReply
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        a.shortcuts = _json.dumps([["Bark", "https://www.bark.com/en/gb/login/"], ["Bad", "http://insecure"]])
+        now = dt.datetime.utcnow()
+        r1 = Review(account_id=a.id, source="google", author_name="Old One", rating=5, body="ok", status="published", reviewed_at=now)
+        r2 = Review(account_id=a.id, source="google", author_name="Replied", rating=5, body="ok", status="published", reviewed_at=now)
+        db.session.add_all([r1, r2]); db.session.flush()
+        db.session.add(ReviewReply(review_id=r2.id, body="thanks"))
+        db.session.commit(); rid = r1.id
+    o = app.test_client(); _login(o, "roland@test")
+    home = o.get("/portal/").get_data(as_text=True)
+    assert "Reply rate" in home and "% this month" in home
+    assert "Old One" in o.get("/portal/reviews?show=unreplied").get_data(as_text=True)
+    _form(o, f"/portal/reviews/{rid}", {"action": "skip-reply"}, page="/portal/reviews")
+    assert "Old One" not in o.get("/portal/reviews?show=unreplied").get_data(as_text=True)
+    page = o.get("/portal/reviews").get_data(as_text=True)
+    assert "Needs a reply after all" in page and "Get reviewed in more places" in page and "Trustpilot" in page
+    jobs = o.get("/portal/jobs").get_data(as_text=True)
+    assert "https://www.bark.com/en/gb/login/" in jobs and "http://insecure" not in jobs and "＋" in jobs
+    _form(o, "/portal/requests/work", {"kind": "other", "what": "Checkatrade", "prefix": "Please add a Jobs shortcut to: ", "back": "jobs"}, page="/portal/jobs")
+    plan = o.get("/portal/plan").get_data(as_text=True)
+    assert "AI chat assistant" in plan and "I'm interested" in plan
+    _form(o, "/portal/extras/ai_chat", {}, page="/portal/plan")
+    with app.app_context():
+        from models.work import Lead
+        assert Account.query.filter_by(slug="rolands").first().addon("ai_chat").status == "requested"
+        assert Lead.query.filter(Lead.message.like("Please add a Jobs shortcut to: Checkatrade")).count() == 1
+    assert "Requested ✓" in o.get("/portal/plan").get_data(as_text=True)
+    adm = app.test_client(); _login(adm, "admin@test")
+    _form(adm, "/admin/clients/rolands/extras/ai_chat", {"status": "active"}, page="/admin/clients/rolands")
+    assert "On</span>" in o.get("/portal/plan").get_data(as_text=True)

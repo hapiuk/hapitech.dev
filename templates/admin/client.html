@@ -64,6 +64,17 @@
       </form>
     </section>
     <section class="card">
+      <div class="card__head"><h3>Extras</h3></div>
+      {% for x in extras %}{% set st = extra_status(a, x.key) %}
+      <div class="row row--between" style="padding:6px 0"><span>{{ x.icon }} {{ x.name }} {% if st %}<span class="badge {{ 'badge--ok' if st == 'active' else ('badge--warn' if st == 'requested' else '') }}">{{ st }}</span>{% else %}<span class="small muted">not requested</span>{% endif %}</span>
+        <form method="post" action="{{ url_for('admin.extra_set', slug=a.slug, key=x.key) }}" class="row">
+          {% if st != 'active' %}<button class="btn btn--sm" name="status" value="active">Switch on</button>{% endif %}
+          {% if st == 'active' %}<button class="btn btn--ghost btn--sm" name="status" value="paused">Pause</button>{% endif %}
+          {% if st %}<button class="btn btn--ghost btn--sm" name="status" value="remove" data-confirm="Remove this extra?">Remove</button>{% endif %}
+        </form></div>
+      {% endfor %}
+    </section>
+    <section class="card">
       <div class="card__head"><h3>Contact</h3></div>
       <dl class="kv">
         <dt>Name</dt><dd>{{ a.contact_name or '—' }}</dd>

@@ -20,7 +20,7 @@
 <div class="grid grid--3">
   <a class="stat" href="{{ url_for('portal.reviews') }}"><p class="stat__label">Reviews</p><p class="stat__value">{{ stats.total }}</p><p class="stat__sub">{{ ('%.1f' % stats.avg) ~ '★ average' if stats.avg else 'none yet' }}</p></a>
   <a class="stat" href="{{ url_for('portal.traffic') }}"><p class="stat__label">Visitors (30 days)</p><p class="stat__value">{{ '{:,}'.format(t.total) }}</p><p class="stat__sub">{% if t.change is not none %}{{ ('▲ ' if t.change >= 0 else '▼ ') ~ (t.change|abs) ~ '%' }}{% else %}{{ t.google }} from Google{% endif %}</p></a>
-  <a class="stat" href="{{ url_for('portal.reviews', show='unreplied') }}"><p class="stat__label">Waiting for a reply</p><p class="stat__value">{{ stats.unreplied }}</p><p class="stat__sub">reviews to thank</p></a>
+  <a class="stat" href="{{ url_for('portal.reviews', show='unreplied') }}"><p class="stat__label">Reply rate</p><p class="stat__value">{{ (stats.rate_year ~ '%') if stats.rate_year is not none else '–' }}</p><p class="stat__sub">this year{% if stats.rate_month is not none %} · {{ stats.rate_month }}% this month{% endif %} · {{ stats.unreplied }} waiting</p></a>
 </div>
 
 <section class="card tip" style="margin-top:12px" data-tips='{{ tips | tojson }}' data-start="{{ tip_start }}">

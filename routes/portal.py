@@ -38,7 +38,7 @@ def _shell():
     if not getattr(g, "account", None):
         return {}
     unreplied = (Review.query.filter(Review.account_id == g.account.id, Review.status.in_(["published", "reported"]),
-                                     ~Review.replies.any(), Review.reviewed_at.isnot(None)).count()
+                                     ~Review.replies.any(), Review.reviewed_at.isnot(None), Review.reply_skipped_at.is_(None)).count()
                  + Review.query.filter_by(account_id=g.account.id, status="pending").count()) or None
     from models.work import Lead
     new_jobs = Lead.query.filter_by(account_id=g.account.id, status="new", archived_at=None).count() or None   # spam has its own status
@@ -104,6 +104,15 @@ def _request_message(req: ReviewRequest) -> str:
 
 # ---------------------------------------------------------------- home
 
+def reply_rate(account, since):
+    """% of reviews received since `since` that have a reply (None if there weren't any)."""
+    rows = Review.query.filter(Review.account_id == account.id, Review.status.in_(["published", "reported"]),
+                               db.func.coalesce(Review.reviewed_at, Review.created_at) >= dt.datetime.combine(since, dt.time())).all()
+    if not rows:
+        return None
+    return round(100 * sum(1 for r in rows if r.replies) / len(rows))
+
+
 @portal_bp.route("/")
 @owner_required
 def home():
@@ -115,11 +124,12 @@ def home():
         "avg": db.session.query(db.func.avg(Review.rating)).filter(
             Review.account_id == a.id, Review.status.in_(["published", "reported"])).scalar(),
         "this_month": live.filter(Review.reviewed_at >= month_start).count(),
-        "unreplied": live.filter(~Review.replies.any(), Review.reviewed_at.isnot(None)).count(),
+        "unreplied": live.filter(~Review.replies.any(), Review.reviewed_at.isnot(None), Review.reply_skipped_at.is_(None)).count(),
         "waiting": scoped(ReviewRequest).filter(ReviewRequest.completed_at.is_(None)).count(),
     }
     last_post = scoped(Post, status="published").order_by(Post.published_at.desc()).first()
     stats["pending"] = scoped(Review, status="pending").count()
+    stats["rate_year"], stats["rate_month"] = reply_rate(a, dt.date(dt.date.today().year, 1, 1)), reply_rate(a, dt.date.today().replace(day=1))
     from utils.traffic import summary
     return render_template("portal/home.html", stats=stats, last_post=last_post, t=summary(a), tips=TIPS,
                            tip_start=dt.date.today().timetuple().tm_yday % len(TIPS))
@@ -223,9 +233,10 @@ def reviews():
     pending = scoped(Review, status="pending").order_by(Review.created_at.desc()).all()
     q = scoped(Review).filter(Review.status.in_(["published", "reported"]))
     if show == "unreplied":
-        q = q.filter(~Review.replies.any(), Review.reviewed_at.isnot(None))
+        q = q.filter(~Review.replies.any(), Review.reviewed_at.isnot(None), Review.reply_skipped_at.is_(None))
     rows = q.order_by(Review.reviewed_at.desc().nullslast(), Review.sort_hint).all()
-    return render_template("portal/reviews.html", rows=rows, show=show, pending=pending)
+    from utils.review_platforms import for_account
+    return render_template("portal/reviews.html", rows=rows, show=show, pending=pending, platforms=for_account(g.account))
 
 
 @portal_bp.route("/reviews/<int:rid>", methods=["POST"])
@@ -250,6 +261,12 @@ def review_action(rid):
         for old in list(r.replies):
             db.session.delete(old)
         flash("Reply removed.", "ok")
+    elif action == "skip-reply":
+        r.reply_skipped_at = dt.datetime.utcnow()
+        flash("Marked as no reply needed. It's out of your Needs a reply list.", "ok")
+    elif action == "unskip-reply":
+        r.reply_skipped_at = None
+        flash("Back in your Needs a reply list.", "ok")
     elif action == "approve" and r.status == "pending":
         r.status = "published"
         flash("Approved. It shows on your website within 10 minutes.", "ok")
@@ -364,7 +381,7 @@ def website():
         return redirect(url_for("portal.home"))
     from utils.photos import _block_keys, hero_mode, photo_src
     blocks = (scoped(ContentBlock).filter(ContentBlock.type != "setting")
-              .order_by(ContentBlock.group, ContentBlock.sort, ContentBlock.id).all())
+              .order_by(ContentBlock.sort, ContentBlock.id).all())          # roughly the order they appear on the site
     photos, groups = [], {}
     for b in blocks:
         if b.type == "images":
@@ -372,7 +389,7 @@ def website():
             photos.append({"b": b, "count": len(keys), "thumbs": [photo_src(g.account, k) for k in keys[:5]]})
             continue
         # one card per item: "services.kitchens.title" + "services.kitchens.text" edit together
-        item = b.key.rsplit(".", 1)[0] if b.key.count(".") >= 2 else b.key
+        item = b.key.rsplit(".", 1)[0] if "." in b.key else b.key
         groups.setdefault(b.group, {}).setdefault(item, []).append(b)
     edited = sum(1 for b in blocks if not b.is_default)
     last = max((b.updated_at for b in blocks if not b.is_default), default=None)

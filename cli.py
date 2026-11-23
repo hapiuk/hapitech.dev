@@ -81,6 +81,12 @@ def deploy(no_backup):
         stamp(revision=rev)
     upgrade()
     click.echo("Database is up to date.")
+    # keep each client's "My website" list in step with their site (new editable sections, site order)
+    from models.core import Account
+    from utils.content_blocks import ensure_blocks
+    added = sum(ensure_blocks(a, None) for a in Account.query.filter_by(kind="client").all())
+    db.session.commit()
+    click.echo(f"Website sections checked ({added} new).")
 
 
 # ---------------------------------------------------------------- users

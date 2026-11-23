@@ -31,7 +31,8 @@ class Review(TimestampMixin, db.Model):
     sort_hint = db.Column(db.Integer, nullable=False, default=0)        # keeps imported order stable
     photo_count = db.Column(db.Integer, nullable=False, default=0)      # photos on the original (e.g. Google)
     price_tag = db.Column(db.String(30))                                 # Google's "Great price" / "Overpriced" etc.
-    recommends = db.Column(db.Boolean)                                  # Facebook: recommends / doesn't (no stars there)
+    recommends = db.Column(db.Boolean)
+    reply_skipped_at = db.Column(db.DateTime)                           # "no reply needed" (kept out of Needs a reply)                                  # Facebook: recommends / doesn't (no stars there)
     account = db.relationship("Account")
     replies = db.relationship("ReviewReply", lazy=True, cascade="all, delete-orphan",
                               order_by="ReviewReply.created_at")

@@ -45,7 +45,16 @@ class Account(TimestampMixin, db.Model):
     facebook_url = db.Column(db.String(300))
     facebook_pct = db.Column(db.Integer)                                     # "% recommend" on Facebook
     facebook_count = db.Column(db.Integer)
-    reviews_synced_at = db.Column(db.DateTime)                           # page listing their Google reviews ("via Google")
+    reviews_synced_at = db.Column(db.DateTime)
+    shortcuts = db.Column(db.Text)                                           # JSON [[label, url], …] on their Jobs page
+
+    @property
+    def shortcut_list(self):
+        import json as _json
+        try:
+            return [(l, u) for l, u in _json.loads(self.shortcuts or "[]") if str(u).startswith("https://")]
+        except (ValueError, TypeError):
+            return []                           # page listing their Google reviews ("via Google")
     logo_path = db.Column(db.String(300))                                    # static-relative path
     brand_colour = db.Column(db.String(9))                                   # "#f97316"
     notes = db.Column(db.Text)

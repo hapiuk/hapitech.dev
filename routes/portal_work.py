@@ -452,8 +452,10 @@ def plan():
     friends = bool(ad and ad.status == "friends")
     support = support_options() if friends else []      # a small "Support HapiTech" button, Friends plan only
     from utils import work_requests as wr
+    from utils.extras import EXTRAS, status
     return render_template("portal/plan.html", owed=Decimal(a.balance_gbp or 0), addon=ad, v=summary(a), support=support,
-                           work=wr.for_client(a), work_kinds=wr.KINDS, work_status=wr.CLIENT_STATUS)
+                           work=wr.for_client(a), work_kinds=wr.KINDS, work_status=wr.CLIENT_STATUS,
+                           extras=[dict(x, status=status(a, x["key"])) for x in EXTRAS])
 
 
 @portal_bp.route("/support", methods=["POST"])
@@ -509,7 +511,9 @@ def work_request():
     from utils import work_requests as wr
     f = request.form
     what = (f.get("what") or "").strip()[:4000]
-    back = f.get("back") if f.get("back") in ("plan", "website") else "plan"
+    if what and f.get("prefix") in ("Please add a Jobs shortcut to: ", "I'd like this extra: "):
+        what = f.get("prefix") + what
+    back = f.get("back") if f.get("back") in ("plan", "website", "jobs", "reviews") else "plan"
     if not what:
         flash("Tell Aaron what you'd like done.", "err")
     else:
@@ -521,4 +525,29 @@ def work_request():
         else:
             wr.create(g.account, current_user, f.get("kind"), what, offer)
             flash("Sent to Aaron. " + ("He'll confirm it with you." if offer else "He'll reply with a quote."), "ok")
+    if back in ("jobs", "reviews"):
+        return redirect(url_for(f"portal.{back}"))
     return redirect(url_for("portal.website" if back == "website" else "portal.plan") + "#work")
+
+
+
+@portal_bp.route("/extras/<key>", methods=["POST"])
+@owner_required
+def extra_request(key):
+    """'I'm interested' on an extra: noted as requested, and a work request to Aaron (he switches it on)."""
+    from models.core import AddOn
+    from utils import work_requests as wr
+    from utils.extras import EXTRAS
+    x = next((e for e in EXTRAS if e["key"] == key), None)
+    if not x:
+        abort(404)
+    if current_user.is_admin:
+        flash("(Viewing as admin: not sent.)", "ok")
+        return redirect(url_for("portal.plan") + "#extras")
+    ad = g.account.addon(key)
+    if ad is None:
+        db.session.add(AddOn(account_id=g.account.id, kind=key, status="requested"))
+        db.session.commit()
+        wr.create(g.account, current_user, "feature", f"I'd like the {x['name']} extra. {(request.form.get('note') or '').strip()}".strip(), None)
+    flash(f"Thanks! Aaron will be in touch about the {x['name']}.", "ok")
+    return redirect(url_for("portal.plan") + "#extras")

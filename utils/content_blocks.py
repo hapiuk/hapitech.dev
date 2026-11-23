@@ -35,7 +35,7 @@ def ensure_blocks(account, site_dir) -> int:
 def parse_block_form(block, form, files, account, user) -> str:
     """Turn the submitted edit form into the block's JSON value, enforcing type + length rules."""
     t, limit = block.type, block.max_length
-    if t in ("text", "longtext", "price"):
+    if t in ("text", "longtext", "price", "page"):
         v = (form.get("value") or "").strip()
         if not v:
             raise BlockError("This can't be empty. Use \"Back to original\" to restore the old text.")

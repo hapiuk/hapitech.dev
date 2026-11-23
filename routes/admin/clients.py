@@ -110,6 +110,15 @@ def _fill_account(a: Account, form):
             a.balance_gbp = _money(form.get("balance_gbp")) or None
         except Exception:
             pass
+    if "shortcuts_text" in form:
+        import json as _json
+        rows = []
+        for line in (form.get("shortcuts_text") or "").splitlines():
+            if "|" in line:
+                label, url = [x.strip() for x in line.split("|", 1)]
+                if label and url.startswith("https://"):
+                    rows.append([label[:40], url[:300]])
+        a.shortcuts = _json.dumps(rows) if rows else None
     if "billing_note" in form:
         a.billing_note = (form.get("billing_note") or "").strip()[:1000] or None
     a.name = a.name or "Untitled client"
@@ -168,7 +177,8 @@ def client(slug):
         traffic = summary(a)
     return render_template("admin/client.html", a=a, tab=tab, reviews=reviews, stats=stats,
                            job_types=JOB_TYPES, job_statuses=JOB_STATUSES, today=dt.date.today(), new_key=new_key,
-                           t=traffic, value=value, friends_end=__import__("utils.plans", fromlist=["x"]).friends_end_default())
+                           t=traffic, value=value, extras=__import__("utils.extras", fromlist=["x"]).EXTRAS,
+                           extra_status=__import__("utils.extras", fromlist=["x"]).status, friends_end=__import__("utils.plans", fromlist=["x"]).friends_end_default())
 
 
 @admin_bp.route("/clients/<slug>/notes", methods=["POST"])
@@ -585,3 +595,24 @@ def me(what):
     target = {"post": "/portal/posts/new", "posts": "/portal/posts", "reviews": "/portal/reviews",
               "ask": "/portal/ask", "jobs": "/portal/jobs"}.get(what, "/portal/posts")
     return redirect(target)
+
+
+@admin_bp.route("/clients/<slug>/extras/<key>", methods=["POST"])
+def extra_set(slug, key):
+    from utils.extras import EXTRAS
+    a = _acct(slug)
+    if key not in [x["key"] for x in EXTRAS]:
+        abort(404)
+    ad = a.addon(key)
+    st = request.form.get("status")
+    if st == "remove":
+        if ad:
+            db.session.delete(ad)
+    elif st in ("active", "paused"):
+        if ad is None:
+            ad = AddOn(account_id=a.id, kind=key)
+            db.session.add(ad)
+        ad.status = st
+    db.session.commit()
+    flash("Extra updated.", "ok")
+    return redirect(url_for("admin.client", slug=slug))

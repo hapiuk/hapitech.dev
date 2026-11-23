@@ -34,6 +34,12 @@
     </form>
   </details>
   {% endif %}
+  {% if not r.reply %}
+  <form method="post" action="{{ url_for('portal.review_action', rid=r.id, show=show) }}" class="inline-form">
+    {% if r.reply_skipped_at %}<button class="linkish small muted" name="action" value="unskip-reply">↺ Needs a reply after all</button>
+    {% else %}<button class="linkish small muted" name="action" value="skip-reply" title="Keeps it out of your Needs a reply list">✓ No reply needed</button>{% endif %}
+  </form>
+  {% endif %}
   {% if r.status != 'reported' %}
   <details class="fold"><summary class="small muted">Report this review</summary>
     <form method="post" action="{{ url_for('portal.review_action', rid=r.id, show=show) }}" class="stack">
@@ -45,5 +51,19 @@
   {% endif %}
   </div>
 {% endmacro %}
+<details class="card fold platforms" style="margin-bottom:12px">
+  <summary><strong>🌍 Get reviewed in more places</strong> <span class="small muted">· more places = more people finding you</span></summary>
+  <ul class="platforms__list">
+    {% for p in platforms %}
+    <li><span><strong>{{ p.name }}</strong>{% if p.collect %} <span class="badge badge--ok">we collect these</span>{% endif %}<br><span class="small muted">{{ p.why }}</span></span>
+      <span class="platforms__act">{% if p.have %}<span class="small" style="color:var(--ok,#22c55e)">✓ You're on it</span>{% else %}<a class="btn btn--ghost btn--sm" href="{{ p.url }}" target="_blank" rel="noopener">Set one up ↗</a>{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+  <form method="post" action="{{ url_for('portal.work_request') }}" class="row" style="margin-top:10px">
+    <input type="hidden" name="kind" value="other"><input type="hidden" name="back" value="reviews">
+    <input class="input-sm" name="what" required placeholder="I've joined… (e.g. Checkatrade: link to my page)" style="flex:1;min-width:220px">
+    <button class="btn btn--sm">Tell Aaron to collect from it</button>
+  </form>
+</details>
 {% for r in rows %}{{ review_card(r, actions=owner_actions) }}{% else %}{{ empty('Nothing here', 'You are all caught up.' if show == 'unreplied' else 'No reviews yet.') }}{% endfor %}
 {% endblock %}
