@@ -236,8 +236,9 @@ def import_file(account, data, photos=True, dry_run=False):
         r = by_ext.get(ext)
         if r is None:                                     # first time with ids: link to a review copied in earlier
             cands = by_name.get(_norm(ALIASES.get(name.lower(), name))) or by_name.get(_norm(name)) or []
-            cands = [c for c in cands if not (c.external_id or "").startswith(f"{source}:")]
-            r = cands[0] if cands else None
+            fresh = [c for c in cands if not (c.external_id or "").startswith(f"{source}:")]
+            # a copy we haven't linked yet, or (if the id changed between runs) the only review by that name
+            r = fresh[0] if fresh else (cands[0] if len(cands) == 1 else None)
         if source == "google":
             rating = it.get("rating") or (r.rating if r else 5)
             when = rel_date(it.get("date") or "", copied)
