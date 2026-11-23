@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>{% block title %}HapiTech Reviews: honest reviews of local businesses{% endblock %}</title>
-  {% block meta %}<meta name="description" content="Real reviews of local businesses. Every review is kept, good or bad, with the business's replies.">{% endblock %}
+  {% block meta %}<meta name="description" content="Real reviews of local businesses, brought together from Google, Facebook and their own customers. Every genuine review kept, good or bad, with the business's replies.">{% endblock %}
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='media/favicon/favicon-96x96.png') }}" sizes="96x96">
   <link rel="preload" href="{{ url_for('static', filename='fonts/geist-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/hub.css') }}">
@@ -15,14 +15,14 @@
 <body>
   <header class="hb-top">
     <div class="hb-wrap hb-top__in">
-      <a class="hb-brand" href="{{ hub_url('hub.home') }}"><span class="hb-brand__mark" aria-hidden="true">★</span><span>HapiTech <b>Reviews</b></span></a>
-      <nav class="hb-nav"><a href="{{ hub_url('hub.home') }}#businesses">Businesses</a><a href="{{ hub_url('hub.policy') }}">How reviews work</a><a href="https://hapitech.dev/#contact" class="hb-nav__cta">List your business</a></nav>
+      <a class="hb-brand" href="{{ hub_url('hub.home') }}"><img src="{{ url_for('static', filename='media/logo.png') }}" alt=""><span>HapiTech <b>Reviews</b></span></a>
+      <nav class="hb-nav"><a href="{{ hub_url('hub.home') }}#how">How it works</a><a href="{{ hub_url('hub.home') }}#businesses">Businesses</a><a href="{{ hub_url('hub.policy') }}">Our promise</a><a href="https://hapitech.dev/#contact" class="hb-btn hb-btn--sm">List your business</a></nav>
     </div>
   </header>
   <main>{% block content %}{% endblock %}</main>
   <footer class="hb-foot">
     <div class="hb-wrap hb-foot__in">
-      <p><b>HapiTech Reviews</b> is run by <a href="https://hapitech.dev">HapiTech</a>. We show every genuine review, good or bad. Businesses can reply, but they can't edit or remove reviews.</p>
+      <p><b>HapiTech Reviews</b> by <a href="https://hapitech.dev">HapiTech</a> brings each business's reviews together from Google, Facebook and its own customers. Every genuine review stays up, good or bad. Businesses can reply, but they can't edit or remove reviews.</p>
       <nav><a href="{{ hub_url('hub.policy') }}">Review policy</a><a href="{{ hub_url('hub.terms') }}">Terms</a><a href="{{ hub_url('hub.privacy') }}">Privacy</a><a href="mailto:aaron@hapitech.dev">Contact</a></nav>
     </div>
   </footer>

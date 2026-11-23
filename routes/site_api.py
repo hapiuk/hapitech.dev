@@ -63,7 +63,11 @@ def reviews(slug):
             "reply": {"text": r.reply.body, "date": r.reply.created_at.date().isoformat()} if r.reply else None,
         })
     avg = round(sum(x["rating"] for x in out) / len(out), 2) if out else None
-    return _ok({"business": a.name, "count": len(out), "average": avg, "reviews": out,
+    from routes.hub import source_stats
+    src = source_stats(a, rows)
+    sources = {k: {kk: (float(vv) if isinstance(vv, (int, float)) or hasattr(vv, "as_integer_ratio") else vv)
+                   for kk, vv in v.items() if kk in ("avg", "count", "pct")} for k, v in src.items()}
+    return _ok({"business": a.name, "count": len(out), "average": avg, "reviews": out, "sources": sources,
                 "review_page": public_url(url_for("reviews_public.business", slug=a.slug)),
                 "google_review_url": a.google_profile_url, "google_reviews_url": a.google_reviews_url})
 

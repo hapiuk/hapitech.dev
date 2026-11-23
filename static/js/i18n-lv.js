@@ -210,6 +210,14 @@
     "Pages, features, photos, anything": "Lapas, funkcijas, foto, jebkas", "Build & preview": "Izveide un priekšskatījums",
     "Aaron builds it and shows you": "Ārons to izveido un parāda jums", "Go live": "Palaišana", "Then edit it all from here": "Tad visu rediģējiet šeit",
     "Pages, features, photos, ideas from other sites you like: add as many as you want. Offer an amount if you have a budget in mind, or leave it blank for a quote.": "Lapas, funkcijas, foto, idejas no citām vietnēm, kas jums patīk: pievienojiet, cik vēlaties. Piedāvājiet summu, ja jums ir budžets, vai atstājiet tukšu, lai saņemtu tāmi.",
+    /* reply rate, shortcuts, platforms, extras */
+    "Reply rate": "Atbilžu īpatsvars", "Find more work:": "Atrast vairāk darba:", "Ask Aaron": "Jautāt Āronam",
+    "✓ No reply needed": "✓ Atbilde nav vajadzīga", "↺ Needs a reply after all": "↺ Tomēr vajag atbildi",
+    "🌍 Get reviewed in more places": "🌍 Saņemiet atsauksmes vairāk vietās", "we collect these": "mēs tās apkopojam",
+    "✓ You're on it": "✓ Jūs tur esat", "Set one up ↗": "Izveidot ↗", "Tell Aaron to collect from it": "Lūgt Āronam to apkopot",
+    "✨ Extras": "✨ Papildinājumi", "add-ons Aaron can switch on for you": "papildinājumi, ko Ārons var ieslēgt",
+    "AI chat assistant": "MI tērzēšanas palīgs", "I'm interested": "Mani interesē", "Requested ✓": "Pieprasīts ✓", "On": "Ieslēgts",
+    "Monthly add-on · coming soon": "Ikmēneša papildinājums · drīzumā",
     /* fragments around bold words (help, calendar) */
     "iPhone:": "iPhone:", "tap": "pieskarieties", ", then Settings → Calendar → Accounts → Add Account → Other →": ", tad Iestatījumi → Kalendārs → Konti → Pievienot kontu → Cits →",
     "Add Subscribed Calendar": "Pievienot abonētu kalendāru", ", and paste.": ", un ielīmējiet.", "Android / Google Calendar:": "Android / Google kalendārs:",
@@ -242,6 +250,8 @@
     week: ["nedēļas", "nedēļām"], month: ["mēneša", "mēnešiem"], year: ["gada", "gadiem"] };
 
   var P = [
+    [/^(\d+)% this month · (\d+) waiting$/, "$1% šomēnes · $2 gaida"], [/^this year · (\d+)% this month · (\d+) waiting$/, "šogad · $1% šomēnes · $2 gaida"],
+    [/^this year · (\d+) waiting$/, "šogad · $1 gaida"],
     [/^🛠 Request work(.*)$/, "🛠 Pieprasīt darbu$1"], [/^📷 (\d+) photos? on Google$/, "📷 $1 foto Google"],
     [/^Read it all on Google ↗$/, "Lasīt visu Google ↗"], [/^· on Google$/, "· Google"],
     [/^Your offer \(£\)$/, "Jūsu piedāvājums (£)"], [/^All of (\d{4})$/, "Viss $1. gads"],

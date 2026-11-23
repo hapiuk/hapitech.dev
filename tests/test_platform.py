@@ -1310,7 +1310,7 @@ def test_google_copy_import_and_reviews_site(app):
     # the public reviews site
     pub = app.test_client()
     home = pub.get("/rv/").get_data(as_text=True)
-    assert "Honest reviews of local businesses" in home and "Roland" in home
+    assert "One honest home" in home and "Roland" in home and "Where the reviews come from" in home
     biz = pub.get("/rv/rolands").get_data(as_text=True)
     assert "Mohammad Zaheer" in biz and "Reply from" in biz and "Read it all on Google" in biz and "Leave a review" in biz
     assert pub.get("/reviews/rolands").get_data(as_text=True) == biz                       # same page at the old address
@@ -1382,7 +1382,7 @@ def test_review_export_files_google_and_facebook(app):
         assert float(a.google_rating) == 4.8 and a.facebook_pct == 98 and a.facebook_count == 71
         assert Review.query.filter_by(account_id=a.id).count() == before + 3       # Paul updated, 3 new, none doubled
     pub = app.test_client().get("/rv/rayg").get_data(as_text=True)
-    assert "98%" in pub and "4.8 ★" in pub and "👍 Recommends" in pub and "Doesn&#39;t recommend" in pub
+    assert "98%" in pub and "4.8★" in pub and "👍 Recommends" in pub and "Doesn&#39;t recommend" in pub
 
 
 def test_reply_skip_rate_shortcuts_platforms_extras(app):

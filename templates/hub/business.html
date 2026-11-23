@@ -2,22 +2,34 @@
 {% from "hub/_stars.html" import stars %}
 {% from "app/_source.html" import source_chip %}
 {% block title %}{{ a.name }} reviews{% if avg %} · {{ '%.1f' % avg }}★ from {{ rows|length }}{% endif %} | HapiTech Reviews{% endblock %}
-{% block meta %}<meta name="description" content="{{ rows|length }} reviews of {{ a.name }}{% if a.town %}, {{ a.town }}{% endif %}. Every review kept, with the business's replies.">{% endblock %}
+{% block meta %}<meta name="description" content="{{ rows|length }} reviews of {{ a.name }}{% if a.town %}, {{ a.town }}{% endif %}, brought together from Google, Facebook and their own customers. Every genuine review kept, with their replies.">{% endblock %}
 {% block content %}
 <div class="hb-wrap">
   <section class="hb-bizhead">
     <img src="/app/{{ a.slug }}/icon-192.png" alt="">
-    <div><h1>{{ a.name }}</h1><p class="hb-muted" style="margin:4px 0 0">{{ a.trade or '' }}{% if a.town %} · {{ a.town }}{% endif %}{% if a.domain %} · <a href="https://{{ a.domain }}" rel="noopener">{{ a.domain }}</a>{% endif %}</p></div>
-    <div class="hb-row"><a class="hb-btn" href="{{ url_for('reviews_public.write', slug=a.slug) }}">Leave a review</a></div>
+    <div><h1>{{ a.name }}</h1><p class="hb-muted" style="margin:6px 0 0">{{ a.trade or '' }}{% if a.town %} · {{ a.town }}{% endif %}{% if a.domain %} · <a href="https://{{ a.domain }}" rel="noopener">{{ a.domain }}</a>{% endif %}</p></div>
+    <div class="hb-row"><a class="hb-btn" href="{{ url_for('reviews_public.write', slug=a.slug) }}">★ Leave a review</a></div>
   </section>
+
+  {% if avg %}
+  <div class="hb-scorecards">
+    <div class="hb-sc hb-sc--overall"><div class="hb-ring" data-p="{{ (avg / 5 * 100) | round(1) }}"><span>{{ '%.1f' % avg }}</span></div>
+      <div><small>Overall, every platform</small>{{ stars(avg | round | int) }}<div class="hb-muted" style="font-size:.86rem">{{ rows|length }} reviews · {{ replied }} answered</div></div></div>
+    {% if src.google %}<a class="hb-sc hb-sc--google" href="{{ src.google.url or '#' }}" target="_blank" rel="noopener"><small><span class="src-chip src-chip--google"><b>G</b> Google</span></small><b>{{ '%.1f' % src.google.avg }}★</b><div class="hb-muted" style="font-size:.84rem">{{ src.google.count }} reviews ↗</div></a>{% endif %}
+    {% if src.facebook %}<a class="hb-sc hb-sc--facebook" href="{{ src.facebook.url or '#' }}" target="_blank" rel="noopener"><small><span class="src-chip src-chip--facebook"><b>f</b> Facebook</span></small><b>{{ src.facebook.pct }}%</b><div class="hb-muted" style="font-size:.84rem">recommend · {{ src.facebook.count }} ↗</div></a>{% endif %}
+    {% if src.hapitech %}<div class="hb-sc hb-sc--hapitech"><small><span class="src-chip src-chip--hapitech"><b>★</b> HapiTech</span></small><b>{{ '%.1f' % src.hapitech.avg }}★</b><div class="hb-muted" style="font-size:.84rem">{{ src.hapitech.count }} left here</div></div>
+    {% else %}<a class="hb-sc hb-sc--hapitech" href="{{ url_for('reviews_public.write', slug=a.slug) }}"><small><span class="src-chip src-chip--hapitech"><b>★</b> HapiTech</span></small><b>Be first</b><div class="hb-muted" style="font-size:.84rem">leave a review here →</div></a>{% endif %}
+  </div>
+  {% endif %}
+
   <div class="hb-layout">
     <div>
       {% if rows %}
       <div class="hb-filters" role="group" aria-label="Filter reviews">
         <button class="hb-chip" type="button" data-filter="all" aria-pressed="true">All {{ rows|length }}</button>
-        {% for n in [5,4,3,2,1] if dist[n] %}<button class="hb-chip" type="button" data-filter="r{{ n }}" aria-pressed="false">{{ n }}★ ({{ dist[n] }})</button>{% endfor %}
+        {% for k, lbl in [('google','Google'),('facebook','Facebook'),('hapitech','HapiTech')] if by_source[k] %}<button class="hb-chip" type="button" data-filter="s-{{ k }}" aria-pressed="false">{{ lbl }} ({{ by_source[k] }})</button>{% endfor %}
+        {% for n in [5,4,3,2,1] if dist[n] and n < 5 %}<button class="hb-chip" type="button" data-filter="r{{ n }}" aria-pressed="false">{{ n }}★ ({{ dist[n] }})</button>{% endfor %}
         {% if replied %}<button class="hb-chip" type="button" data-filter="replied" aria-pressed="false">With a reply</button>{% endif %}
-        {% if (by_source.values() | select | list | length) > 1 %}{% for k, lbl in [('google','Google'),('facebook','Facebook'),('hapitech','HapiTech')] if by_source[k] %}<button class="hb-chip" type="button" data-filter="s-{{ k }}" aria-pressed="false">{{ lbl }} ({{ by_source[k] }})</button>{% endfor %}{% endif %}
       </div>
       <div data-reviews>
       {% for r in rows %}
@@ -27,45 +39,39 @@
               <div><strong>{{ r.author_name }}</strong><div class="hb-review__meta">{{ source_chip(r) }}{% if r.reviewed_at %} · {{ r.reviewed_at | age }}{% endif %}{% if r.verified %} · ✓ Verified customer{% endif %}</div></div></div>
             {% if r.source == 'facebook' %}<span class="fb-rec {{ 'fb-rec--no' if r.recommends is sameas false }}">{{ '👍 Recommends' if r.recommends is not sameas false else "👎 Doesn't recommend" }}</span>{% else %}{{ stars(r.rating) }}{% endif %}
           </div>
-          {% if r.body %}<p class="hb-review__body">{{ r.body }}</p>{% else %}<p class="hb-review__body hb-muted">Left a star rating without words.</p>{% endif %}
-          {% if r.price_tag or r.service or r.photo_count or (r.truncated and r.link) %}<div class="hb-review__extra">
-            {% if r.price_tag %}<span class="hb-tag">{{ r.price_tag }}</span>{% endif %}
+          {% if r.body %}<p class="hb-review__body">{{ r.body }}</p>{% else %}<p class="hb-review__body hb-muted">Left a rating without words.</p>{% endif %}
+          {% if r.price_tag or r.service or (r.photo_count and not (r.photos | fromjson)) or (r.truncated and r.link) %}<div class="hb-review__extra">
+            {% if r.price_tag %}<span class="hb-tag">💷 {{ r.price_tag }}</span>{% endif %}
             {% if r.service %}<span class="hb-tag">🔧 {{ r.service }}</span>{% endif %}
             {% if r.photo_count and r.link and not (r.photos | fromjson) %}<a href="{{ r.link }}" target="_blank" rel="noopener">📷 {{ r.photo_count }} photo{{ '' if r.photo_count == 1 else 's' }} on {{ r.source_label }}</a>{% endif %}
             {% if r.truncated and r.link %}<a href="{{ r.link }}" target="_blank" rel="noopener">Read it all on {{ r.source_label }} ↗</a>{% endif %}
           </div>{% endif %}
           {% set pics = r.photos | fromjson %}{% if pics %}<div class="hb-pics">{% for pid in pics[:6] %}{% set m = media_by_id(pid) %}{% if m %}<a href="{{ url_for('reviews_public.media_file', path=m.file_path) }}" target="_blank" rel="noopener"><img src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="Photo from {{ r.author_name }}'s review" loading="lazy"></a>{% endif %}{% endfor %}</div>{% endif %}
-          {% if r.reply %}<div class="hb-reply"><b>Reply from {{ a.name }}</b>{{ r.reply.body }}</div>{% endif %}
+          {% if r.reply %}<div class="hb-reply"><b>↩ Reply from {{ a.name }}</b>{{ r.reply.body }}</div>{% endif %}
           <div class="hb-review__foot"><button class="hb-link" type="button" data-report="{{ hub_url('hub.report', rid=r.id) }}">Report</button></div>
         </article>
       {% endfor %}
       </div>
       <div class="hb-more" hidden><button class="hb-btn hb-btn--ghost" type="button" data-more>Show more reviews</button></div>
       {% else %}
-      <div class="hb-card"><h2 style="font-size:1.2rem">No reviews yet</h2><p class="hb-muted">Used {{ a.name }}? Be the first to leave a review.</p><a class="hb-btn" href="{{ url_for('reviews_public.write', slug=a.slug) }}">Leave a review</a></div>
+      <div class="hb-card"><h2 style="font-size:1.25rem">No reviews yet</h2><p class="hb-muted">Used {{ a.name }}? Be the first to leave a review.</p><a class="hb-btn" href="{{ url_for('reviews_public.write', slug=a.slug) }}">Leave a review</a></div>
       {% endif %}
     </div>
     <aside class="hb-side">
-      {% if avg %}<div class="hb-card">
-        <div class="hb-score"><span class="hb-score__n">{{ '%.1f' % avg }}</span><div>{{ stars(avg | round | int) }}<div class="hb-muted" style="font-size:.88rem">Overall · {{ rows|length }} reviews</div></div></div>
-        <div class="hb-srcs">
-          {% if src.google %}<a class="hb-src hb-src--google" href="{{ src.google.url or '#' }}" target="_blank" rel="noopener"><b>Google</b><span>{{ '%.1f' % src.google.avg }} ★</span><small>{{ src.google.count }} reviews</small></a>{% endif %}
-          {% if src.facebook %}<a class="hb-src hb-src--facebook" href="{{ src.facebook.url or '#' }}" target="_blank" rel="noopener"><b>Facebook</b><span>{{ src.facebook.pct }}%</span><small>recommend · {{ src.facebook.count }}</small></a>{% endif %}
-          {% if src.hapitech %}<span class="hb-src hb-src--hapitech"><b>HapiTech</b><span>{{ '%.1f' % src.hapitech.avg }} ★</span><small>{{ src.hapitech.count }} left here</small></span>{% endif %}
-        </div>
-        <div class="hb-dist">{% for n in [5,4,3,2,1] %}<button class="hb-dist__row" type="button" data-filter="r{{ n }}" {% if not dist[n] %}disabled{% endif %}><span>{{ n }}★</span><span class="hb-dist__bar"><span style="width:{{ (dist[n] / rows|length * 100) | round(1) }}%"></span></span><span>{{ dist[n] }}</span></button>{% endfor %}</div>
+      {% if avg %}<div class="hb-card reveal"><b>Star ratings</b>
+        <div class="hb-dist" style="margin-top:12px">{% for n in [5,4,3,2,1] %}<button class="hb-dist__row" type="button" data-filter="r{{ n }}" {% if not dist[n] %}disabled{% endif %}><span>{{ n }}★</span><span class="hb-dist__bar"><span style="--w:{{ (dist[n] / rows|length * 100) | round(1) }}%"></span></span><span>{{ dist[n] }}</span></button>{% endfor %}</div>
+        {% if src.facebook %}<p class="hb-muted" style="font-size:.8rem;margin:10px 0 0">Facebook has no stars: 👍 counts as 5★ and 👎 as 1★ here.</p>{% endif %}
       </div>{% endif %}
       <div class="hb-card">
-        <h2 style="font-size:1.05rem;margin-bottom:6px">Used {{ a.name }}?</h2>
-        <p class="hb-muted" style="margin:0 0 12px;font-size:.92rem">Leave an honest review. It helps others choose and helps {{ a.first_name }} too.</p>
-        <a class="hb-btn" href="{{ url_for('reviews_public.write', slug=a.slug) }}">Leave a review</a>
-        {% if a.google_reviews_url %}<p style="margin:12px 0 0;font-size:.88rem"><a href="{{ a.google_reviews_url }}" target="_blank" rel="noopener">See {{ a.name }} on Google ↗</a></p>{% endif %}
+        <h2 style="font-size:1.1rem;margin-bottom:6px">Used {{ a.name }}?</h2>
+        <p class="hb-muted" style="margin:0 0 14px;font-size:.92rem">Leave an honest review. It helps others choose and helps {{ a.first_name }} too.</p>
+        <a class="hb-btn" href="{{ url_for('reviews_public.write', slug=a.slug) }}">★ Leave a review</a>
       </div>
       <div class="hb-card"><b>About these reviews</b>
-        <ul>{% for label, n in sources.items() %}<li>{{ n }} from {{ 'HapiTech Reviews' if label in ('HapiTech', 'their website') else label }}</li>{% endfor %}
-          <li>Nothing genuine is ever deleted</li><li>Dates of copied reviews are approximate</li></ul>
-        <p style="margin:10px 0 0;font-size:.88rem"><a href="{{ hub_url('hub.policy') }}">Our review policy</a></p></div>
-      <aside class="hb-ad" style="margin-top:14px"><div><small>Advertisement</small>Your local business here.</div><a href="mailto:aaron@hapitech.dev?subject=Advertising%20on%20HapiTech%20Reviews">Ask →</a></aside>
+        <ul>{% for k, lbl in [('google','from Google'),('facebook','from Facebook'),('hapitech','left directly with HapiTech')] if by_source[k] %}<li>{{ by_source[k] }} {{ lbl }}</li>{% endfor %}
+          <li>We bring them together from each platform and keep every genuine one</li><li>Dates from other platforms can be approximate</li></ul>
+        <p style="margin:12px 0 0;font-size:.88rem"><a href="{{ hub_url('hub.policy') }}">How we keep it honest →</a></p></div>
+      <aside class="hb-ad"><div><small>Advertisement</small>Your local business here.</div><a href="mailto:aaron@hapitech.dev?subject=Advertising%20on%20HapiTech%20Reviews">Ask →</a></aside>
     </aside>
   </div>
 </div>

@@ -77,7 +77,16 @@ def home():
     biz = _businesses()
     total = sum(b["count"] for b in biz)
     avg = (sum(b["avg"] * b["count"] for b in biz) / total) if total else None
-    return render_template("hub/home.html", biz=biz, total=total, avg=avg)
+    ids = [b["a"].id for b in biz]
+    live = (Review.query.filter(Review.account_id.in_(ids), Review.status.in_(["published", "reported"])).all() if ids else [])
+    by_src = {"google": 0, "facebook": 0, "hapitech": 0}
+    for r in live:
+        by_src["hapitech" if r.source in OWN else r.source if r.source in by_src else "hapitech"] += 1
+    replied = sum(1 for r in live if r.reply)
+    wall = sorted([r for r in live if r.body and len(r.body) > 40 and r.rating >= 4],
+                  key=lambda r: r.reviewed_at or r.created_at, reverse=True)[:18]
+    return render_template("hub/home.html", biz=biz, total=total, avg=avg, by_src=by_src, wall=wall,
+                           reply_rate=round(100 * replied / len(live)) if live else 0)
 
 
 @hub_bp.route("/<slug>")

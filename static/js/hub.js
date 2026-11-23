@@ -46,3 +46,40 @@
     document.querySelectorAll("[data-biz]").forEach(function (el) { el.hidden = q && el.getAttribute("data-biz").toLowerCase().indexOf(q) < 0; });
   });
 })();
+
+/* --- the fun bits: reveal on scroll, counters, donut + score ring, card tilt --- */
+(function () {
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function countUp(el) {
+    var to = parseFloat(el.getAttribute("data-count")) || 0, dec = +(el.getAttribute("data-dec") || 0), suf = el.getAttribute("data-suffix") || "";
+    if (reduce) { el.textContent = to.toFixed(dec) + suf; return; }
+    var t0 = null;
+    function step(t) { t0 = t0 || t; var k = Math.min(1, (t - t0) / 1300), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = (to * e).toFixed(dec) + suf; if (k < 1) requestAnimationFrame(step); }
+    requestAnimationFrame(step);
+  }
+  var io = "IntersectionObserver" in window ? new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (!en.isIntersecting) return;
+      var el = en.target; el.classList.add("hb-in"); io.unobserve(el);
+      if (el.hasAttribute("data-count")) countUp(el);
+      if (el.classList.contains("hb-donut")) { el.style.setProperty("--g", el.getAttribute("data-g")); el.style.setProperty("--f", el.getAttribute("data-f")); }
+      if (el.classList.contains("hb-ring")) el.style.setProperty("--p", el.getAttribute("data-p"));
+    });
+  }, { threshold: 0.2 }) : null;
+  document.querySelectorAll(".reveal, [data-count], .hb-donut, .hb-ring, .hb-biz, .hb-card").forEach(function (el) {
+    if (io) io.observe(el); else { el.classList.add("hb-in"); }
+  });
+  if (!reduce) document.querySelectorAll("[data-tilt]").forEach(function (card) {
+    card.addEventListener("mousemove", function (e) {
+      var r = card.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+      card.style.transform = "perspective(900px) rotateY(" + (x * 7) + "deg) rotateX(" + (-y * 7) + "deg) translateY(-3px)";
+    });
+    card.addEventListener("mouseleave", function () { card.style.transform = ""; });
+  });
+  var none = document.querySelector("[data-biz-none]"), search = document.querySelector("[data-biz-search]");
+  if (search && none) search.addEventListener("input", function () {
+    setTimeout(function () { none.hidden = !!document.querySelector("[data-biz]:not([hidden])"); }, 0);
+    if (search.value && location.hash !== "#businesses") document.getElementById("businesses").scrollIntoView({ behavior: "smooth" });
+  });
+})();

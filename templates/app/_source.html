@@ -1,9 +1,9 @@
 {#- shared "where this review came from" chip: Google / Facebook styled as themselves, HapiTech as ours -#}
 {%- macro source_chip(r, link=True) -%}
 {%- if r.source == 'google' -%}
-<{{ 'a' if link and r.link else 'span' }} class="src-chip src-chip--google"{% if link and r.link %} href="{{ r.link }}" target="_blank" rel="noopener"{% endif %} title="Copied from Google reviews"><b aria-hidden="true">G</b> Google{% if link and r.link %} ↗{% endif %}</{{ 'a' if link and r.link else 'span' }}>
+<{{ 'a' if link and r.link else 'span' }} class="src-chip src-chip--google"{% if link and r.link %} href="{{ r.link }}" target="_blank" rel="noopener"{% endif %} title="Collected from Google reviews"><b aria-hidden="true">G</b> Google{% if link and r.link %} ↗{% endif %}</{{ 'a' if link and r.link else 'span' }}>
 {%- elif r.source == 'facebook' -%}
-<{{ 'a' if link and r.link else 'span' }} class="src-chip src-chip--facebook"{% if link and r.link %} href="{{ r.link }}" target="_blank" rel="noopener"{% endif %} title="Copied from Facebook reviews"><b aria-hidden="true">f</b> Facebook{% if link and r.link %} ↗{% endif %}</{{ 'a' if link and r.link else 'span' }}>
+<{{ 'a' if link and r.link else 'span' }} class="src-chip src-chip--facebook"{% if link and r.link %} href="{{ r.link }}" target="_blank" rel="noopener"{% endif %} title="Collected from Facebook reviews"><b aria-hidden="true">f</b> Facebook{% if link and r.link %} ↗{% endif %}</{{ 'a' if link and r.link else 'span' }}>
 {%- elif r.source == 'checkatrade' -%}
 <span class="src-chip src-chip--other">Checkatrade</span>
 {%- else -%}
