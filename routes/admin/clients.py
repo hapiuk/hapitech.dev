@@ -152,13 +152,17 @@ def client(slug):
         "requests": ReviewRequest.query.filter_by(account_id=a.id).count(),
     }
     new_key = session.pop("new_site_key", None) if session.get("new_site_key_for") == a.slug else None
+    value = None
+    if tab == "money":
+        from utils.plan_value import summary
+        value = summary(a)
     traffic = None
     if tab == "traffic":
         from utils.traffic import summary
         traffic = summary(a)
     return render_template("admin/client.html", a=a, tab=tab, reviews=reviews, stats=stats,
                            job_types=JOB_TYPES, job_statuses=JOB_STATUSES, today=dt.date.today(), new_key=new_key,
-                           t=traffic, friends_end=__import__("utils.plans", fromlist=["x"]).friends_end_default())
+                           t=traffic, value=value, friends_end=__import__("utils.plans", fromlist=["x"]).friends_end_default())
 
 
 @admin_bp.route("/clients/<slug>/notes", methods=["POST"])
@@ -222,6 +226,33 @@ def sub_save(slug, sub_id=None):
     db.session.commit()
     flash("Subscription saved.", "ok")
     return redirect(url_for("admin.client", slug=slug, tab="money"))
+
+
+@admin_bp.route("/clients/<slug>/costs", methods=["POST"])
+@admin_bp.route("/clients/<slug>/costs/<int:cid>", methods=["POST"])
+def cost_save(slug, cid=None):
+    from models.core import RunningCost
+    a = _acct(slug)
+    c = RunningCost.query.filter_by(id=cid, account_id=a.id).first_or_404() if cid else RunningCost(account_id=a.id)
+    f = request.form
+    if f.get("action") == "delete" and cid:
+        db.session.delete(c)
+        db.session.commit()
+        flash("Running cost removed.", "ok")
+        return redirect(url_for("admin.client", slug=slug, tab="money") + "#costs")
+    c.title = (f.get("title") or "").strip()[:160] or "Running cost"
+    c.kind = f.get("kind") if f.get("kind") in ("hosting", "email", "domain", "other") else "other"
+    c.value_gbp = _money(f.get("value_gbp"))
+    c.my_cost_gbp = _money(f.get("my_cost_gbp")) if (f.get("my_cost_gbp") or "").strip() else None
+    c.interval = "yearly" if f.get("interval") == "yearly" else "monthly"
+    c.started_on, c.ended_on = _date(f.get("started_on")), _date(f.get("ended_on"))
+    c.covered = bool(f.get("covered"))
+    c.note = (f.get("note") or "").strip()[:300] or None
+    if not cid:
+        db.session.add(c)
+    db.session.commit()
+    flash("Running cost saved.", "ok")
+    return redirect(url_for("admin.client", slug=slug, tab="money") + "#costs")
 
 
 @admin_bp.route("/clients/<slug>/payments", methods=["POST"])

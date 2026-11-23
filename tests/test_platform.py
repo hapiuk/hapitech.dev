@@ -1012,11 +1012,12 @@ def test_finances_nav_order_brand_and_website_button(app):
         a.brand_colour, a.domain = "#f97316", "rolandshandyman.co.uk"
         db.session.commit()
     o = app.test_client(); _login(o, "roland@test")
-    fin = o.get("/portal/finances").get_data(as_text=True)
+    assert o.get("/portal/finances").headers["Location"].endswith("/portal/plan")
+    fin = o.get("/portal/plan").get_data(as_text=True)
     assert "£0.00" in fin and "all square" in fin
     home = o.get("/portal/").get_data(as_text=True)
     side = home[home.index('class="side__nav"'):home.index("</nav>", home.index('class="side__nav"'))]
-    order = [label for label in ("Home", "My website", "Visitors", "Reviews", "Posts", "Jobs", "Calendar", "Finances", "Settings", "Help")
+    order = [label for label in ("Home", "My website", "Visitors", "Reviews", "Posts", "Jobs", "Calendar", "My plan", "Settings", "Help")
              if f"<span>{label}</span>" in side]
     positions = [side.index(f"<span>{label}</span>") for label in order]
     assert len(order) == 10 and positions == sorted(positions) and "Ask for a review</span>" not in side
@@ -1027,7 +1028,7 @@ def test_finances_nav_order_brand_and_website_button(app):
     adm = app.test_client(); _login(adm, "admin@test")
     _form(adm, "/admin/clients/rolands/edit", {"name": "Roland's Handyman", "balance_gbp": "45.50",
                                                "billing_note": "Hosting for December"}, page="/admin/clients/rolands/edit")
-    fin = o.get("/portal/finances").get_data(as_text=True)
+    fin = o.get("/portal/plan").get_data(as_text=True)
     assert "£45.50" in fin and "Hosting for December" in fin
     with app.app_context():
         Account.query.filter_by(slug="rolands").first().brand_colour = "red;}body{display:none"
@@ -1081,3 +1082,46 @@ def test_report_an_issue(app):
     assert "Roland" in adm.get("/portal/jobs").get_data(as_text=True)
     # Roland's own Jobs never shows it
     assert "Save button does nothing" not in o.get("/portal/jobs").get_data(as_text=True)
+
+
+
+def test_my_plan_value_running_costs_and_support_button(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account, AddOn, Job, Payment, RunningCost
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        start = dt.date.today() - dt.timedelta(days=365)
+        db.session.add_all([
+            Job(account_id=a.id, title="Website creation", type="build", status="done", price_gbp=300, due_date=start),
+            Job(account_id=a.id, title="Server setup", type="hosting", status="done", price_gbp=200, due_date=start),
+            Payment(account_id=a.id, amount_gbp=500, paid_at=start),
+            RunningCost(account_id=a.id, title="Server hosting", kind="hosting", value_gbp=29.99, my_cost_gbp=40,
+                        interval="monthly", started_on=start, covered=True),
+            RunningCost(account_id=a.id, title="Email", kind="email", value_gbp=25, my_cost_gbp=25, interval="yearly",
+                        started_on=start, covered=True)])
+        ad = a.addon() or AddOn(account_id=a.id)
+        ad.status, ad.renew_months = "friends", 3
+        db.session.add(ad); db.session.commit()
+        from utils.plan_value import summary
+        v = summary(a)
+        assert v["work_total"] == 500 and v["paid"] == 500
+        assert 380 < v["covered_so_far"] < 390                # ~12 months x (29.99 + 2.08)
+    o = app.test_client(); _login(o, "roland@test")
+    page = o.get("/portal/plan").get_data(as_text=True)
+    assert "What you've had from HapiTech so far" in page and "Covered for you" in page and "Server hosting" in page
+    assert "Website creation" in page and "Support HapiTech" not in page          # no link set yet
+    assert "£40" not in page                                                        # HapiTech's own cost stays private
+    adm = app.test_client(); _login(adm, "admin@test")
+    _form(adm, "/admin/settings", {"action": "donate", "donate_url": "https://paypal.me/hapitech"}, page="/admin/settings")
+    assert "Support HapiTech" in o.get("/portal/plan").get_data(as_text=True)
+    with app.app_context():
+        Account.query.filter_by(slug="rolands").first().addon().status = "active"
+        db.session.commit()
+    assert "Support HapiTech" not in o.get("/portal/plan").get_data(as_text=True)  # Friends plan only
+    money = adm.get("/admin/clients/rolands?tab=money").get_data(as_text=True)
+    assert "Running costs" in money and "costs you £40.00" in money
+    _form(adm, "/admin/clients/rolands/costs", {"title": "Domain renewal", "kind": "domain", "value_gbp": "12",
+                                                "interval": "yearly", "covered": "1"}, page="/admin/clients/rolands")
+    with app.app_context():
+        assert RunningCost.query.filter_by(title="Domain renewal").first().covered

@@ -154,6 +154,48 @@
     </details>
   </section>
 </div>
+<section class="card" id="costs">
+  <div class="card__head"><h2>Running costs &amp; value</h2><span class="small muted">pricing reference</span></div>
+  <div class="grid grid--4" style="margin-bottom:12px">
+    <div class="stat"><p class="stat__label">Value to them / month</p><p class="stat__value">{{ (value.all_costs | sum(attribute='monthly')) | gbp(true) }}</p><p class="stat__sub">covered: {{ value.covered_monthly | gbp(true) }}</p></div>
+    <div class="stat"><p class="stat__label">Your cost / month</p><p class="stat__value">{{ value.my_monthly | gbp(true) }}</p><p class="stat__sub">as entered below</p></div>
+    <div class="stat"><p class="stat__label">Covered so far</p><p class="stat__value">{{ value.covered_so_far | gbp }}</p><p class="stat__sub">{{ value.months }} months{% if value.since %} since {{ value.since | ukdate('%b %Y') }}{% endif %}</p></div>
+    <div class="stat"><p class="stat__label">Total value had</p><p class="stat__value">{{ value.value_total | gbp }}</p><p class="stat__sub">paid {{ value.paid | gbp }}</p></div>
+  </div>
+  {% for c in a.running_costs %}
+  <details class="fold">
+    <summary>{{ c.title }} · {{ c.value_gbp | gbp(true) }}/{{ 'yr' if c.interval == 'yearly' else 'mo' }}{% if c.my_cost_gbp is not none %} <span class="small muted">(costs you {{ c.my_cost_gbp | gbp(true) }})</span>{% endif %} {% if c.covered %}<span class="badge badge--ok">Covered</span>{% endif %}{% if c.started_on %} <span class="small muted">since {{ c.started_on | ukdate }}</span>{% endif %}{% if c.note %} <span class="small muted">· {{ c.note }}</span>{% endif %}</summary>
+    <form method="post" action="{{ url_for('admin.cost_save', slug=a.slug, cid=c.id) }}" class="form-grid" style="margin-bottom:16px">
+        <label class="field full"><span>What</span><input name="title" value="{{ c.title if c else '' }}" placeholder="Server hosting" required></label>
+        <label class="field"><span>Type</span><select name="kind">{% for k in ['hosting','email','domain','other'] %}<option {{ 'selected' if c and c.kind == k }}>{{ k }}</option>{% endfor %}</select></label>
+        <label class="field"><span>Every</span><select name="interval"><option value="monthly" {{ 'selected' if c and c.interval == 'monthly' }}>Month</option><option value="yearly" {{ 'selected' if c and c.interval == 'yearly' }}>Year</option></select></label>
+        <label class="field"><span>Value to them (£) <small>what they'd pay elsewhere</small></span><input name="value_gbp" inputmode="decimal" value="{{ '%.2f' % c.value_gbp if c else '' }}" required></label>
+        <label class="field"><span>Your cost (£) <small>admin only</small></span><input name="my_cost_gbp" inputmode="decimal" value="{{ '%.2f' % c.my_cost_gbp if c and c.my_cost_gbp is not none else '' }}"></label>
+        <label class="field"><span>Since</span><input type="date" name="started_on" value="{{ c.started_on or '' if c else '' }}"></label>
+        <label class="field"><span>Ended <small>optional</small></span><input type="date" name="ended_on" value="{{ c.ended_on or '' if c else '' }}"></label>
+        <label class="check full"><input type="checkbox" name="covered" value="1" {{ 'checked' if not c or c.covered }}> <span>HapiTech covers this for them (shows under "Covered for you")</span></label>
+        <label class="field full"><span>Note <small>admin only</small></span><input name="note" value="{{ c.note or '' if c else '' }}"></label>
+      <div class="form-actions full"><button class="btn btn--sm">Save</button><button class="btn btn--danger btn--sm" name="action" value="delete" data-confirm="Remove this running cost?">Remove</button></div>
+    </form>
+  </details>
+  {% endfor %}
+  <details class="fold" {% if not a.running_costs %}open{% endif %}>
+    <summary>+ Add a running cost</summary>
+    {% set c = none %}
+    <form method="post" action="{{ url_for('admin.cost_save', slug=a.slug) }}" class="form-grid">
+        <label class="field full"><span>What</span><input name="title" value="{{ c.title if c else '' }}" placeholder="Server hosting" required></label>
+        <label class="field"><span>Type</span><select name="kind">{% for k in ['hosting','email','domain','other'] %}<option {{ 'selected' if c and c.kind == k }}>{{ k }}</option>{% endfor %}</select></label>
+        <label class="field"><span>Every</span><select name="interval"><option value="monthly" {{ 'selected' if c and c.interval == 'monthly' }}>Month</option><option value="yearly" {{ 'selected' if c and c.interval == 'yearly' }}>Year</option></select></label>
+        <label class="field"><span>Value to them (£) <small>what they'd pay elsewhere</small></span><input name="value_gbp" inputmode="decimal" value="{{ '%.2f' % c.value_gbp if c else '' }}" required></label>
+        <label class="field"><span>Your cost (£) <small>admin only</small></span><input name="my_cost_gbp" inputmode="decimal" value="{{ '%.2f' % c.my_cost_gbp if c and c.my_cost_gbp is not none else '' }}"></label>
+        <label class="field"><span>Since</span><input type="date" name="started_on" value="{{ c.started_on or '' if c else '' }}"></label>
+        <label class="field"><span>Ended <small>optional</small></span><input type="date" name="ended_on" value="{{ c.ended_on or '' if c else '' }}"></label>
+        <label class="check full"><input type="checkbox" name="covered" value="1" {{ 'checked' if not c or c.covered }}> <span>HapiTech covers this for them (shows under "Covered for you")</span></label>
+        <label class="field full"><span>Note <small>admin only</small></span><input name="note" value="{{ c.note or '' if c else '' }}"></label>
+      <div class="form-actions full"><button class="btn btn--sm">Add</button></div>
+    </form>
+  </details>
+</section>
 <section class="card">
   <div class="card__head"><h2>Payments</h2><span class="muted small">Total {{ stats.paid | gbp }}</span></div>
   {% if a.payments %}

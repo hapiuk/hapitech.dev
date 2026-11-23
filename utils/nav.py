@@ -71,7 +71,7 @@ def portal_nav(counts=None, owner=True):
         _item("Calendar", "portal.calendar", "calendar", prefix="/portal/calendar"),
     ]
     if owner:
-        items.append(_item("Finances", "portal.finances", "pound", prefix="/portal/finances"))
+        items.append(_item("My plan", "portal.plan", "pound", prefix="/portal/plan"))
         items.append(_item("Settings", "portal.settings", "cog", prefix="/portal/settings"))
     items.append(_item("Help", "portal.help", "help", prefix="/portal/help"))
     return items

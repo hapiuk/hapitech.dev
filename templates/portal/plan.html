@@ -1,0 +1,62 @@
+{% extends "app/base.html" %}
+{% block title %}My plan{% endblock %}
+{% block content %}
+<div class="page-top"><div><h1>My plan</h1><p>Your plan, the work done on your website, and what's included.</p></div></div>
+
+{# ---------- the headline: value had so far ---------- #}
+{% if v.value_total %}
+<section class="card card--accent value-hero">
+  <p class="stat__label">What you've had from HapiTech so far</p>
+  <p class="value-hero__total">{{ v.value_total | gbp }}</p>
+  <p class="small muted">{{ v.work_total | gbp }} of work on your website{% if v.covered_so_far %}, plus {{ v.covered_so_far | gbp }} of hosting, email and your domain covered for you{% endif %}{% if v.since %} since {{ v.since | ukdate('%B %Y') }}{% endif %}.{% if v.paid %} You've paid {{ v.paid | gbp }}.{% endif %}</p>
+  {% if v.paid and v.value_total > v.paid %}<div class="meter value-hero__meter" aria-hidden="true"><span style="width:{{ (v.paid / v.value_total * 100) | round(0) }}%"></span></div>
+  <p class="small muted" style="margin-top:6px">You paid for the bar on the left. The rest is on us 💛</p>{% endif %}
+</section>
+{% endif %}
+
+<div class="grid grid--2" style="margin-top:12px">
+  <section class="card plan-card">
+    <div class="plan-card__icon" aria-hidden="true">{{ '💛' if addon and addon.status == 'friends' else ('🎁' if addon and addon.status == 'trial' else '✅') }}</div>
+    <div>
+      <p class="stat__label">Your plan</p>
+      <p class="plan-card__name">{{ addon.plan.name if addon and addon.plan else 'Website care' }}</p>
+      <p class="small muted">{{ addon.plan.line if addon and addon.plan else 'We look after your website for you.' }}</p>
+    </div>
+  </section>
+  <section class="card {{ 'card--accent' if owed > 0 }}">
+    <p class="stat__label">Anything to pay?</p>
+    <p class="fin__amount {{ 'fin__amount--clear' if owed <= 0 }}">{{ owed | gbp(true) if owed > 0 else '£0.00' }}</p>
+    <p class="small muted">{% if owed > 0 %}Aaron will be in touch about how to pay.{% else %}Nothing to pay. You're all square ✓{% endif %}</p>
+    {% if g.account.billing_note %}<div class="fin__note">💬 {{ g.account.billing_note }}</div>{% endif %}
+  </section>
+</div>
+
+{% if v.covered %}
+<section class="card" style="margin-top:12px">
+  <div class="card__head"><h2>Covered for you</h2><span class="small muted">{{ v.covered_monthly | gbp(true) }} a month in value</span></div>
+  <p class="small muted" style="margin-bottom:8px">What it would cost to run your website yourself. HapiTech pays these for you at the moment.</p>
+  <ul class="list">{% for c in v.covered %}
+    <li><span><strong>{{ c.title }}</strong><br><span class="small muted">{{ c.value_gbp | gbp(true) }} a {{ 'year' if c.interval == 'yearly' else 'month' }}{% if c.interval == 'yearly' %} ({{ c.monthly | gbp(true) }}/month){% endif %}{% if c.started_on %} · since {{ c.started_on | ukdate('%b %Y') }}{% endif %}</span></span>
+      <span class="badge badge--ok">Covered · {{ c.value_so_far() | gbp }} so far</span></li>
+  {% endfor %}</ul>
+</section>
+{% endif %}
+
+{% if v.work %}
+<section class="card" style="margin-top:12px">
+  <div class="card__head"><h2>Work on your website</h2><span class="small muted">{{ v.work_total | gbp }}</span></div>
+  <ul class="list">{% for j in v.work %}
+    <li><span><strong>{{ j.title }}</strong>{% if j.due_date %}<br><span class="small muted">{{ j.due_date | ukdate('%B %Y') }}</span>{% endif %}</span><span>{{ j.price_gbp | gbp }}</span></li>
+  {% endfor %}</ul>
+</section>
+{% endif %}
+
+{% if donate %}
+<section class="card donate" style="margin-top:12px">
+  <div><h2>☕ Fancy saying thanks?</h2>
+    <p class="small muted">Totally optional, and your plan stays exactly the same either way. If you'd like to chip in towards the running costs, it's very much appreciated.</p></div>
+  <a class="btn btn--sm" href="{{ donate }}" target="_blank" rel="noopener">Support HapiTech</a>
+</section>
+{% endif %}
+<p class="small muted" style="margin-top:14px">Questions about anything here? <a href="{{ url_for('portal.help') }}">Message Aaron</a>.</p>
+{% endblock %}

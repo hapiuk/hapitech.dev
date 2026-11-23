@@ -254,6 +254,47 @@ class LoginAttempt(db.Model):
     created_at = db.Column(db.DateTime, default=utcnow, nullable=False, index=True)
 
 
+class RunningCost(db.Model):
+    """Ongoing costs of running a client's site (hosting, email, domain). `value_gbp` is what it would cost
+    THEM to buy it themselves (shown on their My plan page); `my_cost_gbp` is what it costs HapiTech
+    (admin only, for pricing). `covered` = HapiTech pays it for them at the moment."""
+    __tablename__ = "running_costs"
+    id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=False, index=True)
+    title = db.Column(db.String(160), nullable=False)
+    kind = db.Column(db.String(20), nullable=False, default="other")       # hosting | email | domain | other
+    value_gbp = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+    my_cost_gbp = db.Column(db.Numeric(10, 2))
+    interval = db.Column(db.String(10), nullable=False, default="monthly")  # monthly | yearly
+    started_on = db.Column(db.Date)
+    ended_on = db.Column(db.Date)
+    covered = db.Column(db.Boolean, nullable=False, default=True)
+    note = db.Column(db.String(300))
+    account = db.relationship("Account", backref=db.backref("running_costs", lazy=True, order_by="RunningCost.id"))
+
+    @property
+    def monthly(self):
+        v = float(self.value_gbp or 0)
+        return v / 12 if self.interval == "yearly" else v
+
+    @property
+    def my_monthly(self):
+        if self.my_cost_gbp is None:
+            return None
+        v = float(self.my_cost_gbp)
+        return v / 12 if self.interval == "yearly" else v
+
+    def months_active(self, today=None):
+        today = today or dt.date.today()
+        if not self.started_on or self.started_on > today:
+            return 0.0
+        end = min(self.ended_on or today, today)
+        return max(0.0, (end - self.started_on).days / (365.25 / 12))
+
+    def value_so_far(self, today=None):
+        return round(self.monthly * self.months_active(today), 2)
+
+
 class SystemState(db.Model):
     """Small key/value store: scheduler lease, last-run times."""
     __tablename__ = "system_state"

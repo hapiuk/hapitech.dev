@@ -410,9 +410,17 @@ def traffic():
 # ---------------------------------------------------------------- finances (with HapiTech)
 
 @portal_bp.route("/finances")
+def finances_old():
+    return redirect(url_for("portal.plan"), code=301)
+
+
+@portal_bp.route("/plan")
 @owner_required
-def finances():
+def plan():
     from decimal import Decimal
+
+    from utils.plan_value import donate_url, summary
     a = g.account
-    owed = Decimal(a.balance_gbp or 0)
-    return render_template("portal/finances.html", owed=owed, addon=a.addon())
+    ad = a.addon()
+    return render_template("portal/plan.html", owed=Decimal(a.balance_gbp or 0), addon=ad, v=summary(a),
+                           donate=donate_url() if ad and ad.status == "friends" else None)

@@ -11,6 +11,20 @@ from . import admin_bp
 def settings():
     if request.method == "POST":
         action = request.form.get("action")
+        if action == "donate":
+            from models import db
+            from models.core import SystemState
+            from utils.plan_value import DONATE_KEY
+            url = (request.form.get("donate_url") or "").strip()[:300]
+            if url and not url.startswith("https://"):
+                flash("The link needs to start with https://", "err")
+                return redirect(url_for("admin.settings"))
+            row = db.session.get(SystemState, DONATE_KEY) or SystemState(key=DONATE_KEY)
+            row.value = url
+            db.session.add(row)
+            db.session.commit()
+            flash("Support link saved." if url else "Support button hidden.", "ok")
+            return redirect(url_for("admin.settings"))
         if action == "test-email":
             try:
                 from utils import email_html
@@ -29,4 +43,5 @@ def settings():
         per_source[it["source_id"]] = per_source.get(it["source_id"], 0) + 1
     return render_template("admin/settings.html", feeds=FEEDS, news=news, per_source=per_source,
                            updated=humanise_age(news.get("fetched_at")),
-                           mail_mode=current_app.config.get("MAIL_MODE"))
+                           mail_mode=current_app.config.get("MAIL_MODE"),
+                           donate_url=__import__("utils.plan_value", fromlist=["x"]).donate_url() or "")

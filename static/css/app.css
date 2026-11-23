@@ -434,3 +434,7 @@ a.stat:hover{border-color:var(--line-2)}
 .report{margin:auto;max-height:calc(100dvh - 24px);overflow:auto;width:min(520px,calc(100vw - 24px));border:1px solid var(--line);border-radius:18px;background:var(--card);color:var(--ink);padding:20px}
 .report::backdrop{background:rgba(0,0,0,.55)}
 .report h2{font-size:1.15rem}
+.value-hero__total{font-size:2.4rem;font-weight:800;letter-spacing:-.02em;margin:4px 0 6px;font-variant-numeric:tabular-nums}
+.value-hero__meter{margin-top:12px;height:10px}
+.donate{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.donate h2{font-size:1.02rem;margin-bottom:4px}
