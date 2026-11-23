@@ -265,7 +265,7 @@
     <div class="card__head"><h2>Who can log in</h2></div>
     {% if a.users %}
     <ul class="list">{% for u in a.users %}
-      <li><span><strong>{{ u.name or u.email }}</strong><br><span class="small muted">{{ u.email }} · {{ 'last in ' ~ (u.last_login_at | ago) if u.last_login_at else 'never logged in' }}</span>
+      <li><span><strong>{{ u.name or u.email }}</strong><br><span class="small muted">{{ u.email }}<br>{% if u.last_seen_at or u.last_login_at %}Last seen {{ (u.last_seen_at or u.last_login_at) | ago }} · last logged in {{ u.last_login_at | ago if u.last_login_at else 'never' }}{% else %}Never logged in{% endif %}</span>
         {% if not u.is_active %}<span class="badge badge--err">Disabled</span>{% endif %}</span>
         <form method="post" action="{{ url_for('admin.user_update', slug=a.slug, uid=u.id) }}" class="row">
           <button class="btn btn--ghost btn--sm" name="action" value="resend">Send login link</button>

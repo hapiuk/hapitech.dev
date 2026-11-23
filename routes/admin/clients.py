@@ -93,6 +93,7 @@ def clients():
             "paid": sum(float(p.amount_gbp or 0) for p in a.payments),
             "reviews": Review.query.filter_by(account_id=a.id, status="published").count(),
             "open_jobs": sum(1 for j in a.jobs if j.status in ("quote", "booked", "in_progress")),
+            "seen": max([t for u in a.users for t in (u.last_seen_at, u.last_login_at) if t], default=None),
         })
     rows.sort(key=lambda r: (r["a"].kind == "internal", r["a"].name.lower()))      # our own sites last
     return render_template("admin/clients.html", rows=rows, show=show)

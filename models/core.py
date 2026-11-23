@@ -123,7 +123,25 @@ class User(UserMixin, TimestampMixin, db.Model):
     account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=True)
     client_id = db.Column(db.Integer, nullable=True)                         # legacy column, unused
     is_active_flag = db.Column("is_active", db.Boolean, nullable=False, default=True)
-    last_login_at = db.Column(db.DateTime)
+    last_login_at = db.Column(db.DateTime)                                  # last time they typed in a login code
+    last_seen_at = db.Column(db.DateTime)                                   # last time they used it (updated ≤ every 10 min)
+    prefs = db.Column(db.Text)                                              # JSON: small personal settings
+
+    def pref(self, key, default=None):
+        import json as _json
+        try:
+            return (_json.loads(self.prefs or "{}") or {}).get(key, default)
+        except (ValueError, TypeError):
+            return default
+
+    def set_pref(self, key, value):
+        import json as _json
+        try:
+            d = _json.loads(self.prefs or "{}") or {}
+        except (ValueError, TypeError):
+            d = {}
+        d[key] = value
+        self.prefs = _json.dumps(d)
 
     account = db.relationship("Account", back_populates="users")
 

@@ -11,7 +11,7 @@
   <div class="card__head"><h2>Share it</h2></div>
   <p class="small muted">Your title and words are copied for you each time: if the app doesn't fill them in, just <b>paste</b>.</p>
   {% set full = share_text ~ (('\n\n' ~ link) if link else '') %}
-  <div class="share__btns" data-share-box data-url="{{ link }}" data-text="{{ full }}" data-photos='{{ share_photos | tojson }}'>
+  <div class="share__btns" data-share-box data-tip="{{ '' if current_user.pref('share_tip_off') else '1' }}" data-prefs="{{ url_for('portal.prefs') }}" data-url="{{ link }}" data-text="{{ full }}" data-photos='{{ share_photos | tojson }}'>
     <button type="button" class="btn btn--sm share-to share-to--fb" data-share-to="facebook"><img src="{{ url_for('static', filename='img/platforms/facebook.com.png') }}" alt="" width="18" height="18">Facebook</button>
     <button type="button" class="btn btn--sm share-to share-to--ig" data-share-to="instagram"><span aria-hidden="true">📷</span>Instagram</button>
     {% if link %}<button type="button" class="btn btn--ghost btn--sm" data-share-to="whatsapp">WhatsApp</button>
@@ -20,6 +20,13 @@
     <button type="button" class="btn btn--ghost btn--sm" data-copy-text="{{ full }}">Copy text</button>
   </div>
   <p class="small share__msg" data-share-msg role="status"></p>
+  <dialog class="report share-tip" id="shareTip" aria-labelledby="shareTipTitle">
+    <p class="share-tip__icon" aria-hidden="true">📋</p>
+    <h2 id="shareTipTitle">Your text is copied</h2>
+    <p data-share-tip-text>When the post opens, tap in the text box and <b>paste</b> your words in.</p>
+    <label class="check small"><input type="checkbox" data-share-tip-off> <span>Don't show this again <span class="muted">(you can turn it back on in Settings)</span></span></label>
+    <div class="row" style="margin-top:12px"><button type="button" class="btn" data-share-go>Continue</button><button type="button" class="btn btn--ghost btn--sm" data-close-dlg>Cancel</button></div>
+  </dialog>
 </section>
 {% endif %}
 <form method="post" enctype="multipart/form-data" class="card stack" style="max-width:640px">

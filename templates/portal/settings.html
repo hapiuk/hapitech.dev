@@ -26,6 +26,13 @@
       </div></div>
   </div>
 </section>
+<form method="post" class="card" style="margin-bottom:12px">
+  <input type="hidden" name="action" value="prefs">
+  <div class="card__head"><h2>📣 Sharing posts</h2></div>
+  <label class="check"><input type="checkbox" name="share_tip" value="1" {{ '' if current_user.pref('share_tip_off') else 'checked' }} data-autosubmit-check>
+    <span>Show the <b>"Your text is copied"</b> reminder when I share a post</span></label>
+  <noscript><button class="btn btn--sm">Save</button></noscript>
+</form>
 <div class="grid grid--2">
   <section class="card {{ 'card--accent' if g.account.is_away }}">
     <div class="card__head"><h2>🏖️ Away mode</h2>{% if g.account.is_away %}<span class="badge badge--warn">On</span>{% endif %}</div>

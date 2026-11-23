@@ -1522,3 +1522,19 @@ def test_generic_invite_reviews_only_and_mail_copy(app):
     assert r.status_code == 302
     with app.app_context():
         db.session.delete(db.session.get(SystemState, "invite_mode")); db.session.commit()
+
+
+def test_last_seen_and_share_tip_pref(app):
+    from models.core import User
+    c = app.test_client(); _login(c, "roland@test")
+    c.get("/portal/")
+    with app.app_context():
+        u = User.query.filter_by(email="roland@test").first()
+        assert u.last_seen_at is not None and not u.pref("share_tip_off")
+    page = c.get("/portal/settings").get_data(as_text=True)
+    assert "Sharing posts" in page
+    _form(c, "/portal/settings", {"action": "prefs"}, page="/portal/settings")          # box unticked
+    with app.app_context():
+        assert User.query.filter_by(email="roland@test").first().pref("share_tip_off") is True
+    a = app.test_client(); _login(a, "admin@test")
+    assert "Last seen" in a.get("/admin/clients").get_data(as_text=True)

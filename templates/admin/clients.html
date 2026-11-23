@@ -12,7 +12,7 @@
 <section class="card card--flush">
   {% if rows %}
   <div class="table-wrap"><table class="table">
-    <thead><tr><th>Client</th><th>Status</th><th>Reviews &amp; Updates</th><th class="num">Reviews</th><th class="num">Open jobs</th><th class="num">Recurring</th><th class="num">Paid to date</th></tr></thead>
+    <thead><tr><th>Client</th><th>Status</th><th>Reviews &amp; Updates</th><th class="num">Reviews</th><th class="num">Open jobs</th><th class="num">Recurring</th><th class="num">Paid to date</th><th>Last seen</th></tr></thead>
     <tbody>
     {% for r in rows %}{% set a = r.a %}{% set ad = a.addon() %}
       <tr>
@@ -21,6 +21,7 @@
         <td>{% if ad %}{{ status_badge(ad.status) }}{% if ad.trial_days_left is not none %} <span class="small muted">{{ ad.trial_days_left }}d left</span>{% endif %}{% else %}<span class="muted small">Off</span>{% endif %}</td>
         <td class="num">{{ r.reviews }}</td><td class="num">{{ r.open_jobs }}</td>
         <td class="num">{{ r.mrr | gbp }}</td><td class="num">{{ r.paid | gbp }}</td>
+        <td class="small" title="{{ r.seen | ukdate('%-d %b %Y, %H:%M') if r.seen else '' }}">{{ r.seen | ago if r.seen else '–' }}</td>
       </tr>
     {% endfor %}
     </tbody></table></div>

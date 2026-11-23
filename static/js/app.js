@@ -441,10 +441,32 @@ document.querySelectorAll("[data-check-all]").forEach(function (all) {
       return navigator.share(data);
     });
   }
+  var tip = document.getElementById("shareTip"), pending = null;
+  var where = { facebook: "Facebook", instagram: "Instagram", linkedin: "LinkedIn", more: "the app you pick" };
   box.addEventListener("click", function (e) {
     var b = e.target.closest("[data-share-to]"); if (!b) return;
     var to = b.getAttribute("data-share-to");
     copy();
+    if (tip && box.getAttribute("data-tip") && to !== "whatsapp" && tip.showModal) {
+      pending = to;
+      tip.querySelector("[data-share-tip-text]").innerHTML = "When " + where[to] + " opens, tap in the text box and <b>paste</b> your words in." +
+        (to === "instagram" ? " Paste them as the caption." : "");
+      tip.querySelector("[data-share-tip-off]").checked = false;
+      tip.showModal(); tip.querySelector("[data-share-go]").focus();
+      return;
+    }
+    go(to);
+  });
+  if (tip) tip.querySelector("[data-share-go]").addEventListener("click", function () {
+    if (tip.querySelector("[data-share-tip-off]").checked) {
+      box.removeAttribute("data-tip");
+      var token = (document.querySelector('meta[name="csrf-token"]') || {}).content || "";
+      fetch(box.getAttribute("data-prefs"), { method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": token }, body: JSON.stringify({ share_tip_off: true }) }).catch(function () {});
+    }
+    tip.close(); if (pending) go(pending); pending = null;
+  });
+  function go(to) {
     if (to === "facebook") {
       if (phone && navigator.share) { say("Text copied. Pick Facebook, then paste your words in."); sheet(true).catch(function () {}); return; }
       if (!url) { say("Text copied. Publish the post first to get a link to share."); return; }
@@ -461,5 +483,8 @@ document.querySelectorAll("[data-check-all]").forEach(function (all) {
     } else if (to === "more") {
       sheet(true).then(function () { say(""); }, function () { say("Text copied: paste it wherever you like."); });
     }
-  });
+  }
 })();
+
+/* a checkbox that saves as soon as it's ticked */
+document.querySelectorAll("[data-autosubmit-check]").forEach(function (c) { c.addEventListener("change", function () { c.form.submit(); }); });

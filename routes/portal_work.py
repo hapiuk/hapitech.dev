@@ -387,6 +387,9 @@ def settings():
                     flash(f"{email} can now log in with an emailed code.", "ok")
                 except Exception as exc:
                     flash(f"Added, but the email failed: {exc}", "err")
+        elif action == "prefs":
+            current_user.set_pref("share_tip_off", not f.get("share_tip"))
+            flash("Saved.", "ok")
         elif action == "remove-staff":
             u = User.query.filter_by(id=int(f.get("uid") or 0), account_id=a.id, role="staff").first()
             if u:
@@ -551,3 +554,15 @@ def extra_request(key):
         wr.create(g.account, current_user, "feature", f"I'd like the {x['name']} extra. {(request.form.get('note') or '').strip()}".strip(), None)
     flash(f"Thanks! Aaron will be in touch about the {x['name']}.", "ok")
     return redirect(url_for("portal.plan") + "#extras")
+
+
+@portal_bp.route("/prefs", methods=["POST"])
+@owner_required
+def prefs():
+    """Small personal settings saved from a pop-up (e.g. "Don't show this again" on sharing)."""
+    from flask import jsonify
+    data = request.get_json(silent=True) or {}
+    if "share_tip_off" in data:
+        current_user.set_pref("share_tip_off", bool(data["share_tip_off"]))
+        db.session.commit()
+    return jsonify({"ok": True})

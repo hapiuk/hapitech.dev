@@ -274,6 +274,48 @@
   });
 })();
 
+/* One row of photos: swipe or drag along it; it drifts slowly by itself (back and forth), stops while you
+   press and hold (or hover with a mouse), and carries on a moment after you let go. A tap opens the photo. */
+function htPhotoRow(row, open) {
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var held = false, hover = false, wait = 0, dir = 1, pos = row.scrollLeft, last = 0;
+  var down = null, dragged = false;
+  function room() { return row.scrollWidth - row.clientWidth; }
+  function tick(t) {
+    var dt = last ? Math.min(t - last, 50) : 16; last = t;
+    if (!reduce && !held && !hover && t > wait && room() > 4) {
+      pos += dir * dt * 0.018;                               // about 18px a second: slow
+      if (pos >= room()) { pos = room(); dir = -1; wait = t + 1800; }
+      if (pos <= 0) { pos = 0; dir = 1; wait = t + 1800; }
+      row.scrollLeft = pos;
+    } else { pos = row.scrollLeft; }
+    requestAnimationFrame(tick);
+  }
+  function pause(ms) { wait = performance.now() + (ms || 2500); }
+  row.addEventListener("pointerdown", function (e) {
+    held = true; dragged = false; down = { x: e.clientX, left: row.scrollLeft, mouse: e.pointerType === "mouse" };
+  });
+  row.addEventListener("pointermove", function (e) {
+    if (!down) return;
+    var dx = e.clientX - down.x;
+    if (Math.abs(dx) > 6) dragged = true;
+    if (down.mouse && dragged) { row.scrollLeft = down.left - dx; e.preventDefault(); }
+  });
+  function up() { held = false; down = null; pos = row.scrollLeft; pause(2500); }
+  row.addEventListener("pointerup", up); row.addEventListener("pointercancel", up); row.addEventListener("pointerleave", function () { if (down) up(); hover = false; });
+  row.addEventListener("pointerenter", function (e) { if (e.pointerType === "mouse") hover = true; });
+  row.addEventListener("scroll", function () { if (held || hover) pos = row.scrollLeft; }, { passive: true });
+  row.addEventListener("touchstart", function () { held = true; }, { passive: true });
+  row.addEventListener("touchend", function () { held = false; pause(2500); }, { passive: true });
+  row.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-i]"); if (!b) return;
+    if (dragged) { e.preventDefault(); dragged = false; return; }
+    open(+b.getAttribute("data-i"));
+  });
+  row.addEventListener("dragstart", function (e) { e.preventDefault(); });
+  requestAnimationFrame(tick);
+}
+
 /* Post photos: tap a thumbnail to open it big; arrows, swipe or keys move between THIS post's photos only */
 (function () {
   var grid = document.querySelector("[data-pics]"), dlg = document.querySelector("[data-viewer]");
@@ -283,7 +325,7 @@
   var one = srcs.length < 2;
   dlg.querySelectorAll("[data-viewer-prev],[data-viewer-next]").forEach(function (b) { b.hidden = one; });
   function show(i) { at = (i + srcs.length) % srcs.length; img.src = srcs[at].src; img.alt = srcs[at].alt; count.textContent = one ? "" : (at + 1) + " / " + srcs.length; }
-  grid.addEventListener("click", function (e) { var b = e.target.closest("[data-pic]"); if (!b) return; show(+b.getAttribute("data-pic")); dlg.showModal(); });
+  htPhotoRow(grid, function (i) { show(i); dlg.showModal(); });
   dlg.querySelector("[data-viewer-prev]").addEventListener("click", function () { show(at - 1); });
   dlg.querySelector("[data-viewer-next]").addEventListener("click", function () { show(at + 1); });
   dlg.querySelector("[data-viewer-close]").addEventListener("click", function () { dlg.close(); });

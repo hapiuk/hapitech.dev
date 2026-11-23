@@ -103,6 +103,25 @@ def create_app(test_config: dict | None = None):
     def _background_tasks():
         maybe_run(app)
 
+    @app.before_request
+    def _last_seen():
+        """Remember when each person last used their dashboard (at most one write every 10 minutes)."""
+        if request.path.startswith(("/static/", "/media/")) or request.endpoint == "static":
+            return
+        from flask_login import current_user
+        if not getattr(current_user, "is_authenticated", False):
+            return
+        import datetime as _dt
+        now = _dt.datetime.utcnow()
+        if current_user.last_seen_at and now - current_user.last_seen_at < _dt.timedelta(minutes=10):
+            return
+        from models import db as _db
+        try:
+            current_user.last_seen_at = now
+            _db.session.commit()
+        except Exception:
+            _db.session.rollback()
+
     # ---------------------------------------------------------------- errors
     JSON_PREFIXES = ("/api/", "/auth/", "/admin/api/", "/portal/api/")
 

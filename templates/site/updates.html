@@ -22,8 +22,8 @@
       <h1>{{ post.title }}</h1>
       {% if post.body %}<p class="upd__body">{{ post.body }}</p>{% endif %}
       {% if post.photos %}
-      <div class="upd-pics upd-pics--{{ [post.photos|length, 4]|min }}" data-pics>
-        {% for m in post.photos %}<button type="button" class="upd-pics__item" data-pic="{{ loop.index0 }}" aria-label="Open photo {{ loop.index }} of {{ post.photos|length }}">
+      <div class="ht-row" data-pics>
+        {% for m in post.photos %}<button type="button" class="ht-row__item" data-i="{{ loop.index0 }}" aria-label="Open photo {{ loop.index }} of {{ post.photos|length }}">
           <img src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="{{ m.alt or post.title }}" loading="lazy"></button>{% endfor %}
       </div>
       <dialog class="pic-viewer" data-viewer aria-label="Photos from this post">
