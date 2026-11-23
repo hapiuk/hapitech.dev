@@ -5,6 +5,11 @@
 <p class="crumbs"><a href="{{ url_for('admin.reviews') }}">Reviews</a> / Import</p>
 <div class="page-top"><div><h1>Import from Google / Facebook</h1><p>Run the export script on the business's reviews page, then upload the file here. Run it as often as you like: new reviews are added, existing ones updated, nothing doubled.</p></div></div>
 
+<section class="card card--accent" style="margin-bottom:12px">
+  <div class="card__head"><h2>⭐ One-click: the "collect reviews" bookmark</h2></div>
+  <p class="small">Drag this to your bookmarks bar once: <a class="btn btn--sm" href="{{ bookmarklet }}" onclick="alert('Drag this button to your bookmarks bar, then click it on a Google Maps or Facebook reviews page.');return false;">⭐ HapiTech: collect reviews</a></p>
+  <p class="small muted" style="margin-top:6px">Then for any client: open their Google Maps page (Reviews tab) or Facebook reviews page from their <b>Reviews</b> tab here, click the bookmark, wait for "Done", and press <b>Send to HapiTech</b>. You'll see what's new before anything is saved. (If your browser won't run bookmarks on those sites, paste a script from below into the console instead: same result.)</p>
+</section>
 {% if error %}<p class="flash flash--err">{{ error }}</p>{% endif %}
 {% if result %}
 <section class="card card--accent" style="margin-bottom:12px">

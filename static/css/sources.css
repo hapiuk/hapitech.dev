@@ -1,0 +1,16 @@
+/* static/css/sources.css — review source chips + card accents (shared by the dashboards and the reviews site) */
+.src-chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 4px;border-radius:999px;font:600 .76rem/1.2 inherit;text-decoration:none;white-space:nowrap;vertical-align:middle}
+.src-chip b{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;font:800 .72rem/1 Arial,Helvetica,sans-serif}
+.src-chip--google{background:#fff;color:#3c4043;border:1px solid #dadce0}
+.src-chip--google b{background:conic-gradient(#ea4335 0 25%,#fbbc04 0 50%,#34a853 0 75%,#4285f4 0);color:#fff}
+.src-chip--facebook{background:#1877f2;color:#fff;border:1px solid #1877f2}
+.src-chip--facebook b{background:#fff;color:#1877f2}
+.src-chip--hapitech{background:#16181d;color:#fff;border:1px solid #16181d}
+.src-chip--hapitech b{background:#f5a300;color:#16181d}
+.src-chip--other{background:#f0f0f0;color:#333;border:1px solid #ddd;padding-left:10px}
+.rv-src--google{border-top:3px solid transparent;border-image:linear-gradient(90deg,#4285f4 0 25%,#ea4335 25% 50%,#fbbc04 50% 75%,#34a853 75%) 1}
+.rv-src--facebook{box-shadow:inset 3px 0 0 #1877f2}
+.rv-src--hapitech{box-shadow:inset 3px 0 0 #f5a300}
+.rv-src--google .hb-stars,.rv-src--google .stars{color:#fbbc04}
+.fb-rec{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:.84rem;color:#1877f2;white-space:nowrap}
+.fb-rec--no{color:#d93025}

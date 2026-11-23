@@ -41,6 +41,7 @@ class Account(TimestampMixin, db.Model):
     google_reviews_url = db.Column(db.String(500))
     google_rating = db.Column(db.Numeric(2, 1))                              # headline numbers from the last import
     google_count = db.Column(db.Integer)
+    google_maps_url = db.Column(db.String(600))                              # where to run the Google export
     facebook_url = db.Column(db.String(300))
     facebook_pct = db.Column(db.Integer)                                     # "% recommend" on Facebook
     facebook_count = db.Column(db.Integer)

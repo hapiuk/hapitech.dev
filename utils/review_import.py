@@ -207,6 +207,51 @@ def _download_photos(account, urls):
     return ids
 
 
+GLYPH = re.compile(r"^[\ue000-\uf8ff\s]*$")          # Google's icon characters (stars, like, share…)
+G_STOP = {"Price assessment", "Services", "Like", "Share", "Hide", "Report review"}
+
+
+def google_text(item):
+    """The review's own words (and Google's 'Services' tag), cut out of the raw block the script saw:
+    everything after the date, up to Google's "Price assessment" / "Services" / Like / Share / owner response."""
+    raw = (item.get("raw") or "").splitlines()
+    text = (item.get("text") or "")
+    services = None
+    if raw and item.get("date"):
+        try:
+            start = next(i for i, l in enumerate(raw) if l.strip() == item["date"].strip() or l.strip().startswith(item["date"].strip())) + 1
+        except StopIteration:
+            start = None
+        if start is not None:
+            body = []
+            for i in range(start, len(raw)):
+                l = raw[i].strip()
+                if l in G_STOP or l.startswith("Response from the owner"):
+                    if l == "Services" and i + 1 < len(raw):
+                        services = raw[i + 1].strip()
+                    break
+                if l in ("Great price", "Reasonable price", "Overpriced", "Expensive", "Inexpensive") or GLYPH.match(l):
+                    continue
+                if l in ("More", "See more", "Read more") or AGO_RE.match(l):
+                    continue
+                body.append(raw[i].rstrip())
+            if body:
+                text = "\n".join(body).strip()
+            # Services can come after Price assessment: look for it anywhere before the owner's response
+            for i, l in enumerate(raw):
+                if l.strip().startswith("Response from the owner"):
+                    break
+                if l.strip() == "Services" and i + 1 < len(raw):
+                    services = raw[i + 1].strip()
+    text = "\n".join(l for l in text.splitlines() if not GLYPH.match(l)).strip()
+    if services and text.endswith(services):
+        text = text[: -len(services)].strip()
+    return text, (services[:120] if services else None)
+
+
+AGO_RE = re.compile(r"^(Edited )?(a|an|\d+) \w+ ago$")
+
+
 def import_file(account, data, photos=True, dry_run=False):
     """Add / update reviews from an export file. Safe to run as often as you like."""
     import json as _json
@@ -232,6 +277,9 @@ def import_file(account, data, photos=True, dry_run=False):
         if not name or len(name) > 120:
             skipped.append(name[:40] or "(no name)")
             continue
+        if source == "google" and (re.fullmatch(r"\d([.,]\d)?", name) or not (it.get("date") or "").strip()):
+            skipped.append(name[:40])                     # Google's rating summary / business cards, not reviews
+            continue
         ext = f"{source}:{it.get('id')}" if it.get("id") else None
         r = by_ext.get(ext)
         if r is None:                                     # first time with ids: link to a review copied in earlier
@@ -243,12 +291,13 @@ def import_file(account, data, photos=True, dry_run=False):
             rating = it.get("rating") or (r.rating if r else 5)
             when = rel_date(it.get("date") or "", copied)
             when = dt.datetime.combine(when, dt.time(12)) if when else None
-            text = (it.get("text") or "").strip()
+            text, services = google_text(it)
             reply = (it.get("reply") or {}).get("text")
             rd = rel_date((it.get("reply") or {}).get("date") or "", copied)
             reply_at = dt.datetime.combine(rd, dt.time(12)) if rd else None
             recommends = None
         else:
+            services = None
             recommends = bool(it.get("recommends", True))
             rating = 5 if recommends else 1
             when = _fb_date(it.get("time"), copied)
@@ -261,14 +310,19 @@ def import_file(account, data, photos=True, dry_run=False):
             added.append(name)
         else:
             updated.append(name)
-            if text and not (len(text) < len(r.body or "") and text.endswith("…")):
+            old_clean = "\n".join(l for l in (r.body or "").splitlines() if not GLYPH.match(l)).strip()
+            cut = text.endswith("…") and (len(text) < len(old_clean) or _norm(old_clean).startswith(_norm(text[:-1])))
+            if text and not cut:
                 r.body = text
             r.rating = rating
+        r.body = "\n".join(l for l in (r.body or "").splitlines() if not GLYPH.match(l) or not l.strip() and False).strip()
         r.external_id = ext or r.external_id
         r.recommends = recommends
         r.reviewed_at = when or r.reviewed_at
         r.sort_hint = pos
         r.price_tag = it.get("price") or r.price_tag
+        if services:
+            r.service = services
         urls = it.get("photos") or []
         r.photo_count = max(len(urls), r.photo_count or 0)
         if source == "google":
@@ -307,6 +361,8 @@ def import_file(account, data, photos=True, dry_run=False):
             account.facebook_count = s["count"]
         if data.get("url") and not account.facebook_url:
             account.facebook_url = data["url"].split("?")[0]
+    if source == "google" and "/maps/" in (data.get("url") or "") and not account.google_maps_url:
+        account.google_maps_url = data["url"][:600]
     account.reviews_synced_at = dt.datetime.utcnow()
     if dry_run:
         db.session.rollback()

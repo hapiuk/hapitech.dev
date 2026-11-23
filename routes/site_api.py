@@ -56,7 +56,7 @@ def reviews(slug):
             photo_ids = []
         out.append({
             "id": r.id, "name": r.author_name, "rating": r.rating, "text": r.body,
-            "source": r.source, "source_label": r.source_label, "source_url": r.link,
+            "source": r.source, "source_label": r.source_label, "source_url": r.link, "recommends": r.recommends,
             "verified": r.verified, "service": r.service, "town": r.town,
             "date": r.reviewed_at.date().isoformat() if r.reviewed_at else None,
             "photos": _media_urls(photo_ids, a.id),

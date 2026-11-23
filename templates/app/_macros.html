@@ -1,3 +1,4 @@
+{% from "app/_source.html" import source_chip %}
 {# templates/app/_macros.html — small shared pieces for admin + portal. #}
 {% macro stat(label, value, sub=None, warn=False) -%}
 <div class="stat{% if warn %} stat--warn{% endif %}">
@@ -20,14 +21,14 @@
 {%- endmacro %}
 
 {% macro review_card(r, actions=None, show_client=False) -%}
-<article class="review" id="r{{ r.id }}">
+<article class="review rv-src--{{ 'hapitech' if r.source in ('hapitech','website','manual') else r.source }}" id="r{{ r.id }}">
   <div class="review__top">
     <div class="review__who">
       <strong>{{ r.author_name }}</strong>
       <div class="review__meta">
-        {% if r.source == 'facebook' %}<span class="badge {{ 'badge--ok' if r.recommends is not sameas false else 'badge--warn' }}">{{ '👍 Recommends' if r.recommends is not sameas false else "👎 Doesn't recommend" }}</span>{% else %}{{ r.rating | stars }}{% endif %}
+        {% if r.source == 'facebook' %}<span class="fb-rec {{ 'fb-rec--no' if r.recommends is sameas false }}">{{ '👍 Recommends' if r.recommends is not sameas false else "👎 Doesn't recommend" }}</span>{% else %}<span class="stars">{{ r.rating | stars }}</span>{% endif %}
         {% if r.reviewed_at %}<span title="{{ r.reviewed_at | ukdate }}">{{ r.reviewed_at | age }}</span>{% endif %}
-        <span class="badge">{% if r.link and r.source != 'hapitech' %}<a href="{{ r.link }}" target="_blank" rel="noopener">via {{ r.source_label }} ↗</a>{% else %}via {{ r.source_label }}{% endif %}</span>
+        {{ source_chip(r) }}
         {% if r.verified %}<span class="badge badge--ok">Verified customer</span>{% endif %}
         {% if r.status != 'published' %}{{ status_badge(r.status) }}{% endif %}
         {% if show_client %}<span class="badge badge--acc">{{ r.account.name }}</span>{% endif %}

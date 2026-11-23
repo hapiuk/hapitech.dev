@@ -1,0 +1,61 @@
+{% extends "app/base.html" %}
+{% block title %}Collect reviews{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ url_for('admin.reviews') }}">Reviews</a> / Collect</p>
+<div class="page-top"><div><h1>Collecting reviews</h1><p>Sent from the Google / Facebook tab.</p></div></div>
+<section class="card" id="recv">
+  <p data-status>Waiting for the reviews from the other tab…</p>
+  <div data-check hidden>
+    <div class="grid grid--4" style="margin:12px 0">
+      <div class="stat"><p class="stat__label">Source</p><p class="stat__value" data-src>–</p></div>
+      <div class="stat"><p class="stat__label">In the file</p><p class="stat__value" data-in>–</p><p class="stat__sub" data-says></p></div>
+      <div class="stat"><p class="stat__label">New</p><p class="stat__value" data-new>–</p></div>
+      <div class="stat"><p class="stat__label">Already here</p><p class="stat__value" data-upd>–</p></div>
+    </div>
+    <p class="small muted" data-newnames></p>
+    <div class="row" style="margin-top:10px">
+      <label class="field" style="min-width:240px"><span>Business</span><select data-client>{% for c in clients %}<option value="{{ c.slug }}">{{ c.name }}</option>{% endfor %}</select></label>
+      <button class="btn" type="button" data-import>Import</button>
+    </div>
+  </div>
+  <div data-done hidden></div>
+  <p class="small muted" style="margin-top:14px">Nothing arriving? Use <b>Download file</b> on the other tab and <a href="{{ url_for('admin.reviews_import') }}">upload it here</a> instead.</p>
+</section>
+<script>
+(function () {
+  var data = null, token = document.querySelector('meta[name="csrf-token"]').content, $ = function (s) { return document.querySelector(s); };
+  function ping() { if (!data && window.opener) { try { window.opener.postMessage({ type: "ht-ready" }, "*"); } catch (e) {} setTimeout(ping, 600); } }
+  function send(dry) {
+    return fetch("{{ url_for('admin.reviews_import_json') }}", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-Token": token },
+      body: JSON.stringify({ data: data, dry: dry, client: dry ? null : $("[data-client]").value }) }).then(function (r) { return r.json(); });
+  }
+  window.addEventListener("message", function (e) {
+    if (!/(^|\.)facebook\.com$|(^|\.)google\.[a-z.]+$/.test(new URL(e.origin).hostname)) return;
+    if (!e.data || e.data.type !== "ht-reviews" || data) return;
+    data = e.data.data;
+    $("[data-status]").textContent = "Checking what's new…";
+    send(true).then(function (d) {
+      $("[data-check]").hidden = false;
+      $("[data-src]").textContent = data.source === "google" ? "Google" : "Facebook";
+      $("[data-in]").textContent = data.count;
+      $("[data-says]").textContent = data.summary && data.summary.count ? (data.source === "google" ? "Google" : "Facebook") + " says " + data.summary.count : "";
+      if (!d.ok) { $("[data-status]").textContent = d.message; return; }
+      $("[data-client]").value = d.client;
+      $("[data-new]").textContent = d.added.length;
+      $("[data-upd]").textContent = d.updated;
+      $("[data-newnames]").textContent = d.added.length ? "New: " + d.added.join(", ") : "No new reviews since last time. Importing still refreshes replies, photos and the headline numbers.";
+      $("[data-status]").textContent = "Looks like " + d.client_name + ". Check, then Import.";
+    });
+  });
+  $("[data-import]").addEventListener("click", function () {
+    var b = this; b.disabled = true; b.textContent = "Importing (photos take a moment)…";
+    send(false).then(function (d) {
+      $("[data-check]").hidden = true; $("[data-done]").hidden = false;
+      $("[data-done]").innerHTML = d.ok ? "<h2>Done ✓</h2><p>" + d.client_name + ": " + d.added.length + " new, " + d.updated + " updated, " + d.photos + " photos saved.</p><p class='row'><a class='btn btn--sm' href='" + d.reviews + "'>See their reviews</a><a class='btn btn--ghost btn--sm' target='_blank' href='" + d.page + "'>Reviews site ↗</a></p>" : "<p>" + d.message + "</p>";
+      $("[data-status]").textContent = "";
+    });
+  });
+  ping();
+})();
+</script>
+{% endblock %}

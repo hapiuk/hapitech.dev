@@ -98,7 +98,7 @@ def clients():
 
 
 ACCOUNT_FIELDS = ("name", "domain", "trade", "town", "contact_name", "contact_email", "contact_phone",
-                  "google_profile_url", "google_reviews_url", "logo_path", "brand_colour", "notes", "status")
+                  "google_profile_url", "google_reviews_url", "google_maps_url", "facebook_url", "logo_path", "brand_colour", "notes", "status")
 
 
 def _fill_account(a: Account, form):
@@ -141,7 +141,7 @@ def client_edit(slug):
         _fill_account(a, request.form)
         db.session.commit()
         flash("Saved.", "ok")
-        return redirect(url_for("admin.client", slug=a.slug))
+        return redirect(url_for("admin.client", slug=a.slug, tab=request.form.get("back") or None))
     return render_template("admin/client_form.html", a=a)
 
 

@@ -22,7 +22,7 @@ from models import db
 
 
 def register_cli(app):
-    for cmd in (deploy, create_admin, setup_clients, import_site_reviews, import_google_reviews, import_bench, seed_dev, tick):
+    for cmd in (deploy, create_admin, setup_clients, import_site_reviews, import_google_reviews, import_review_file, import_bench, seed_dev, tick):
         app.cli.add_command(cmd)
 
 
@@ -309,3 +309,23 @@ def import_google_reviews(slug, copy_file, copied_on, dry_run):
                + (" (dry run, nothing saved)" if dry_run else ""))
     if res["not_five"]:
         click.echo("Not 5 stars: " + ", ".join(f"{n} ({s}★)" for n, s in res["not_five"]))
+
+
+
+@click.command("import-review-file")
+@click.argument("slug")
+@click.argument("export_file", type=click.Path(exists=True, dir_okay=False))
+@click.option("--no-photos", is_flag=True)
+@click.option("--dry-run", is_flag=True)
+def import_review_file(slug, export_file, no_photos, dry_run):
+    """Import a Google / Facebook export file (from tools/*_reviews_export.js). Safe to run again."""
+    import json
+
+    from models.core import Account
+    from utils.review_import import import_file
+    a = Account.query.filter_by(slug=slug).first()
+    if not a:
+        raise click.ClickException(f"No account {slug}")
+    res = import_file(a, json.load(open(export_file, encoding="utf-8")), photos=not no_photos, dry_run=dry_run)
+    click.echo(f"{a.name} · {res['source']}: {res['in_file']} in file · {len(res['added'])} added · {len(res['updated'])} updated · "
+               f"{len(res['skipped'])} skipped · {res['photos']} photos" + (" (dry run)" if dry_run else ""))

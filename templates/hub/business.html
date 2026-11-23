@@ -1,5 +1,6 @@
 {% extends "hub/_base.html" %}
 {% from "hub/_stars.html" import stars %}
+{% from "app/_source.html" import source_chip %}
 {% block title %}{{ a.name }} reviews{% if avg %} · {{ '%.1f' % avg }}★ from {{ rows|length }}{% endif %} | HapiTech Reviews{% endblock %}
 {% block meta %}<meta name="description" content="{{ rows|length }} reviews of {{ a.name }}{% if a.town %}, {{ a.town }}{% endif %}. Every review kept, with the business's replies.">{% endblock %}
 {% block content %}
@@ -20,15 +21,16 @@
       </div>
       <div data-reviews>
       {% for r in rows %}
-        <article class="hb-review" id="review-{{ r.id }}" data-r="r{{ r.rating }}" data-replied="{{ 'yes' if r.reply else 'no' }}" data-s="s-{{ 'hapitech' if r.source in ('hapitech','website','manual') else r.source }}">
+        <article class="hb-review rv-src--{{ 'hapitech' if r.source in ('hapitech','website','manual') else r.source }}" id="review-{{ r.id }}" data-r="r{{ r.rating }}" data-replied="{{ 'yes' if r.reply else 'no' }}" data-s="s-{{ 'hapitech' if r.source in ('hapitech','website','manual') else r.source }}">
           <div class="hb-review__top">
             <div class="hb-review__who"><span class="hb-avatar" aria-hidden="true">{{ r.author_name[:1] | upper }}</span>
-              <div><strong>{{ r.author_name }}</strong><div class="hb-review__meta">{% if r.reviewed_at %}{{ r.reviewed_at | age }} · {% endif %}{% if r.link and r.external %}<a href="{{ r.link }}" target="_blank" rel="noopener">via {{ r.source_label }} ↗</a>{% else %}left on HapiTech Reviews{% endif %}{% if r.verified %} · ✓ Verified customer{% endif %}</div></div></div>
-            {% if r.source == 'facebook' %}<span class="hb-rec {{ 'hb-rec--no' if r.recommends is sameas false }}">{{ '👍 Recommends' if r.recommends is not sameas false else "👎 Doesn't recommend" }}</span>{% else %}{{ stars(r.rating) }}{% endif %}
+              <div><strong>{{ r.author_name }}</strong><div class="hb-review__meta">{{ source_chip(r) }}{% if r.reviewed_at %} · {{ r.reviewed_at | age }}{% endif %}{% if r.verified %} · ✓ Verified customer{% endif %}</div></div></div>
+            {% if r.source == 'facebook' %}<span class="fb-rec {{ 'fb-rec--no' if r.recommends is sameas false }}">{{ '👍 Recommends' if r.recommends is not sameas false else "👎 Doesn't recommend" }}</span>{% else %}{{ stars(r.rating) }}{% endif %}
           </div>
           {% if r.body %}<p class="hb-review__body">{{ r.body }}</p>{% else %}<p class="hb-review__body hb-muted">Left a star rating without words.</p>{% endif %}
-          {% if r.price_tag or r.photo_count or (r.truncated and r.link) %}<div class="hb-review__extra">
+          {% if r.price_tag or r.service or r.photo_count or (r.truncated and r.link) %}<div class="hb-review__extra">
             {% if r.price_tag %}<span class="hb-tag">{{ r.price_tag }}</span>{% endif %}
+            {% if r.service %}<span class="hb-tag">🔧 {{ r.service }}</span>{% endif %}
             {% if r.photo_count and r.link and not (r.photos | fromjson) %}<a href="{{ r.link }}" target="_blank" rel="noopener">📷 {{ r.photo_count }} photo{{ '' if r.photo_count == 1 else 's' }} on {{ r.source_label }}</a>{% endif %}
             {% if r.truncated and r.link %}<a href="{{ r.link }}" target="_blank" rel="noopener">Read it all on {{ r.source_label }} ↗</a>{% endif %}
           </div>{% endif %}
@@ -47,9 +49,9 @@
       {% if avg %}<div class="hb-card">
         <div class="hb-score"><span class="hb-score__n">{{ '%.1f' % avg }}</span><div>{{ stars(avg | round | int) }}<div class="hb-muted" style="font-size:.88rem">Overall · {{ rows|length }} reviews</div></div></div>
         <div class="hb-srcs">
-          {% if src.google %}<a class="hb-src" href="{{ src.google.url or '#' }}" target="_blank" rel="noopener"><b>Google</b><span>{{ '%.1f' % src.google.avg }} ★</span><small>{{ src.google.count }} reviews</small></a>{% endif %}
-          {% if src.facebook %}<a class="hb-src" href="{{ src.facebook.url or '#' }}" target="_blank" rel="noopener"><b>Facebook</b><span>{{ src.facebook.pct }}%</span><small>recommend · {{ src.facebook.count }}</small></a>{% endif %}
-          {% if src.hapitech %}<span class="hb-src"><b>HapiTech</b><span>{{ '%.1f' % src.hapitech.avg }} ★</span><small>{{ src.hapitech.count }} left here</small></span>{% endif %}
+          {% if src.google %}<a class="hb-src hb-src--google" href="{{ src.google.url or '#' }}" target="_blank" rel="noopener"><b>Google</b><span>{{ '%.1f' % src.google.avg }} ★</span><small>{{ src.google.count }} reviews</small></a>{% endif %}
+          {% if src.facebook %}<a class="hb-src hb-src--facebook" href="{{ src.facebook.url or '#' }}" target="_blank" rel="noopener"><b>Facebook</b><span>{{ src.facebook.pct }}%</span><small>recommend · {{ src.facebook.count }}</small></a>{% endif %}
+          {% if src.hapitech %}<span class="hb-src hb-src--hapitech"><b>HapiTech</b><span>{{ '%.1f' % src.hapitech.avg }} ★</span><small>{{ src.hapitech.count }} left here</small></span>{% endif %}
         </div>
         <div class="hb-dist">{% for n in [5,4,3,2,1] %}<button class="hb-dist__row" type="button" data-filter="r{{ n }}" {% if not dist[n] %}disabled{% endif %}><span>{{ n }}★</span><span class="hb-dist__bar"><span style="width:{{ (dist[n] / rows|length * 100) | round(1) }}%"></span></span><span>{{ dist[n] }}</span></button>{% endfor %}</div>
       </div>{% endif %}

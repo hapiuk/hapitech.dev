@@ -124,3 +124,10 @@ h1,h2,h3{line-height:1.2;letter-spacing:-.015em;margin:0}
 .hb-pics{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .hb-pics img{width:84px;height:84px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
 .hb-biz__src{display:flex;gap:6px 12px;flex-wrap:wrap;font-size:.82rem;color:var(--ink-2)}
+.hb-src--google{background:#fff;border:1px solid #dadce0}
+.hb-src--google b{color:#4285f4}
+.hb-src--facebook{background:#e7f0fe}
+.hb-src--facebook b,.hb-src--facebook span{color:#1877f2}
+.hb-src--hapitech{background:#16181d;color:#fff}
+.hb-src--hapitech small{color:#bbb}
+.hb-review__meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}

@@ -104,12 +104,73 @@ def reviews_import():
                 result["dry"] = bool(request.form.get("dry"))
             except (ValueError, UnicodeDecodeError) as exc:
                 error = str(exc) if "HapiTech" in str(exc) else f"Couldn't read that file: {exc}"
-    scripts = {}
-    for key in ("google", "facebook"):
-        try:
-            with open(os.path.join(current_app.root_path, "tools", f"{key}_reviews_export.js"), encoding="utf-8") as fh:
-                scripts[key] = fh.read()
-        except OSError:
-            scripts[key] = ""
+    base = request.url_root.rstrip("/")
+    scripts = {key: f"window.__HT_BASE={base!r};\n" + _script(key) for key in ("google", "facebook")}
     return render_template("admin/reviews_import.html", clients=clients, result=result, error=error, scripts=scripts,
+                           bookmarklet=bookmarklet(),
                            chosen=request.form.get("client") or request.args.get("client"))
+
+
+
+def _script(key):
+    import os
+
+    from flask import current_app
+    try:
+        with open(os.path.join(current_app.root_path, "tools", f"{key}_reviews_export.js"), encoding="utf-8") as fh:
+            return fh.read()
+    except OSError:
+        return ""
+
+
+def bookmarklet():
+    """One bookmark for both sites: runs the Google or Facebook export depending on the page, then offers
+    "Send to HapiTech" (back to this site)."""
+    from urllib.parse import quote
+    base = request.url_root.rstrip("/")
+    code = (f"window.__HT_BASE={base!r};if(/facebook\\.com$/.test(location.hostname)){{{_script('facebook')}}}"
+            f"else if(/google\\./.test(location.hostname)){{{_script('google')}}}"
+            "else{alert('Open the business on Google Maps (Reviews tab) or its Facebook Reviews page first.')}")
+    return "javascript:" + quote("(function(){" + code + "})()", safe="")
+
+
+def _guess_client(data):
+    import re as _re
+    norm = lambda s: _re.sub(r"[^a-z0-9]", "", (s or "").lower())
+    keys = [norm(data.get("business")), norm(data.get("page")), norm((data.get("url") or "").split("?")[0])]
+    best, score = None, 0
+    for a in Account.query.filter_by(kind="client").all():
+        cands = [norm(a.name), norm(a.facebook_url), norm((a.google_maps_url or "").split("/@")[0]), norm(a.slug)]
+        for k in keys:
+            for c in cands:
+                if k and c and (k in c or c in k):
+                    s = min(len(k), len(c))
+                    if s > score:
+                        best, score = a, s
+    return best
+
+
+@admin_bp.route("/reviews/receive")
+def reviews_receive():
+    """Opened by "Send to HapiTech" on a Google / Facebook page; receives the reviews from that tab."""
+    clients = Account.query.filter_by(kind="client").order_by(Account.name).all()
+    return render_template("admin/reviews_receive.html", clients=clients)
+
+
+@admin_bp.route("/reviews/import-json", methods=["POST"])
+def reviews_import_json():
+    from flask import jsonify
+    from utils.review_import import import_file
+    body = request.get_json(silent=True) or {}
+    data = body.get("data") or {}
+    a = Account.query.filter_by(slug=body.get("client")).first() if body.get("client") else _guess_client(data)
+    if not a:
+        return jsonify({"ok": False, "message": "Couldn't tell which business this is. Choose it below."})
+    try:
+        res = import_file(a, data, photos=not body.get("dry"), dry_run=bool(body.get("dry")))
+    except ValueError as exc:
+        return jsonify({"ok": False, "message": str(exc)}), 400
+    return jsonify({"ok": True, "client": a.slug, "client_name": a.name, "dry": bool(body.get("dry")),
+                    "source": res["source"], "in_file": res["in_file"], "added": res["added"], "updated": len(res["updated"]),
+                    "skipped": len(res["skipped"]), "photos": res["photos"], "summary": res["summary"],
+                    "page": url_for("hub.business", slug=a.slug), "reviews": url_for("admin.client", slug=a.slug, tab="reviews")})
