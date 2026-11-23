@@ -198,7 +198,10 @@ GOOGLE_SYNC_NOTE = ("Waiting on Google API access. Once it's approved, your Goog
 @owner_required
 @addon_required
 def review_add():
-    """Copy in a review from Google / Facebook / Checkatrade until automatic import is switched on."""
+    """Admin only: copy in a review by hand. Clients ask Aaron instead (reviews are only added once checked)."""
+    if not current_user.is_admin:
+        flash("Reviews from other sites are added by Aaron once checked. Use \"Somewhere else?\" under Get reviewed in more places to ask.", "err")
+        return redirect(url_for("portal.reviews"))
     f = request.form if request.method == "POST" else {"source": "google"}
     if request.method == "POST":
         try:

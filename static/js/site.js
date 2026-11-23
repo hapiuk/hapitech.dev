@@ -273,3 +273,26 @@
       .then(function () { btn.disabled = false; btn.textContent = "Send message"; });
   });
 })();
+
+/* Post photos: tap a thumbnail to open it big; arrows, swipe or keys move between THIS post's photos only */
+(function () {
+  var grid = document.querySelector("[data-pics]"), dlg = document.querySelector("[data-viewer]");
+  if (!grid || !dlg || !dlg.showModal) return;
+  var srcs = [].map.call(grid.querySelectorAll("img"), function (i) { return { src: i.currentSrc || i.src, alt: i.alt }; });
+  var img = dlg.querySelector("[data-viewer-img]"), count = dlg.querySelector("[data-viewer-count]"), at = 0;
+  var one = srcs.length < 2;
+  dlg.querySelectorAll("[data-viewer-prev],[data-viewer-next]").forEach(function (b) { b.hidden = one; });
+  function show(i) { at = (i + srcs.length) % srcs.length; img.src = srcs[at].src; img.alt = srcs[at].alt; count.textContent = one ? "" : (at + 1) + " / " + srcs.length; }
+  grid.addEventListener("click", function (e) { var b = e.target.closest("[data-pic]"); if (!b) return; show(+b.getAttribute("data-pic")); dlg.showModal(); });
+  dlg.querySelector("[data-viewer-prev]").addEventListener("click", function () { show(at - 1); });
+  dlg.querySelector("[data-viewer-next]").addEventListener("click", function () { show(at + 1); });
+  dlg.querySelector("[data-viewer-close]").addEventListener("click", function () { dlg.close(); });
+  dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+  dlg.addEventListener("keydown", function (e) { if (e.key === "ArrowLeft") show(at - 1); if (e.key === "ArrowRight") show(at + 1); });
+  var x0 = null;
+  dlg.addEventListener("touchstart", function (e) { x0 = e.touches[0].clientX; }, { passive: true });
+  dlg.addEventListener("touchend", function (e) {
+    if (x0 === null || one) return; var dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (Math.abs(dx) > 40) show(at + (dx < 0 ? 1 : -1));
+  });
+})();

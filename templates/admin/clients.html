@@ -16,7 +16,7 @@
     <tbody>
     {% for r in rows %}{% set a = r.a %}{% set ad = a.addon() %}
       <tr>
-        <td><a class="rowlink" href="{{ url_for('admin.client', slug=a.slug) }}">{{ a.name }}</a><div class="small muted">{{ a.domain or a.trade or '' }}</div></td>
+        <td><a class="rowlink" href="{{ url_for('admin.client', slug=a.slug) }}">{{ a.name }}</a>{% if a.kind == 'internal' %} <span class="badge badge--acc" title="HapiTech's own site: no costs">Ours · no charge</span>{% endif %}<div class="small muted">{{ a.domain or a.trade or '' }}</div></td>
         <td>{{ status_badge(a.status) }}</td>
         <td>{% if ad %}{{ status_badge(ad.status) }}{% if ad.trial_days_left is not none %} <span class="small muted">{{ ad.trial_days_left }}d left</span>{% endif %}{% else %}<span class="muted small">Off</span>{% endif %}</td>
         <td class="num">{{ r.reviews }}</td><td class="num">{{ r.open_jobs }}</td>

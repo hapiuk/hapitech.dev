@@ -87,6 +87,10 @@ def deploy(no_backup):
     added = sum(ensure_blocks(a, None) for a in Account.query.filter_by(kind="client").all())
     db.session.commit()
     click.echo(f"Website sections checked ({added} new).")
+    from utils.hapitech_account import ensure_own_sites
+    n = ensure_own_sites()
+    if n:
+        click.echo(f"Own sites added under Clients: {n}.")
 
 
 # ---------------------------------------------------------------- users

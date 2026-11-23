@@ -83,7 +83,7 @@ def site_status():
 @admin_bp.route("/clients")
 def clients():
     show = request.args.get("show", "current")
-    q = Account.query.filter_by(kind="client")
+    q = Account.query.filter(Account.kind.in_(["client", "internal"]))
     q = q.filter(Account.status == "archived") if show == "archived" else q.filter(Account.status != "archived")
     rows = []
     for a in q.order_by(Account.name).all():
@@ -94,6 +94,7 @@ def clients():
             "reviews": Review.query.filter_by(account_id=a.id, status="published").count(),
             "open_jobs": sum(1 for j in a.jobs if j.status in ("quote", "booked", "in_progress")),
         })
+    rows.sort(key=lambda r: (r["a"].kind == "internal", r["a"].name.lower()))      # our own sites last
     return render_template("admin/clients.html", rows=rows, show=show)
 
 

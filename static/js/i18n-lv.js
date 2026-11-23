@@ -211,6 +211,9 @@
     "Aaron builds it and shows you": "Ārons to izveido un parāda jums", "Go live": "Palaišana", "Then edit it all from here": "Tad visu rediģējiet šeit",
     "Pages, features, photos, ideas from other sites you like: add as many as you want. Offer an amount if you have a budget in mind, or leave it blank for a quote.": "Lapas, funkcijas, foto, idejas no citām vietnēm, kas jums patīk: pievienojiet, cik vēlaties. Piedāvājiet summu, ja jums ir budžets, vai atstājiet tukšu, lai saņemtu tāmi.",
     /* reply rate, shortcuts, platforms, extras */
+    "More…": "Vairāk…", "Copy text": "Kopēt tekstu", "Add one by hand (admin)": "Pievienot manuāli (admins)",
+    "Your title and words are copied for you each time: if the app doesn't fill them in, just": "Virsraksts un teksts tiek nokopēts katru reizi: ja lietotne tos neaizpilda, vienkārši",
+    "paste": "ielīmējiet",
     "Search words, names or jobs…": "Meklēt tekstu, vārdus vai darbus…", "All places": "Visas vietas", "Any stars": "Jebkuras zvaigznes",
     "Replied or not": "Atbildēts vai nē", "With a reply": "Ar atbildi", "No reply yet": "Vēl nav atbildes", "Newest first": "Jaunākās vispirms",
     "Oldest first": "Vecākās vispirms", "Lowest rating": "Zemākais vērtējums", "Highest rating": "Augstākais vērtējums", "clear": "notīrīt",

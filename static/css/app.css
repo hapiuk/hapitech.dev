@@ -623,3 +623,8 @@ details.platforms[open] > summary::after{content:" ▴"}
 .prev-pick{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .prev-pick .chip-pick[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .invite-mode{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:14px}
+.share-to{gap:8px}
+.share-to img{width:18px;height:18px;border-radius:4px}
+.share-to--fb{background:#1877f2;border-color:#1877f2;color:#fff}
+.share-to--ig{background:linear-gradient(45deg,#f58529,#dd2a7b 50%,#8134af);border-color:transparent;color:#fff}
+.share__msg{margin:8px 0 0;min-height:1.2em;color:var(--ok,#22c55e)}

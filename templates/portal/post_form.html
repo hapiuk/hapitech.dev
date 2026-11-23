@@ -9,18 +9,17 @@
 {% set share_text = p.title ~ ('\n\n' ~ p.body if p.body else '') %}
 <section class="card card--accent share" id="share" style="max-width:640px;margin-bottom:12px">
   <div class="card__head"><h2>Share it</h2></div>
-  <p class="small muted">Every share sends people to your website. On your phone, “Share with photos” lets you pick Facebook, Instagram, WhatsApp and more.</p>
-  <div class="share__btns">
-    <button type="button" class="btn btn--sm" data-share data-url="{{ link }}" data-text="{{ share_text }}"
-            data-photos='{{ share_photos | tojson }}'>Share with photos</button>
-    {% if link %}
-    <a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="https://www.facebook.com/sharer/sharer.php?u={{ link | urlencode }}">Facebook</a>
-    <a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="https://www.linkedin.com/sharing/share-offsite/?url={{ link | urlencode }}">LinkedIn</a>
-    <a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="https://wa.me/?text={{ (p.title ~ ' ' ~ link) | urlencode }}">WhatsApp</a>
-    {% endif %}
-    <button type="button" class="btn btn--ghost btn--sm" data-copy-text="{{ share_text }}{{ ('\n\n' ~ link) if link else '' }}">Copy text</button>
+  <p class="small muted">Your title and words are copied for you each time: if the app doesn't fill them in, just <b>paste</b>.</p>
+  {% set full = share_text ~ (('\n\n' ~ link) if link else '') %}
+  <div class="share__btns" data-share-box data-url="{{ link }}" data-text="{{ full }}" data-photos='{{ share_photos | tojson }}'>
+    <button type="button" class="btn btn--sm share-to share-to--fb" data-share-to="facebook"><img src="{{ url_for('static', filename='img/platforms/facebook.com.png') }}" alt="" width="18" height="18">Facebook</button>
+    <button type="button" class="btn btn--sm share-to share-to--ig" data-share-to="instagram"><span aria-hidden="true">📷</span>Instagram</button>
+    {% if link %}<button type="button" class="btn btn--ghost btn--sm" data-share-to="whatsapp">WhatsApp</button>
+    <button type="button" class="btn btn--ghost btn--sm" data-share-to="linkedin">LinkedIn</button>{% endif %}
+    <button type="button" class="btn btn--ghost btn--sm" data-share-to="more">More…</button>
+    <button type="button" class="btn btn--ghost btn--sm" data-copy-text="{{ full }}">Copy text</button>
   </div>
-  <p class="small muted" style="margin-top:8px">Instagram: tap “Share with photos” on your phone and choose Instagram (it needs a photo).</p>
+  <p class="small share__msg" data-share-msg role="status"></p>
 </section>
 {% endif %}
 <form method="post" enctype="multipart/form-data" class="card stack" style="max-width:640px">

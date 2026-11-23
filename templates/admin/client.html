@@ -5,7 +5,7 @@
 <p class="crumbs"><a href="{{ url_for('admin.clients') }}">Clients</a> / {{ a.name }}</p>
 <div class="page-top">
   <div>
-    <h1>{{ a.name }}</h1>
+    <h1>{{ a.name }}{% if a.kind == 'internal' %} <span class="badge badge--acc" style="vertical-align:middle;font-size:.8rem">Ours · no charge</span>{% endif %}</h1>
     <p>{{ a.trade or 'Client' }}{% if a.town %} · {{ a.town }}{% endif %}{% if a.domain %} · <a href="https://{{ a.domain }}" target="_blank" rel="noopener">{{ a.domain }} ↗</a>{% endif %}</p>
   </div>
   <div class="page-top__actions">
@@ -16,7 +16,7 @@
 </div>
 
 <nav class="subnav" aria-label="Client sections">
-  {% for key, label in [('overview','Overview'),('jobs','Jobs'),('money','Money'),('users','Logins'),('reviews','Reviews'),('traffic','Visitors'),('site','Website')] %}
+  {% for key, label in [('overview','Overview'),('jobs','Jobs'),('money','Money'),('users','Logins'),('reviews','Reviews'),('traffic','Visitors'),('site','Website')] if not (key == 'money' and a.kind == 'internal') %}
     <a href="{{ url_for('admin.client', slug=a.slug, tab=key) }}" {% if tab == key %}aria-current="page"{% endif %}>{{ label }}</a>
   {% endfor %}
 </nav>
@@ -123,6 +123,8 @@
   {% else %}{{ empty('No jobs yet') }}{% endif %}
 </section>
 
+{% elif tab == 'money' and a.kind == 'internal' %}
+<section class="card"><p class="muted">This is one of HapiTech's own sites, so there are no costs or payments against it.</p></section>
 {% elif tab == 'money' %}
 {% set every = {'monthly':'month','quarterly':'3 months','yearly':'year','once':'one-off'} %}
 {% set ad = a.addon() %}

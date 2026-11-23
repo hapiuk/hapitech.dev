@@ -20,8 +20,20 @@
     <article class="upd upd--full">
       <p class="kicker">{{ post.published_at | ukdate('%-d %B %Y') }}{% if post.town %} · {{ post.town }}{% endif %}</p>
       <h1>{{ post.title }}</h1>
-      {% for m in post.photos %}<img class="upd__img" src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="{{ post.title }}" loading="lazy">{% endfor %}
       {% if post.body %}<p class="upd__body">{{ post.body }}</p>{% endif %}
+      {% if post.photos %}
+      <div class="upd-pics upd-pics--{{ [post.photos|length, 4]|min }}" data-pics>
+        {% for m in post.photos %}<button type="button" class="upd-pics__item" data-pic="{{ loop.index0 }}" aria-label="Open photo {{ loop.index }} of {{ post.photos|length }}">
+          <img src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="{{ m.alt or post.title }}" loading="lazy"></button>{% endfor %}
+      </div>
+      <dialog class="pic-viewer" data-viewer aria-label="Photos from this post">
+        <img data-viewer-img alt="">
+        <button type="button" class="pic-viewer__btn pic-viewer__prev" data-viewer-prev aria-label="Previous photo">‹</button>
+        <button type="button" class="pic-viewer__btn pic-viewer__next" data-viewer-next aria-label="Next photo">›</button>
+        <button type="button" class="pic-viewer__close" data-viewer-close aria-label="Close">✕</button>
+        <p class="pic-viewer__count" data-viewer-count></p>
+      </dialog>
+      {% endif %}
       <p style="margin-top:28px"><a class="btn" href="/#contact">Get in touch</a></p>
     </article>
   {% else %}

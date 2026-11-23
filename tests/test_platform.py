@@ -788,7 +788,8 @@ def test_publish_post_shows_share_card_and_home_tips(app):
                                        "body": "Four days.", "action": "publish"}, page="/portal/posts/new")
     assert r.status_code == 302 and r.headers["Location"].endswith("#share")
     page = o.get(r.headers["Location"].split("#")[0]).get_data(as_text=True)
-    assert "Share it" in page and "facebook.com/sharer" in page and "/posts/" in page
+    assert "Share it" in page and "/posts/" in page
+    assert page.index('data-share-to="facebook"') < page.index('data-share-to="instagram"') < page.index('data-share-to="whatsapp"')   # Facebook, Instagram first
     home = o.get("/portal/").get_data(as_text=True)
     assert "Edit my website" in home and "tip__text" in home and "Latest reviews" not in home
     assert "Visitors" in o.get("/portal/visitors").get_data(as_text=True)
@@ -802,9 +803,14 @@ def test_owner_adds_review_and_google_link_opens_reviews_page(app):
         a = Account.query.filter_by(slug="rolands").first()
         a.google_profile_url, a.google_reviews_url = "https://g.page/r/X/review", "https://www.google.com/search?q=Rolands+Reviews"
         db.session.commit()
+    owner = app.test_client()
+    _login(owner, "roland@test")
+    assert owner.get("/portal/reviews/add").status_code == 302                  # clients can't add reviews by hand
+    assert "/portal/reviews/add" not in owner.get("/portal/reviews").get_data(as_text=True)
+    assert "/portal/ask" in owner.get("/portal/reviews").get_data(as_text=True)
     o = app.test_client()
-    _login(o, "roland@test")
-    page = o.get("/portal/reviews/add").get_data(as_text=True)
+    _login(o, "admin@test")
+    page = o.get("/portal/reviews/add?as=rolands").get_data(as_text=True)
     assert "Waiting on Google API access" in page and 'value="google"' in page
     r = _form(o, "/portal/reviews/add", {"source": "google", "rating": "5", "author_name": "Jo Bloggs",
                                          "body": "Brilliant job"}, page="/portal/reviews/add")

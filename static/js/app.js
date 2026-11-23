@@ -415,3 +415,51 @@ document.querySelectorAll("[data-check-all]").forEach(function (all) {
   var h = location.hash && document.querySelector(location.hash + "[data-prev-box]");
   if (h) { var t = document.querySelector('[data-prev="' + h.getAttribute("data-prev-box") + '"]'); if (t) t.click(); }
 })();
+
+/* posts: share buttons. The post's text (title, words, link) is always copied first, because Facebook,
+   Instagram and LinkedIn don't let websites fill in the text for you: you paste it. */
+(function () {
+  var box = document.querySelector("[data-share-box]"); if (!box) return;
+  var url = box.getAttribute("data-url"), text = box.getAttribute("data-text"), msg = document.querySelector("[data-share-msg]");
+  var photos = JSON.parse(box.getAttribute("data-photos") || "[]");
+  var phone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  function say(t) { if (msg) msg.textContent = t; }
+  function copy() { return navigator.clipboard ? navigator.clipboard.writeText(text).catch(function () {}) : Promise.resolve(); }
+  function files() {
+    return Promise.all(photos.slice(0, 6).map(function (src, i) {
+      return fetch(src).then(function (r) { return r.blob(); }).then(function (bl) {
+        return new File([bl], "photo-" + (i + 1) + "." + ((bl.type.split("/")[1] || "jpg").replace("jpeg", "jpg")), { type: bl.type || "image/jpeg" });
+      });
+    })).catch(function () { return []; });
+  }
+  function sheet(withPhotos) {
+    if (!navigator.share) return Promise.reject();
+    return (withPhotos ? files() : Promise.resolve([])).then(function (fs) {
+      var data = { title: text.split("\n")[0], text: text };
+      if (fs.length && navigator.canShare && navigator.canShare({ files: fs })) data.files = fs;
+      else if (url) data.url = url;
+      return navigator.share(data);
+    });
+  }
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-share-to]"); if (!b) return;
+    var to = b.getAttribute("data-share-to");
+    copy();
+    if (to === "facebook") {
+      if (phone && navigator.share) { say("Text copied. Pick Facebook, then paste your words in."); sheet(true).catch(function () {}); return; }
+      if (!url) { say("Text copied. Publish the post first to get a link to share."); return; }
+      say("Text copied. Facebook opens in a new tab: paste your words into the post.");
+      window.open("https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(url), "_blank", "noopener");
+    } else if (to === "instagram") {
+      if (phone && navigator.share) { say("Text copied. Pick Instagram, then paste your words as the caption."); sheet(true).catch(function () {}); }
+      else say("Instagram only lets you post from the app. Open this page on your phone and tap Instagram. (Text copied.)");
+    } else if (to === "whatsapp") {
+      window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank", "noopener"); say("");
+    } else if (to === "linkedin") {
+      say("Text copied. LinkedIn opens in a new tab: paste your words into the post.");
+      window.open("https://www.linkedin.com/sharing/share-offsite/?url=" + encodeURIComponent(url), "_blank", "noopener");
+    } else if (to === "more") {
+      sheet(true).then(function () { say(""); }, function () { say("Text copied: paste it wherever you like."); });
+    }
+  });
+})();
