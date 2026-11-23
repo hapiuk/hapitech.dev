@@ -82,4 +82,13 @@ def send_contact_email(*, name: str, email: str, message: str, meta: dict) -> No
         f"Referer: {meta.get('referer', '')}\nTime (UTC): {meta.get('utc', '')}\n\n"
         f"Message:\n{message}\n"
     )
-    send_email(to=to, subject=subject, text=body, reply_to=email)
+    html = None
+    try:
+        from utils import email_html
+        _, html = email_html.build(subject, heading="New enquiry from hapitech.dev",
+                                   lines=[f"{name} sent a message through the website."],
+                                   box=[("Name", name), ("Email", email), ("Form", meta.get("client", "") or "—")],
+                                   after=[message], footer="Reply to this email to answer them directly.")
+    except Exception as exc:          # never lose an enquiry over styling
+        print(f"[CONTACT_HTML] {exc}")
+    send_email(to=to, subject=subject, text=body, html=html, reply_to=email)

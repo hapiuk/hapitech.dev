@@ -34,7 +34,9 @@ def run_all(app, force=False) -> dict:
     from utils.client_mail import send_booking_reminder, send_repeat_reminder
 
     out = {"reminders": 0, "repeat": 0, "deleted": 0, "errors": 0}
-    with app.app_context():
+    # a request context so emails can build absolute links (no real request in the background)
+    base = app.config.get("PUBLIC_BASE_URL") or "http://127.0.0.1:5077"
+    with app.app_context(), app.test_request_context("/", base_url=base):
         if not force and not _take_lease(db):
             return out
         now = dt.datetime.utcnow()

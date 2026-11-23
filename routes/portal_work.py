@@ -364,3 +364,28 @@ def settings():
         return redirect(url_for("portal.settings"))
     staff = User.query.filter_by(account_id=a.id).order_by(User.role, User.email).all()
     return render_template("portal/settings.html", staff=staff, today=dt.date.today())
+
+
+# ---------------------------------------------------------------- top-of-page (hero) photo
+
+@portal_bp.route("/website/hero", methods=["GET", "POST"])
+@owner_required
+@addon_required
+@owner_only
+def hero():
+    from utils.photos import HERO_MODES, hero_mode, hero_pick, known_photos, likes_map, photo_src, save_hero
+    a = g.account
+    if request.method == "POST":
+        mode = request.form.get("mode", "all")
+        pick = request.form.getlist("pick")
+        if mode == "chosen" and not pick:
+            flash("Tick at least one photo, or choose another option.", "err")
+            return redirect(url_for("portal.hero"))
+        save_hero(a, mode, pick, current_user.id)
+        flash("Saved. Your website uses this within 10 minutes.", "ok")
+        return redirect(url_for("portal.hero"))
+    likes = likes_map(a)
+    photos = [{"key": k, "src": photo_src(a, k), "likes": likes.get(k, 0)} for k in known_photos(a)]
+    photos.sort(key=lambda p: -p["likes"])
+    return render_template("portal/hero.html", modes=HERO_MODES, mode=hero_mode(a), pick=set(hero_pick(a)),
+                           photos=photos, any_likes=bool(likes))

@@ -12,11 +12,17 @@ from utils.mailer import send_email
 customer_bp = Blueprint("customer", __name__)
 
 
-def _notify_owner(account, subject, body):
+def _notify_owner(account, subject, heading, lines, box=None):
+    """Tell the business owner something happened (HapiTech-branded, with a button to their dashboard)."""
     if not account.contact_email:
         return
     try:
-        send_email(to=account.contact_email, subject=subject, text=body)
+        from flask import url_for
+
+        from utils import email_html
+        from utils.links import public_url
+        email_html.send(account.contact_email, subject, heading=heading, lines=lines, box=box,
+                        button={"label": "Open your dashboard", "url": public_url(url_for("portal.jobs"))})
     except Exception as exc:
         print(f"[CUSTOMER_NOTIFY] {exc}")
 
@@ -33,12 +39,14 @@ def quote(token):
             q.status, q.responded_at = "accepted", now
             if lead.status in ("new", "quoted"):
                 lead.status = "accepted"
-            _notify_owner(a, f"Quote {q.number} accepted by {lead.name}",
-                          f"{lead.name} accepted quote {q.number} (£{q.totals[2]:,.2f}) for {lead.label}.\n"
-                          f"Pick a date in your dashboard: Jobs → {lead.name}.")
+            _notify_owner(a, f"Good news: {lead.name} accepted your quote",
+                          "Your quote was accepted 🎉", [f"{lead.name} accepted your quote. Next, pick a date for the job."],
+                          box=[("Quote", q.number), ("Total", f"£{q.totals[2]:,.2f}"), ("Job", lead.label)])
         elif request.form.get("answer") == "decline":
             q.status, q.responded_at = "declined", now
-            _notify_owner(a, f"Quote {q.number} declined", f"{lead.name} said no to quote {q.number} for {lead.label}.")
+            _notify_owner(a, f"{lead.name} said no thanks to quote {q.number}", "Quote declined",
+                          [f"{lead.name} decided not to go ahead with quote {q.number}."],
+                          box=[("Job", lead.label)])
         db.session.commit()
     return render_template("customer/quote.html", a=a, q=q, lead=lead)
 

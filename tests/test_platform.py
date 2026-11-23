@@ -457,7 +457,7 @@ def test_job_lifecycle(app):
     tomorrow = (dt.date.today() + dt.timedelta(days=1)).isoformat()
     _form(o, f"/portal/jobs/{lid}", {"action": "book", "date": tomorrow, "time": "10:00", "days": "1", "notify": "1"},
           page=f"/portal/jobs/{lid}")
-    assert any("You're booked in for" in m for m in _outbox(app))
+    assert any("You're booked in" in m for m in _outbox(app))
     # day-before reminder via the scheduler (force, and pretend it's after 8am)
     with app.app_context():
         lead = Lead.query.get(lid)
@@ -476,7 +476,7 @@ def test_job_lifecycle(app):
         tasks.dt.datetime = real
     # done -> review email; then invoice prefilled from the quote, sent, paid
     _form(o, f"/portal/jobs/{lid}", {"action": "done", "ask_review": "1"}, page=f"/portal/jobs/{lid}")
-    assert any("How did we do?" in m for m in _outbox(app))
+    assert any("Leave a review" in m for m in _outbox(app))
     ipage = f"/portal/jobs/{lid}/invoice"
     assert "Labour" in o.get(ipage).get_data(as_text=True)          # copied from the accepted quote
     _form(o, ipage, {"desc": ["Labour", "Fixings"], "qty": ["1", "2"], "price": ["120", "5"], "vat_rate": "0",
@@ -603,3 +603,83 @@ def test_setup_clients_creates_switched_off_owner_logins(app):
         assert u and u.role == "owner" and not u.is_active and u.account.contact_email == u.email
     r = _login(app.test_client(), "enquiries@rolandshandyman.co.uk")
     assert r.status_code == 400                                   # can't log in until invited
+
+
+def test_photo_likes_and_hero_choice(app):
+    hdr = _site_key(app, "rolands")
+    c = app.test_client()
+    photos = ["img/gallery/a.jpg", "img/gallery/b.jpg", "img/gallery/c.jpg"]
+    assert c.post("/api/v1/sites/rolands/defaults", json={"photos": {"gallery": photos}}, headers=hdr).json["ok"]
+    like = lambda p, d=1: c.post("/api/v1/sites/rolands/likes", json={"photo": p, "delta": d}, headers=hdr)
+    assert like("img/gallery/not-ours.jpg").status_code == 404           # only the site's own photos
+    assert like("img/gallery/b.jpg").json["count"] == 1
+    assert like("img/gallery/b.jpg").json["count"] == 2
+    assert like("img/gallery/c.jpg").json["count"] == 1
+    assert like("img/gallery/a.jpg", -1).json["count"] == 0              # never below zero
+    content = lambda: c.get("/api/v1/sites/rolands/content", headers=hdr).json
+    assert content()["likes"] == {"img/gallery/b.jpg": 2, "img/gallery/c.jpg": 1}
+    assert content()["hero"] is None                                     # default: site's own random choice
+    assert "hero.mode" not in content()["content"]
+    o = app.test_client()
+    _login(o, "roland@test")
+    assert "Top-of-page photo" in o.get("/portal/website/hero").get_data(as_text=True)
+    _form(o, "/portal/website/hero", {"mode": "liked"}, page="/portal/website/hero")
+    assert content()["hero"] == ["img/gallery/b.jpg", "img/gallery/c.jpg"]  # most liked first
+    _form(o, "/portal/website/hero", {"mode": "chosen", "pick": ["img/gallery/a.jpg", "img/gallery/zzz.jpg"]},
+          page="/portal/website/hero")
+    assert content()["hero"] == ["img/gallery/a.jpg"]                    # unknown photos ignored
+    _form(o, "/portal/website/hero", {"mode": "all"}, page="/portal/website/hero")
+    assert content()["hero"] is None
+
+
+
+def test_emails_are_styled_with_plain_text_fallback(app):
+    import email
+    c = app.test_client()
+    tok = _csrf(c)
+    c.post("/auth/code/request", json={"email": "ray@test"}, headers={"X-CSRF-Token": tok})
+    raw = _outbox(app)[-1]
+    msg = email.message_from_string(raw)
+    types = [p.get_content_type() for p in msg.walk()]
+    assert "text/plain" in types and "text/html" in types
+    html = next(p for p in msg.walk() if p.get_content_type() == "text/html").get_payload(decode=True).decode()
+    assert "Your login code" in html and "max-width:560px" in html
+
+
+def test_repeat_reminder_sent_from_background(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account
+    from models.work import Lead, RepeatReminder
+    from utils.tasks import run_all
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        lead = Lead(account_id=a.id, name="Kim Lee", email="kim@example.com", status="done", title="Gutters")
+        db.session.add(lead); db.session.flush()
+        db.session.add(RepeatReminder(account_id=a.id, lead_id=lead.id, remind_on=dt.date.today(), note="clearing the gutters"))
+        db.session.commit()
+    assert run_all(app, force=True)["repeat"] == 1                 # builds its "stop" link without a web request
+    assert any("clearing the gutters" in m and "/u/" in m for m in _outbox(app))
+
+
+def test_client_update_notes(app):
+    from models.core import Account
+    from utils import updates
+    with app.test_request_context("/"):
+        secs = updates.sections()
+        assert secs and secs[0]["title"]
+        roland = Account.query.filter_by(slug="rolands").first()
+        ray = Account.query.filter_by(slug="rayg").first()
+        ray.contact_name = "Ray"
+        t_roland, h_roland = updates.render(roland, secs[0])
+        t_ray, h_ray = updates.render(ray, secs[0])
+        assert "Hi Roland," in t_roland and "Hi Ray," in t_ray
+        assert "jumping about" in t_roland and "jumping about" not in t_ray        # (Roland)-only line
+        assert "back on your website" in t_ray and "back on your website" not in t_roland
+        assert "(Roland)" not in h_roland and "<ul" in h_roland and "<strong>" in h_roland
+    a = app.test_client()
+    _login(a, "admin@test")
+    page = a.get("/admin/updates").get_data(as_text=True)
+    assert "Send a test to me" in page
+    r = _form(a, "/admin/updates", {"section": "0", "client": "rolands", "action": "test"}, page="/admin/updates")
+    assert r.status_code == 302 and any("Your new dashboard" in m for m in _outbox(app))

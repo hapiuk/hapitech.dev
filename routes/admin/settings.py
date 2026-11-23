@@ -13,8 +13,9 @@ def settings():
         action = request.form.get("action")
         if action == "test-email":
             try:
-                send_email(to=current_user.email, subject="HapiTech test email",
-                           text="If you can read this, outgoing email works.")
+                from utils import email_html
+                email_html.send(current_user.email, "HapiTech test email", heading="Email is working",
+                                lines=["If you can read this, outgoing email from hapitech.dev works."])
                 mode = current_app.config.get("MAIL_MODE")
                 flash("Test email sent." if mode == "smtp" else "Test email written to instance/mail_outbox (log mode).", "ok")
             except Exception as exc:

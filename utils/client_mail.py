@@ -1,69 +1,105 @@
-# utils/client_mail.py — emails sent to a client's customers, in the client's name.
+# utils/client_mail.py — emails sent to a client's customers, in the client's name and colours.
 # From: "<Business name> <SMTP_FROM>", Reply-To: the client's own email, so customers reply to them.
 from flask import url_for
 
+from utils import email_html
 from utils.links import public_url
-from utils.mailer import send_email
 
 
-def _send(lead, subject, body):
+def _send(lead, subject, **content):
     a = lead.account
     if not lead.email:
         raise ValueError("This customer has no email address.")
-    sign = a.contact_name or a.name
-    send_email(to=lead.email, subject=subject, from_name=a.name, reply_to=a.contact_email or None,
-               text=f"{body}\n\n{sign}\n{a.name}" + (f"\n{a.contact_phone}" if a.contact_phone else ""))
+    sign = f"Thanks,\n{a.contact_name or a.name}"
+    footer = " · ".join(x for x in [a.name, a.contact_phone] if x)
+    email_html.send(lead.email, subject, account=a, from_name=a.name, reply_to=a.contact_email or None,
+                    sign=sign, footer=footer, **content)
+
+
+def _first(lead):
+    return lead.name.split()[0]
 
 
 def _when(lead):
     d = lead.start_at
     day = d.strftime("%A %-d %B")
     t = d.strftime("%-I:%M%p").lower().replace(":00", "")
-    span = f" ({lead.days} days)" if lead.days and lead.days > 1 else ""
-    return f"{day} at {t}{span}"
+    return f"{day}, {t}"
+
+
+def _booking_box(lead):
+    box = [("When", _when(lead))]
+    if lead.days and lead.days > 1:
+        box.append(("How long", f"{lead.days} days"))
+    box.append(("Job", lead.label))
+    if lead.postcode:
+        box.append(("Where", lead.postcode))
+    return box
 
 
 def send_quote(quote):
     lead = quote.lead
-    link = public_url(url_for("customer.quote", token=quote.token))
+    total = f"£{quote.totals[2]:,.2f}"
     _send(lead, f"Your quote from {lead.account.name}",
-          f"Hi {lead.name.split()[0]},\n\nThanks for getting in touch. Here's your quote for "
-          f"{lead.label.lower()}:\n{link}\n\nYou can accept it, or let us know it's not for you, from that page.")
+          heading=f"Your quote is ready, {_first(lead)}",
+          lines=[f"Thanks for getting in touch. Here's your quote for {lead.label.lower()}."],
+          box=[("Quote", quote.number), ("Total", total)] +
+              ([("Valid until", quote.valid_until.strftime("%-d %B %Y"))] if quote.valid_until else []),
+          button={"label": "View and accept your quote", "url": public_url(url_for("customer.quote", token=quote.token))},
+          after=["If it's not for you, you can say so on the same page. No hard feelings."])
 
 
 def send_booking_confirmation(lead):
-    _send(lead, f"Booked: {lead.label} on {lead.start_at.strftime('%-d %B')}",
-          f"Hi {lead.name.split()[0]},\n\nYou're booked in for {_when(lead)}"
-          + (f" at {lead.postcode}" if lead.postcode else "") + ".\n\n"
-          "We'll send a reminder the day before. If anything changes, just reply to this email.")
+    _send(lead, f"You're booked in: {lead.start_at.strftime('%A %-d %B')}",
+          heading=f"You're booked in, {_first(lead)}",
+          lines=["Here are the details."], box=_booking_box(lead),
+          after=["We'll send you a reminder the day before. If anything changes, just reply to this email."])
 
 
 def send_booking_reminder(lead):
-    _send(lead, f"See you tomorrow: {lead.label}",
-          f"Hi {lead.name.split()[0]},\n\nJust a reminder that we're booked in for {_when(lead)}.\n\n"
-          "If anything has changed, reply to this email.")
+    _send(lead, f"See you tomorrow, {_first(lead)}",
+          heading="See you tomorrow",
+          lines=[f"Just a quick reminder, {_first(lead)}."], box=_booking_box(lead),
+          after=["If anything has changed, reply to this email and let us know."])
 
 
 def send_invoice(invoice):
     lead = invoice.lead
-    link = public_url(url_for("customer.invoice", token=invoice.token))
-    due = f" by {invoice.due_date.strftime('%-d %B %Y')}" if invoice.due_date else ""
+    box = [("Invoice", invoice.number), ("Amount", f"£{invoice.totals[2]:,.2f}")]
+    if invoice.due_date:
+        box.append(("Please pay by", invoice.due_date.strftime("%-d %B %Y")))
     _send(lead, f"Invoice {invoice.number} from {lead.account.name}",
-          f"Hi {lead.name.split()[0]},\n\nThanks again for having us. Your invoice for {lead.label.lower()} "
-          f"(£{invoice.totals[2]:,.2f}) is here:\n{link}\n\nPayment details are on the invoice. "
-          f"Please pay{due}.")
+          heading=f"Thanks again, {_first(lead)}",
+          lines=[f"Here's the invoice for {lead.label.lower()}. Payment details are on it."],
+          box=box,
+          button={"label": "View your invoice", "url": public_url(url_for("customer.invoice", token=invoice.token))},
+          after=["You can print it or save it as a PDF from that page."])
 
 
-def send_review_request(lead, link):
-    _send(lead, f"How did we do?",
-          f"Hi {lead.name.split()[0]},\n\nThanks for choosing {lead.account.name}! "
-          f"Would you mind leaving a quick review? It takes about 20 seconds:\n{link}")
+def send_review_request(lead, link, first_name=None):
+    who = first_name or (_first(lead) if getattr(lead, "name", None) else None)
+    a = lead.account
+    _send(lead, f"How did {a.contact_name or a.name} do?",
+          heading=f"Thanks for choosing {a.name}" + (f", {who}" if who else "") + "!",
+          lines=["Would you mind leaving a quick review? It really helps a small local business, "
+                 "and it only takes about 20 seconds."],
+          button={"label": "⭐ Leave a review", "url": link})
 
 
 def send_repeat_reminder(rem):
     lead = rem.lead
     stop = public_url(url_for("customer.reminder_stop", token=rem.token))
     _send(lead, f"A reminder from {lead.account.name}",
-          f"Hi {lead.name.split()[0]},\n\nYou asked us to remind you: {rem.note}\n\n"
-          f"If you'd like to book, just reply to this email.\n\n"
-          f"(You asked for this reminder. To stop it: {stop})")
+          heading=f"Hi {_first(lead)}, a friendly reminder",
+          lines=[f"You asked us to remind you: {rem.note}.", "If you'd like to book it in, just reply to this email."],
+          after=[f"You asked for this reminder. Don't want it? Stop it here: {stop}"])
+
+
+class _OneOff:
+    """Lets send_review_request work for the "email them the link" button, which has no job record."""
+    def __init__(self, account, email, name=None):
+        self.account, self.email, self.name, self.label = account, email, name or "", ""
+
+
+def send_review_link(account, email, link, first_name=None):
+    send_review_request(_OneOff(account, email, first_name), link, first_name=first_name)

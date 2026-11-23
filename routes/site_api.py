@@ -89,6 +89,8 @@ def content(slug):
     out = {}
     for b in blocks:
         v = b.data
+        if b.type == "setting":
+            continue                      # hero settings: sent below as "hero"
         if b.type == "images" and b.value == b.default_value:
             continue                      # unedited photos: the site keeps using its own folder, unchanged
         if b.type == "images":
@@ -104,7 +106,21 @@ def content(slug):
         out[b.key] = v
     updated = max((b.updated_at for b in blocks), default=None)
     away = {"until": a.away_until.isoformat(), "message": a.away_message} if a.is_away else None
-    return _ok({"content": out, "away": away, "updated": updated.isoformat() if updated else None})
+    from utils.photos import hero_pool, likes_map
+    return _ok({"content": out, "away": away, "likes": likes_map(a), "hero": hero_pool(a),
+                "updated": updated.isoformat() if updated else None})
+
+
+@site_api_bp.route("/sites/<slug>/likes", methods=["POST"])
+def photo_like(slug):
+    """♥ from a visitor, relayed by the client site's server: {"photo": "<site photo key>", "delta": 1 | -1}."""
+    from utils.photos import like
+    a = _account(slug)
+    d = request.get_json(silent=True) or {}
+    count = like(a, str(d.get("photo") or "")[:400], int(d.get("delta") or 1))
+    if count is None:
+        return jsonify({"ok": False, "message": "Unknown photo."}), 404
+    return jsonify({"ok": True, "count": count})
 
 
 ENQUIRIES_PER_DAY = 60          # per site, a ceiling against a broken or abused form
@@ -140,10 +156,13 @@ def enquiry(slug):
     if source == "booking" and a.contact_email:
         from utils.mailer import send_email
         try:
-            send_email(to=a.contact_email, subject=f"Booking request from {name}",
-                       text=f"{name} would like to book: {lead.title or lead.message or ''}\n"
-                            f"Preferred: {lead.preferred or 'any time'}\nPostcode: {lead.postcode or '—'}\n\n"
-                            f"Confirm it in your dashboard: Jobs.")
+            from utils import email_html
+            email_html.send(a.contact_email, f"New booking request from {name}", heading="New booking request",
+                            lines=[f"{name} would like to book in with you."],
+                            box=[("Job", lead.title or (lead.message or "")[:120] or "—"),
+                                 ("Preferred", lead.preferred or "Any time"), ("Postcode", lead.postcode or "—")],
+                            button={"label": "Confirm it in your dashboard",
+                                    "url": public_url(url_for("portal.job", lid=lead.id))})
         except Exception as exc:
             print(f"[BOOKING_NOTIFY] {exc}")
     return jsonify({"ok": True, "id": lead.id}), 201

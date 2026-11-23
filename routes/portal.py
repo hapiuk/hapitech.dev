@@ -107,9 +107,9 @@ def ask_send(rid):
             flash("Enter the customer's email address.", "err")
         else:
             try:
-                send_email(to=to, subject=f"How did {g.account.name} do?", from_name=g.account.name,
-                           reply_to=g.account.contact_email or None,
-                           text=_request_message(req) + f"\n\nThank you!\n{g.account.contact_name or g.account.name}")
+                from utils.client_mail import send_review_link
+                send_review_link(g.account, to, _review_link(req),
+                                 first_name=None if req.customer_name == "your customer" else req.customer_name)
                 if req.sent_via == "email" and req.completed_at is None:
                     req.reminder_sent_at = dt.datetime.utcnow()
                 req.sent_via = "email"
@@ -257,7 +257,8 @@ def website():
     if not current_user.is_owner:
         flash("Only the business owner can change the website.", "err")
         return redirect(url_for("portal.home"))
-    blocks = scoped(ContentBlock).order_by(ContentBlock.group, ContentBlock.sort, ContentBlock.id).all()
+    blocks = (scoped(ContentBlock).filter(ContentBlock.type != "setting")
+              .order_by(ContentBlock.group, ContentBlock.sort, ContentBlock.id).all())
     groups = {}
     for b in blocks:
         groups.setdefault(b.group, []).append(b)
@@ -313,9 +314,12 @@ def help():
             db.session.add(cr)
             db.session.commit()
             try:
-                send_email(to="aaron@hapitech.dev", subject=f"Change request: {g.account.name}",
-                           text=f"{current_user.name or current_user.email} asked for:\n\n{body}\n\n"
-                                f"{public_url(url_for('admin.change_requests'))}")
+                from utils import email_html
+                email_html.send("aaron@hapitech.dev", f"Change request: {g.account.name}",
+                                heading=f"{g.account.name} asked for a change",
+                                lines=[f"From {current_user.name or current_user.email}:", body],
+                                button={"label": "Open change requests",
+                                        "url": public_url(url_for("admin.change_requests"))})
             except Exception as exc:
                 print(f"[CHANGE_REQUEST_EMAIL_ERROR] {exc}")
             flash("Sent to HapiTech. Aaron will be in touch.", "ok")

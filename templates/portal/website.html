@@ -4,6 +4,7 @@
 {% block content %}
 <div class="page-top"><div><h1>My website</h1><p>Change your prices, services, photos and details. Changes show on your site within 10 minutes.</p></div>
   <a class="btn btn--ghost btn--sm" href="{{ url_for('portal.help') }}">Need something bigger?</a></div>
+<a class="card row row--between" href="{{ url_for('portal.hero') }}" style="margin-bottom:16px"><span><strong>Top-of-page photo</strong><br><span class="small muted">Random, most-liked, or the ones you choose</span></span><span class="btn btn--ghost btn--sm">Change</span></a>
 {% if groups %}
   {% for group, blocks in groups.items() %}
   <section class="card">

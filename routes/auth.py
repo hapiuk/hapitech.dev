@@ -59,9 +59,10 @@ def code_request():
     session["otp"] = {"uid": user.id, "e": email, "h": _code_hash(code),
                       "exp": (dt.datetime.utcnow() + CODE_TTL).isoformat(), "tries": 0}
     try:
-        send_email(to=user.email, subject=f"Your HapiTech login code: {code}",
-                   text=f"Your HapiTech login code is {code}\n\nIt expires in 10 minutes. "
-                        f"If you didn't ask for it, you can ignore this email.")
+        from utils import email_html
+        email_html.send(user.email, f"Your HapiTech login code: {code}", heading="Your login code",
+                        lines=["Type this code into the login box. It works for 10 minutes."], code=code,
+                        after=["Didn't ask for it? You can ignore this email. Nobody can log in without the code."])
     except Exception as exc:
         print(f"[OTP_EMAIL_ERROR] {exc}")
         return jsonify({"ok": False, "message": "We couldn't send the email just now. Please try again shortly."}), 500
@@ -101,12 +102,15 @@ def send_invite(user: User, inviter: str = "Aaron at HapiTech"):
     """Tell a new client user their dashboard exists. No password to set: they log in with a code."""
     from utils.links import public_url
     biz = user.account.name if user.account else "HapiTech"
-    send_email(
-        to=user.email, subject=f"Your {biz} dashboard is ready",
-        text=(f"Hi {user.name or ''},\n\n{inviter} has set up your dashboard for {biz}.\n\n"
-              f"To log in, go to {public_url('/login')} and enter this email address "
-              f"({user.email}). We'll email you a 6-digit code. There's no password to remember.\n"),
-    )
+    from utils import email_html
+    email_html.send(user.email, f"Your {biz} dashboard is ready",
+                    heading=f"Hi {(user.name or '').split()[0] if user.name else 'there'}, your dashboard is ready",
+                    lines=[f"{inviter} has set up your dashboard for {biz}.",
+                           "To log in, tap the button and enter this email address. We'll email you a 6-digit code. "
+                           "There's no password to remember."],
+                    box=[("Your login email", user.email)],
+                    button={"label": "Log in to your dashboard", "url": public_url("/login")},
+                    after=["Tip: once you're in, add it to your phone's home screen so it opens like an app."])
 
 
 @auth_bp.route("/logout", methods=["POST"])

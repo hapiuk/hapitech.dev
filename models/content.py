@@ -103,3 +103,15 @@ class SiteVisit(db.Model):
     path = db.Column(db.String(200), nullable=False)
     ref = db.Column(db.String(100), nullable=False, default="")     # referring site, e.g. "google" / "facebook"
     count = db.Column(db.Integer, nullable=False, default=0)
+
+
+class PhotoLike(db.Model):
+    """Running ♥ count per photo on a client site. Visitors are de-duplicated in their own browser
+    (localStorage) and rate-limited by the site; nothing about who liked is stored here."""
+    __tablename__ = "photo_likes"
+    __table_args__ = (db.UniqueConstraint("account_id", "photo", name="uq_like_photo"),)
+    id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=False, index=True)
+    photo = db.Column(db.String(400), nullable=False)      # the site's photo key: "img/gallery/x.jpg" or "url:https://…"
+    count = db.Column(db.Integer, nullable=False, default=0)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow, nullable=False)

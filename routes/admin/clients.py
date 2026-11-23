@@ -369,3 +369,39 @@ def change_request_set(rid):
         r.status = request.form["status"]
         db.session.commit()
     return redirect(url_for("admin.change_requests"))
+
+
+# ---------------------------------------------------------------- update notes for clients (docs/client-updates.md)
+
+@admin_bp.route("/updates", methods=["GET", "POST"])
+def updates():
+    from utils import updates as upd
+    secs = upd.sections()
+    clients = Account.query.filter(Account.kind == "client", Account.status != "archived").order_by(Account.name).all()
+    if request.method == "POST":
+        try:
+            sec = secs[int(request.form.get("section", -1))]
+        except (ValueError, IndexError):
+            abort(400)
+        a = Account.query.filter_by(slug=request.form.get("client")).first_or_404()
+        test = request.form.get("action") == "test"
+        if not test and not a.contact_email:
+            flash(f"{a.name} has no contact email.", "err")
+            return redirect(url_for("admin.updates"))
+        try:
+            upd.send(a, sec, to=current_user.email if test else None)
+        except Exception as exc:
+            flash(f"Email failed: {exc}", "err")
+            return redirect(url_for("admin.updates"))
+        if test:
+            flash(f"Test copy of {a.name}'s version sent to {current_user.email}.", "ok")
+        else:
+            db.session.add(Note(account_id=a.id, author_id=current_user.id, body=f"Update emailed: {sec['title']}"))
+            db.session.commit()
+            flash(f"Sent to {a.name} ({a.contact_email}).", "ok")
+        return redirect(url_for("admin.updates"))
+    sent = {}
+    for n in Note.query.filter(Note.body.like("Update emailed: %")).all():
+        sent.setdefault((n.account_id, n.body[len("Update emailed: "):]), n.created_at)
+    previews = [[(a, upd.render(a, s)[1]) for a in clients] for s in secs]
+    return render_template("admin/updates.html", secs=secs, clients=clients, previews=previews, sent=sent)
