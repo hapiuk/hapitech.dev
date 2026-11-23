@@ -35,7 +35,8 @@ class Account(TimestampMixin, db.Model):
     contact_name = db.Column(db.String(120))
     contact_email = db.Column(db.String(255))
     contact_phone = db.Column(db.String(40))
-    google_profile_url = db.Column(db.String(500))                           # "via Google" links
+    google_profile_url = db.Column(db.String(500))                           # Google "write a review" link
+    google_reviews_url = db.Column(db.String(500))                           # page listing their Google reviews ("via Google")
     logo_path = db.Column(db.String(300))                                    # static-relative path
     brand_colour = db.Column(db.String(9))                                   # "#f97316"
     notes = db.Column(db.Text)

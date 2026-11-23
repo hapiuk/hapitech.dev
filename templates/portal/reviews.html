@@ -2,7 +2,7 @@
 {% from "app/_macros.html" import empty, review_card with context %}
 {% block title %}Reviews{% endblock %}
 {% block content %}
-<div class="page-top"><div><h1>Your reviews</h1><p>Everything here shows on your website. Replying shows customers you care.</p></div></div>
+<div class="page-top"><div><h1>Your reviews</h1><p>Everything here shows on your website. Replying shows customers you care.</p></div>{% if current_user.is_owner %}<a class="btn btn--ghost btn--sm" href="{{ url_for('portal.review_add') }}">Add a review</a>{% endif %}</div>
 {% if pending %}
 <section class="card card--accent" id="pending" style="margin-bottom:14px">
   <div class="card__head"><h2>Waiting for your OK ({{ pending|length }})</h2></div>

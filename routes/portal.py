@@ -9,7 +9,7 @@ from flask_login import current_user
 from models import db
 from models.content import ContentBlock, ContentBlockVersion, Media, Post
 from models.core import ChangeRequest
-from models.reviews import Review, ReviewReply, ReviewRequest
+from models.reviews import REVIEW_SOURCES, Review, ReviewReply, ReviewRequest
 from utils.links import public_url
 from utils.mailer import send_email
 from utils.security import owner_required, scoped
@@ -146,6 +146,42 @@ def requests_list():
 
 
 # ---------------------------------------------------------------- reviews
+
+ADD_SOURCES = {k: REVIEW_SOURCES[k] for k in ("google", "facebook", "checkatrade", "manual")}
+GOOGLE_SYNC_NOTE = ("Waiting on Google API access. Once it's approved, your Google reviews will come in by themselves "
+                    "and you'll be able to reply to them from here. For now, copy them in by hand.")
+
+
+@portal_bp.route("/reviews/add", methods=["GET", "POST"])
+@owner_required
+@addon_required
+def review_add():
+    """Copy in a review from Google / Facebook / Checkatrade until automatic import is switched on."""
+    f = request.form if request.method == "POST" else {"source": "google"}
+    if request.method == "POST":
+        try:
+            rating = int(f.get("rating") or 0)
+        except ValueError:
+            rating = 0
+        name = (f.get("author_name") or "").strip()[:120]
+        if not (1 <= rating <= 5) or not name:
+            flash("Add the reviewer's name and the number of stars.", "err")
+        else:
+            when = f.get("reviewed_at")
+            try:
+                when = dt.datetime.fromisoformat(when) if when else None
+            except ValueError:
+                when = None
+            source = f.get("source") if f.get("source") in ADD_SOURCES else "manual"
+            db.session.add(Review(account_id=g.account.id, source=source, author_name=name, rating=rating,
+                                  body=(f.get("body") or "").strip()[:3000], reviewed_at=when,
+                                  source_url=g.account.google_profile_url if source == "google" else None,
+                                  external_id=f"added-by:{current_user.id}", status="published", verified=False))
+            db.session.commit()
+            flash("Review added. It shows on your website within 10 minutes.", "ok")
+            return redirect(url_for("portal.reviews"))
+    return render_template("portal/review_add.html", f=f, sources=ADD_SOURCES, note=GOOGLE_SYNC_NOTE)
+
 
 @portal_bp.route("/reviews")
 @owner_required

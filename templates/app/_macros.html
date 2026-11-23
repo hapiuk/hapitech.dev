@@ -27,7 +27,7 @@
       <div class="review__meta">
         {{ r.rating | stars }}
         {% if r.reviewed_at %}<span>{{ r.reviewed_at | ukdate }}</span>{% endif %}
-        <span class="badge">{% if r.source_url and r.source != 'hapitech' %}<a href="{{ r.source_url }}" target="_blank" rel="noopener">via {{ r.source_label }} ↗</a>{% else %}via {{ r.source_label }}{% endif %}</span>
+        <span class="badge">{% if r.link and r.source != 'hapitech' %}<a href="{{ r.link }}" target="_blank" rel="noopener">via {{ r.source_label }} ↗</a>{% else %}via {{ r.source_label }}{% endif %}</span>
         {% if r.verified %}<span class="badge badge--ok">Verified customer</span>{% endif %}
         {% if r.status != 'published' %}{{ status_badge(r.status) }}{% endif %}
         {% if show_client %}<span class="badge badge--acc">{{ r.account.name }}</span>{% endif %}

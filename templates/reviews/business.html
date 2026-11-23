@@ -13,7 +13,7 @@
 {% for r in rows %}
 <article class="rv__card rv__review">
   <div class="rv__review-top"><strong>{{ r.author_name }}</strong>{{ r.rating | stars }}</div>
-  <p class="rv__meta">{% if r.reviewed_at %}{{ r.reviewed_at | ukdate('%B %Y') }} · {% endif %}{% if r.source_url and r.source != 'hapitech' %}<a href="{{ r.source_url }}" target="_blank" rel="noopener">via {{ r.source_label }}</a>{% else %}via {{ r.source_label }}{% endif %}{% if r.verified %} · Verified customer{% endif %}</p>
+  <p class="rv__meta">{% if r.reviewed_at %}{{ r.reviewed_at | ukdate('%B %Y') }} · {% endif %}{% if r.link and r.source != 'hapitech' %}<a href="{{ r.link }}" target="_blank" rel="noopener">via {{ r.source_label }}</a>{% else %}via {{ r.source_label }}{% endif %}{% if r.verified %} · Verified customer{% endif %}</p>
   {% if r.body %}<p class="rv__text">{{ r.body }}</p>{% endif %}
   {% set photos = r.photos | fromjson %}{% if photos %}<div class="review__photos">{% for pid in photos %}{% set m = media_by_id(pid) %}{% if m %}<img src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="{{ m.alt or '' }}" loading="lazy">{% endif %}{% endfor %}</div>{% endif %}
   {% if r.reply %}<div class="review__reply"><strong>Reply from {{ a.name }}</strong>{{ r.reply.body }}</div>{% endif %}

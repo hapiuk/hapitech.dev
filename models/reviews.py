@@ -38,6 +38,13 @@ class Review(TimestampMixin, db.Model):
         return REVIEW_SOURCES.get(self.source, self.source.title())
 
     @property
+    def link(self):
+        """Where "via …" goes. Google reviews open the client's Google reviews page, never the write-a-review form."""
+        if self.source == "google" and self.account and self.account.google_reviews_url:
+            return self.account.google_reviews_url
+        return self.source_url
+
+    @property
     def reply(self):
         return self.replies[-1] if self.replies else None
 

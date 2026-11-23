@@ -56,7 +56,7 @@ def reviews(slug):
             photo_ids = []
         out.append({
             "id": r.id, "name": r.author_name, "rating": r.rating, "text": r.body,
-            "source": r.source, "source_label": r.source_label, "source_url": r.source_url,
+            "source": r.source, "source_label": r.source_label, "source_url": r.link,
             "verified": r.verified, "service": r.service, "town": r.town,
             "date": r.reviewed_at.date().isoformat() if r.reviewed_at else None,
             "photos": _media_urls(photo_ids, a.id),
@@ -65,7 +65,7 @@ def reviews(slug):
     avg = round(sum(x["rating"] for x in out) / len(out), 2) if out else None
     return _ok({"business": a.name, "count": len(out), "average": avg, "reviews": out,
                 "review_page": public_url(url_for("reviews_public.business", slug=a.slug)),
-                "google_review_url": a.google_profile_url})
+                "google_review_url": a.google_profile_url, "google_reviews_url": a.google_reviews_url})
 
 
 @site_api_bp.route("/sites/<slug>/posts")

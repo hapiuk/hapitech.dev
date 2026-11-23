@@ -58,7 +58,7 @@ def review_new():
             return render_template("admin/review_form.html", clients=clients, f=f, sources=REVIEW_SOURCES)
         when = f.get("reviewed_at")
         r = Review(account_id=a.id, source=f.get("source") if f.get("source") in REVIEW_SOURCES else "manual",
-                   source_url=(f.get("source_url") or "").strip() or a.google_profile_url,
+                   source_url=(f.get("source_url") or "").strip() or (a.google_profile_url if f.get("source") == "google" else None),
                    author_name=f["author_name"].strip()[:120], rating=rating, body=(f.get("body") or "").strip(),
                    service=(f.get("service") or "").strip() or None, town=(f.get("town") or "").strip() or None,
                    reviewed_at=dt.datetime.fromisoformat(when) if when else None,

@@ -1,0 +1,16 @@
+{% extends "app/base.html" %}
+{% block title %}Add a review{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ url_for('portal.reviews') }}">Reviews</a> / Add</p>
+<div class="page-top"><div><h1>Add a review</h1><p>Got a review on Google, Facebook or Checkatrade? Copy it in here, word for word, so it shows on your website too.</p></div></div>
+<form method="post" class="card form-grid" style="max-width:640px">
+  <label class="field"><span>Where is it from? <span class="tip-i" tabindex="0" title="{{ note }}" aria-label="{{ note }}">ⓘ</span></span>
+    <select name="source">{% for k, v in sources.items() %}<option value="{{ k }}" {{ 'selected' if f.get('source') == k }}>{{ v }}</option>{% endfor %}</select></label>
+  <label class="field"><span>Stars</span><select name="rating">{% for n in [5,4,3,2,1] %}<option {{ 'selected' if (f.get('rating')|string) == (n|string) }}>{{ n }}</option>{% endfor %}</select></label>
+  <p class="small muted full soon"><span class="badge badge--warn">Coming soon</span> Google reviews coming in by themselves. We're waiting on access from Google.</p>
+  <label class="field full"><span>Their name, as shown on the review</span><input name="author_name" value="{{ f.get('author_name','') }}" maxlength="120" required></label>
+  <label class="field full"><span>What they wrote</span><textarea name="body" rows="5" maxlength="3000">{{ f.get('body','') }}</textarea></label>
+  <label class="field"><span>Date <small>optional</small></span><input type="date" name="reviewed_at" value="{{ f.get('reviewed_at','') }}"></label>
+  <div class="form-actions full"><button class="btn">Add review</button></div>
+</form>
+{% endblock %}

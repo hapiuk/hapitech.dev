@@ -92,7 +92,7 @@ def clients():
 
 
 ACCOUNT_FIELDS = ("name", "domain", "trade", "town", "contact_name", "contact_email", "contact_phone",
-                  "google_profile_url", "logo_path", "brand_colour", "notes", "status")
+                  "google_profile_url", "google_reviews_url", "logo_path", "brand_colour", "notes", "status")
 
 
 def _fill_account(a: Account, form):

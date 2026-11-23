@@ -110,12 +110,14 @@ CLIENT_DETAILS = {
         town="West Midlands", contact_name="Roland", contact_phone="+447554585833",
         contact_email="enquiries@rolandshandyman.co.uk",
         google_profile_url="https://g.page/r/CexidGdXUTMsEAE/review",
+        google_reviews_url='https://www.google.com/search?client=ms-android-samsung-ss&hs=lZg9&sca_esv=7dc7437ea5d14899&sxsrf=AE3TifPAqD-KGXIlkKVwOwrEl1yObK617w:1766335794672&si=AMgyJEtREmoPL4P1I5IDCfuA8gybfVI2d5Uj7QMwYCZHKDZ-E1Rp3wUeVnrw7EH22mZBBxDpQe7Nr5fLoyVL5ZXESipRugQcPmdhiyxsp4UR9STLFTHGrZ3aAFrI7GK_XnBEZaZg6HfVqOV7B0502kQ9KxvMJxd0lGgg1ARKI2p0y8ns-D7Ry8A%3D&q=Rolands-handyman+/+Flatpack+Assembly+Reviews&sa=X&ved=2ahUKEwj6ueHMkc-RAxXXT0EAHRKMGv0Q0bkNegQIIRAD&biw=1387&bih=1323&dpr=1&sei=PSVIacXhJI_OhbIPysHz-A8',
         logo_path="media/clients/rolandshandyman.png", brand_colour="#f97316"),
     "rayghandymanservice.co.uk": dict(
         name="Ray G Handyman Services", slug="ray-g-handyman", trade="Home improvement & renovation",
         town="Wolverhampton", contact_name="Ray", contact_phone="+447379195256",
         contact_email="enquiries@rayghandymanservice.co.uk",
         google_profile_url="https://g.page/r/CeR53HEINwUDEAE/review",
+        google_reviews_url='https://www.google.com/search?q=RayG+Handyman+Services+Wolverhampton+Reviews',
         logo_path="media/clients/rayg.png", brand_colour="#dc2626"),
 }
 

@@ -744,3 +744,28 @@ def test_publish_post_shows_share_card_and_home_tips(app):
     home = o.get("/portal/").get_data(as_text=True)
     assert "Edit my website" in home and "tip__text" in home and "Latest reviews" not in home
     assert "Visitors" in o.get("/portal/visitors").get_data(as_text=True)
+
+
+def test_owner_adds_review_and_google_link_opens_reviews_page(app):
+    from models import db
+    from models.core import Account
+    from models.reviews import Review
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        a.google_profile_url, a.google_reviews_url = "https://g.page/r/X/review", "https://www.google.com/search?q=Rolands+Reviews"
+        db.session.commit()
+    o = app.test_client()
+    _login(o, "roland@test")
+    page = o.get("/portal/reviews/add").get_data(as_text=True)
+    assert "Waiting on Google API access" in page and 'value="google"' in page
+    r = _form(o, "/portal/reviews/add", {"source": "google", "rating": "5", "author_name": "Jo Bloggs",
+                                         "body": "Brilliant job"}, page="/portal/reviews/add")
+    assert r.status_code == 302
+    with app.app_context():
+        rv = Review.query.filter_by(author_name="Jo Bloggs").first()
+        assert rv.source == "google" and rv.status == "published"
+        assert rv.link == "https://www.google.com/search?q=Rolands+Reviews"     # not the write-a-review form
+    assert "https://www.google.com/search?q=Rolands+Reviews" in o.get("/portal/reviews").get_data(as_text=True)
+    data = app.test_client().get("/api/v1/sites/rolands/reviews", headers=_site_key(app, "rolands")).json
+    jo = next(x for x in data["reviews"] if x["name"] == "Jo Bloggs")
+    assert jo["source_url"] == "https://www.google.com/search?q=Rolands+Reviews"
