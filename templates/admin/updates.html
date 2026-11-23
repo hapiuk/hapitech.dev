@@ -83,5 +83,5 @@
     {% endfor %}
   </div>
 </section>
-{% else %}{{ empty('Nothing written yet', 'Add a ## section to the file.') }}{% endfor %}
+{% else %}{% if show != 'update' %}{{ empty('Nothing written yet', 'Add a ## section to the file.') }}{% endif %}{% endfor %}
 {% endblock %}

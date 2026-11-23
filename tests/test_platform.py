@@ -666,7 +666,7 @@ def test_client_update_notes(app):
     from models.core import Account
     from utils import updates
     with app.test_request_context("/"):
-        secs = updates.sections()
+        secs = updates.sections("docs/drafts/whats-new-after-invite.md")
         assert secs and secs[0]["title"]
         roland = Account.query.filter_by(slug="rolands").first()
         ray = Account.query.filter_by(slug="rayg").first()
@@ -680,10 +680,7 @@ def test_client_update_notes(app):
     a = app.test_client()
     _login(a, "admin@test")
     page = a.get("/admin/updates?show=update").get_data(as_text=True)
-    assert "Send a test to me" in page
-    r = _form(a, "/admin/updates", {"kind": "update", "section": "0", "client": "rolands", "action": "test"},
-              page="/admin/updates")
-    assert r.status_code == 302 and any("improvements to your website" in m for m in _outbox(app))
+    assert "Write a message" in page and "A few improvements" not in page          # draft kept off the tab
 
 
 def test_dashboard_invite_friends_plan(app):
@@ -705,7 +702,7 @@ def test_dashboard_invite_friends_plan(app):
         assert "[[" not in text and "{" not in text
     ad = app.test_client()
     _login(ad, "admin@test")
-    page = ad.get("/admin/updates").get_data(as_text=True)
+    page = ad.get("/admin/updates?show=invite").get_data(as_text=True)
     assert "Dashboard invite" in page and "srcdoc=" in page
     n = len(_outbox(app))
     _form(ad, "/admin/updates", {"kind": "invite", "section": "0", "client": "rolands", "action": "test"}, page="/admin/updates")
