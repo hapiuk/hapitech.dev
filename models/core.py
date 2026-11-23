@@ -202,21 +202,26 @@ class AddOn(TimestampMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=False, index=True)
     kind = db.Column(db.String(30), nullable=False, default="reviews_updates")
-    status = db.Column(db.String(20), nullable=False, default="trial")       # trial | active | paused
-    trial_ends_at = db.Column(db.Date)
+    status = db.Column(db.String(20), nullable=False, default="trial")       # trial | friends | active | paused
+    trial_ends_at = db.Column(db.Date)                                         # trial / friends plan end date
     account = db.relationship("Account", back_populates="addons")
 
     @property
     def is_enabled(self):
         if self.status == "active":
             return True
-        if self.status == "trial":
+        if self.status in ("trial", "friends"):
             return self.trial_ends_at is None or self.trial_ends_at >= dt.date.today()
         return False
 
     @property
+    def plan(self):
+        from utils.plans import describe
+        return describe(self)
+
+    @property
     def trial_days_left(self):
-        if self.status != "trial" or not self.trial_ends_at:
+        if self.status not in ("trial", "friends") or not self.trial_ends_at:
             return None
         return max(0, (self.trial_ends_at - dt.date.today()).days)
 

@@ -2,22 +2,93 @@
 {% from "app/_macros.html" import empty with context %}
 {% block title %}My website{% endblock %}
 {% block content %}
-<div class="page-top"><div><h1>My website</h1><p>Change your prices, services, photos and details. Changes show on your site within 10 minutes.</p></div>
-  <a class="btn btn--ghost btn--sm" href="{{ url_for('portal.help') }}">Need something bigger?</a></div>
-<a class="card row row--between" href="{{ url_for('portal.hero') }}" style="margin-bottom:16px"><span><strong>Top-of-page photo</strong><br><span class="small muted">Random, most-liked, or the ones you choose</span></span><span class="btn btn--ghost btn--sm">Change</span></a>
-{% if groups %}
-  {% for group, blocks in groups.items() %}
-  <section class="card">
-    <div class="card__head"><h2>{{ group }}</h2></div>
-    <ul class="list">{% for b in blocks %}
-      <li id="b{{ b.id }}"><span><strong>{{ b.label }}</strong><br><span class="small muted">
-        {% set d = b.data %}{% if b.type in ('text','longtext','price') %}{{ d[:110] }}{% if d|length > 110 %}…{% endif %}{% elif b.type == 'list' %}{{ d|join(' · ') }}{% elif b.type == 'images' %}{{ d|length }} photo{{ '' if d|length == 1 else 's' }}{% elif b.type == 'hours' %}{{ d|map('join', ' ')|join(' · ') }}{% endif %}
-        {% if not b.is_default %} <span class="badge badge--acc">Edited</span>{% endif %}</span></span>
-        <a class="btn btn--ghost btn--sm" href="{{ url_for('portal.block_edit', bid=b.id) }}">Edit</a></li>
-    {% endfor %}</ul>
-  </section>
-  {% endfor %}
-{% else %}
+<div class="page-top">
+  <div><h1>My website</h1><p>Tap anything to change it. Changes show on your site within 10 minutes.</p></div>
+  {% if g.account.domain %}<a class="btn btn--ghost btn--sm" href="https://{{ g.account.domain }}" target="_blank" rel="noopener">View my website ↗</a>{% endif %}
+</div>
+
+{% if not photos and not groups %}
   {{ empty('Not set up yet', 'HapiTech is connecting your website. Editable sections will appear here soon.') }}
+{% else %}
+<div class="site-stats small muted">
+  <span>✏️ {{ edited }} of {{ total }} sections changed by you</span>
+  {% if last %}<span>Last change {{ last | ago }}</span>{% endif %}
+</div>
+
+{# ---------- jump tiles ---------- #}
+<nav class="jump" aria-label="Sections">
+  <a class="jump__tile" href="{{ url_for('portal.hero') }}"><span class="jump__icon">🖼️</span><span><strong>Top-of-page photo</strong><small>{{ {'all':'Random from all','liked':'Most-liked','chosen':'Your picks'}.get(hero_mode, 'Random') }}</small></span></a>
+  {% if photos %}<a class="jump__tile" href="#photos"><span class="jump__icon">📸</span><span><strong>Photos</strong><small>{{ photos | sum(attribute='count') }} on your site</small></span></a>{% endif %}
+  {% for group, items in groups.items() %}<a class="jump__tile" href="#g-{{ group | lower | replace(' ', '-') }}"><span class="jump__icon">{{ '🛠️' if group == 'Services' else '📝' }}</span><span><strong>{{ group }}</strong><small>{{ items | length }} to edit</small></span></a>{% endfor %}
+  <a class="jump__tile" href="{{ url_for('portal.help') }}"><span class="jump__icon">💬</span><span><strong>Something bigger?</strong><small>Ask Aaron</small></span></a>
+</nav>
+
+<label class="site-find"><span class="sr-only">Find something to change</span><input type="search" placeholder="🔎  Find something to change…" data-site-find></label>
+
+{# ---------- photos ---------- #}
+{% if photos %}
+<section class="site-section" id="photos">
+  <h2 class="site-section__title">Photos</h2>
+  <div class="grid grid--2">
+  {% for p in photos %}
+    <a class="card photo-card edit-item" id="b{{ p.b.id }}" href="{{ url_for('portal.block_edit', bid=p.b.id) }}" data-find="{{ p.b.label }} photos gallery">
+      <div class="photo-card__strip">
+        {% for src in p.thumbs %}<img src="{{ src }}" alt="" loading="lazy">{% endfor %}
+        {% if p.count > p.thumbs|length %}<span class="photo-card__more">+{{ p.count - p.thumbs|length }}</span>{% endif %}
+      </div>
+      <div class="row row--between" style="margin-top:10px">
+        <span><strong>{{ p.b.label }}</strong><br><span class="small muted">{{ p.count }} photo{{ '' if p.count == 1 else 's' }}{% if not p.b.is_default %} · <span class="badge badge--acc">Edited</span>{% endif %}</span></span>
+        <span class="btn btn--ghost btn--sm">Add or remove</span>
+      </div>
+    </a>
+  {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ---------- text: one card per item, looks like the website, edits in place ---------- #}
+{% for group, items in groups.items() %}
+<section class="site-section" id="g-{{ group | lower | replace(' ', '-') }}">
+  <h2 class="site-section__title">{{ group }}</h2>
+  <div class="grid grid--2">
+  {% for key, bl in items.items() %}
+    {% set inline = bl | rejectattr('type', 'in', ['text','longtext','price','list']) | list | length == 0 %}
+    <article class="card site-card edit-item {{ 'is-saved' if request.args.get('saved') == (bl[0].id|string) }}" id="b{{ bl[0].id }}"
+             data-find="{% for b in bl %}{{ b.label }} {{ b.data if b.data is string else '' }} {% endfor %}">
+      <div class="site-card__view">
+        {% for b in bl %}{% set d = b.data %}
+          {% if b.type == 'text' and loop.first and bl|length > 1 %}<h3 class="site-card__title">{{ d }}</h3>
+          {% elif b.type in ('text','longtext','price') %}<p class="site-card__text">{{ d }}</p>
+          {% elif b.type == 'list' %}<p class="site-card__chips">{% for x in d %}<span>{{ x }}</span>{% endfor %}</p>
+          {% elif b.type == 'hours' %}<p class="site-card__text">{{ d | map('join', ': ') | join(' · ') }}</p>{% endif %}
+        {% endfor %}
+        <div class="site-card__foot">
+          <span class="small muted">{% if bl | rejectattr('is_default') | list %}<span class="badge badge--acc">Edited</span>{% else %}Original wording{% endif %}</span>
+          {% if inline %}<button type="button" class="btn btn--ghost btn--sm" data-site-edit>Edit</button>
+          {% else %}<a class="btn btn--ghost btn--sm" href="{{ url_for('portal.block_edit', bid=bl[0].id) }}">Edit</a>{% endif %}
+        </div>
+      </div>
+      {% if inline %}
+      <form method="post" action="{{ url_for('portal.website_save') }}" class="stack site-card__form" hidden>
+        {% for b in bl %}{% set d = b.data %}
+          <label class="field"><span>{{ b.label.split(': ')[-1] | capitalize }}</span>
+          {% if b.type == 'longtext' %}<textarea name="b{{ b.id }}" rows="4" {% if b.max_length %}maxlength="{{ b.max_length }}" data-count{% endif %}>{{ d }}</textarea>
+          {% elif b.type == 'list' %}<textarea name="b{{ b.id }}" rows="4" placeholder="One per line">{{ d | join('\n') }}</textarea>
+          {% else %}<input name="b{{ b.id }}" value="{{ d }}" {% if b.max_length %}maxlength="{{ b.max_length }}"{% endif %}>{% endif %}
+          {% if b.max_length %}<small class="muted" data-counter-for="b{{ b.id }}"></small>{% endif %}</label>
+        {% endfor %}
+        <div class="row">
+          <button class="btn btn--sm">Save</button>
+          <button type="button" class="btn btn--ghost btn--sm" data-site-cancel>Cancel</button>
+          <a class="small muted" style="margin-left:auto" href="{{ url_for('portal.block_edit', bid=bl[-1].id) }}">Undo or go back to the original</a>
+        </div>
+      </form>
+      {% endif %}
+    </article>
+  {% endfor %}
+  </div>
+</section>
+{% endfor %}
+<p class="small muted site-find__none" hidden>Nothing matches. Try another word, or <a href="{{ url_for('portal.help') }}">ask Aaron</a>.</p>
 {% endif %}
 {% endblock %}

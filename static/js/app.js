@@ -166,3 +166,37 @@
     });
   });
 })();
+
+/* My website: edit cards in place, live character counts, find-as-you-type */
+(function () {
+  document.querySelectorAll(".site-card").forEach(function (card) {
+    var view = card.querySelector(".site-card__view"), form = card.querySelector(".site-card__form");
+    if (!form) return;
+    var open = function (on) {
+      form.hidden = !on; view.hidden = on; card.classList.toggle("is-editing", on);
+      if (on) form.querySelectorAll("textarea").forEach(function (t) { t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, 420) + "px"; });
+      if (on) { var f = form.querySelector("input,textarea"); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } }
+    };
+    card.querySelector("[data-site-edit]").addEventListener("click", function () { open(true); });
+    form.querySelector("[data-site-cancel]").addEventListener("click", function () { form.reset(); open(false); });
+    form.querySelectorAll("[data-counter-for]").forEach(function (c) {
+      var f = form.querySelector('[name="' + c.getAttribute("data-counter-for") + '"]');
+      var upd = function () { var left = f.maxLength - f.value.length; c.textContent = left + " characters left"; c.style.color = left < 20 ? "var(--warn,#f59e0b)" : ""; };
+      f.addEventListener("input", upd); upd();
+    });
+    form.querySelectorAll("textarea").forEach(function (t) {
+      var fit = function () { t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, 420) + "px"; };
+      t.addEventListener("input", fit); setTimeout(fit, 0);
+    });
+  });
+  var find = document.querySelector("[data-site-find]");
+  if (find) find.addEventListener("input", function () {
+    var q = find.value.trim().toLowerCase(), any = false;
+    document.querySelectorAll(".edit-item").forEach(function (el) {
+      var hit = !q || (el.getAttribute("data-find") || "").toLowerCase().indexOf(q) > -1;
+      el.hidden = !hit; any = any || hit;
+    });
+    document.querySelectorAll(".site-section").forEach(function (s) { s.hidden = !s.querySelector(".edit-item:not([hidden])"); });
+    var none = document.querySelector(".site-find__none"); if (none) none.hidden = any;
+  });
+})();

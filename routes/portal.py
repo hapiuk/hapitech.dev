@@ -327,12 +327,51 @@ def website():
     if not current_user.is_owner:
         flash("Only the business owner can change the website.", "err")
         return redirect(url_for("portal.home"))
+    from utils.photos import _block_keys, hero_mode, photo_src
     blocks = (scoped(ContentBlock).filter(ContentBlock.type != "setting")
               .order_by(ContentBlock.group, ContentBlock.sort, ContentBlock.id).all())
-    groups = {}
+    photos, groups = [], {}
     for b in blocks:
-        groups.setdefault(b.group, []).append(b)
-    return render_template("portal/website.html", groups=groups)
+        if b.type == "images":
+            keys = _block_keys(g.account, b)
+            photos.append({"b": b, "count": len(keys), "thumbs": [photo_src(g.account, k) for k in keys[:5]]})
+            continue
+        # one card per item: "services.kitchens.title" + "services.kitchens.text" edit together
+        item = b.key.rsplit(".", 1)[0] if b.key.count(".") >= 2 else b.key
+        groups.setdefault(b.group, {}).setdefault(item, []).append(b)
+    edited = sum(1 for b in blocks if not b.is_default)
+    last = max((b.updated_at for b in blocks if not b.is_default), default=None)
+    return render_template("portal/website.html", photos=photos, groups=groups, edited=edited, total=len(blocks),
+                           last=last, hero_mode=hero_mode(g.account))
+
+
+@portal_bp.route("/website/save", methods=["POST"])
+@owner_required
+@addon_required
+def website_save():
+    """Save one card (e.g. a service's name + description) edited in place on the My website page."""
+    from utils.content_blocks import BlockError, parse_block_form
+    changed, anchor = 0, ""
+    for field, raw in request.form.items():
+        if not field.startswith("b") or not field[1:].isdigit():
+            continue
+        b = scoped(ContentBlock, id=int(field[1:])).first_or_404()
+        if b.type not in ("text", "longtext", "price", "list"):
+            continue
+        anchor = anchor or f"#b{b.id}"
+        try:
+            new_value = parse_block_form(b, {"value": raw}, None, g.account, current_user)
+        except BlockError as e:
+            db.session.rollback()
+            flash(f"{b.label}: {e}", "err")
+            return redirect(url_for("portal.website") + anchor)
+        if new_value != b.value:
+            db.session.add(ContentBlockVersion(block_id=b.id, value=b.value, saved_by=current_user.id))
+            b.value, b.updated_by = new_value, current_user.id
+            changed += 1
+    db.session.commit()
+    flash("Saved. Your website updates within 10 minutes." if changed else "No changes to save.", "ok")
+    return redirect(url_for("portal.website", saved=anchor[2:] or None) + anchor)
 
 
 @portal_bp.route("/website/<int:bid>", methods=["GET", "POST"])

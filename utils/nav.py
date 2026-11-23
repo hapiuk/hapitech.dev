@@ -39,7 +39,7 @@ def admin_nav(counts=None):
         _item("Clients' jobs", "admin.work", "briefcase", prefix="/admin/work"),
         _item("Reviews", "admin.reviews", "star", prefix="/admin/reviews", badge=c.get("reported")),
         _item("Change requests", "admin.change_requests", "inbox", prefix="/admin/requests", badge=c.get("requests")),
-        _item("Updates for clients", "admin.updates", "send", prefix="/admin/updates"),
+        _item("Emails to clients", "admin.updates", "send", prefix="/admin/updates"),
         {"section": "HapiTech Lab"},
         _item("Benchmark runs", "admin.bench_runs", "play", prefix="/admin/lab/runs"),
         _item("Prompts", "admin.bench_prompts", "doc", prefix="/admin/lab/prompts"),

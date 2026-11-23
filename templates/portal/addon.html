@@ -3,15 +3,18 @@
 {% block content %}
 <section class="hello">
   <h1>Get more reviews, the easy way</h1>
-  <p>Finish a job, tap one button, and your customer gets a text from your own phone asking for a review, a bit like Uber asks for a rating. Reviews appear on your website automatically.</p>
+  <p>Ask for reviews with a QR code or an email, keep track of jobs, quotes and invoices, post your latest work and update your website yourself.</p>
 </section>
 <div class="grid grid--3">
-  <div class="card"><h3>📱 Ask at the door</h3><p class="small muted" style="margin-top:6px">Text, WhatsApp, email or a QR code, sent from your own number, so customers know it's you.</p></div>
+  <div class="card"><h3>📱 Ask at the door</h3><p class="small muted" style="margin-top:6px">Show a QR code at the door or email a link. Customers tap the stars and they're done.</p></div>
   <div class="card"><h3>⭐ Reviews on your site</h3><p class="small muted" style="margin-top:6px">New reviews show on your website within minutes. Reply to them from here.</p></div>
   <div class="card"><h3>📸 Post your work</h3><p class="small muted" style="margin-top:6px">Add photos of finished jobs and update your prices and services yourself.</p></div>
 </div>
 <section class="card card--accent" style="margin-top:16px">
-  {% if addon and addon.status == 'trial' %}
+  {% if addon and addon.status == 'friends' %}
+    <h2>Your Friends plan has ended</h2>
+    <p class="muted" style="margin-top:6px">Thanks for being one of our first customers. Your website and reviews are all still there. To keep using your dashboard it's £{{ addon.plan.price }} a month, which covers storage, backups, updates and support. Ask Aaron to switch it on.</p>
+  {% elif addon and addon.status == 'trial' %}
     <h2>Your free trial has ended</h2>
     <p class="muted" style="margin-top:6px">Your reviews are still on your website. To keep asking for new ones and posting updates, ask Aaron to switch Reviews &amp; Updates on.</p>
   {% else %}

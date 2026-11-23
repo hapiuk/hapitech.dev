@@ -151,7 +151,8 @@ def client(slug):
         traffic = summary(a)
     return render_template("admin/client.html", a=a, tab=tab, reviews=reviews, stats=stats,
                            job_types=JOB_TYPES, job_statuses=JOB_STATUSES, today=dt.date.today(), new_key=new_key,
-                           t=traffic)
+                           t=traffic, friends_end=__import__("utils.plans", fromlist=["x"]).friends_end_default(),
+                           price=__import__("utils.plans", fromlist=["x"]).MONTHLY_PRICE)
 
 
 @admin_bp.route("/clients/<slug>/notes", methods=["POST"])
@@ -311,12 +312,19 @@ def addon_set(slug):
     if status == "trial":
         days = max(1, min(90, int(request.form.get("days") or 30)))
         ad.status, ad.trial_ends_at = "trial", dt.date.today() + dt.timedelta(days=days)
+    elif status == "friends":
+        from utils.plans import friends_end_default
+        try:
+            ad.trial_ends_at = dt.date.fromisoformat(request.form.get("until") or "")
+        except ValueError:
+            ad.trial_ends_at = friends_end_default()
+        ad.status = "friends"
     elif status in ("active", "paused"):
         ad.status = status
     if ad.id is None:
         db.session.add(ad)
     db.session.commit()
-    flash(f"Reviews & Updates: {ad.status}{' until ' + ad.trial_ends_at.strftime('%-d %b') if ad.status == 'trial' else ''}.", "ok")
+    flash(f"Dashboard plan: {ad.plan['name']}. {ad.plan['line']}", "ok")
     return redirect(url_for("admin.client", slug=slug))
 
 
@@ -380,33 +388,53 @@ def change_request_set(rid):
 
 @admin_bp.route("/updates", methods=["GET", "POST"])
 def updates():
+    """Emails to clients: the dashboard invite (docs/client-invite.md) and what's-new notes (docs/client-updates.md)."""
     from utils import updates as upd
-    secs = upd.sections()
+    from utils.plans import friends_end_default
+    invites, notes = upd.sections(upd.INVITE_FILE), upd.sections(upd.FILE)
     clients = Account.query.filter(Account.kind == "client", Account.status != "archived").order_by(Account.name).all()
     if request.method == "POST":
+        kind = request.form.get("kind")
+        secs, label = (invites, "Invite emailed") if kind == "invite" else (notes, "Update emailed")
         try:
             sec = secs[int(request.form.get("section", -1))]
         except (ValueError, IndexError):
             abort(400)
         a = Account.query.filter_by(slug=request.form.get("client")).first_or_404()
         test = request.form.get("action") == "test"
-        if not test and not a.contact_email:
-            flash(f"{a.name} has no contact email.", "err")
-            return redirect(url_for("admin.updates"))
+        to = current_user.email if test else upd.owner_email(a)
+        if not to:
+            flash(f"{a.name} has no owner login or contact email.", "err")
+            return redirect(url_for("admin.updates", show=kind))
+        if kind == "invite" and not test:
+            # switch on their login and the Friends plan (unless they're already on it)
+            owner = User.query.filter_by(account_id=a.id, role="owner").order_by(User.id).first()
+            if owner is None:
+                owner = User(email=to, username=to, name=a.contact_name, role="owner", account_id=a.id)
+                db.session.add(owner)
+            owner.is_active_flag = True
+            ad = a.addon() or AddOn(account_id=a.id, kind="reviews_updates")
+            if ad.status != "friends":
+                ad.status, ad.trial_ends_at = "friends", friends_end_default()
+            if ad.id is None:
+                db.session.add(ad)
+            db.session.commit()
         try:
-            upd.send(a, sec, to=current_user.email if test else None)
+            upd.send(a, sec, to=to)
         except Exception as exc:
             flash(f"Email failed: {exc}", "err")
-            return redirect(url_for("admin.updates"))
+            return redirect(url_for("admin.updates", show=kind))
         if test:
-            flash(f"Test copy of {a.name}'s version sent to {current_user.email}.", "ok")
+            flash(f"Test copy of {a.name}'s email sent to {current_user.email}.", "ok")
         else:
-            db.session.add(Note(account_id=a.id, author_id=current_user.id, body=f"Update emailed: {sec['title']}"))
+            db.session.add(Note(account_id=a.id, author_id=current_user.id, body=f"{label}: {sec['title']}"))
             db.session.commit()
-            flash(f"Sent to {a.name} ({a.contact_email}).", "ok")
-        return redirect(url_for("admin.updates"))
+            flash(f"Sent to {a.name} ({to})." + (" Their login and Friends plan are switched on." if kind == "invite" else ""), "ok")
+        return redirect(url_for("admin.updates", show=kind))
+    show = request.args.get("show", "invite")
     sent = {}
-    for n in Note.query.filter(Note.body.like("Update emailed: %")).all():
-        sent.setdefault((n.account_id, n.body[len("Update emailed: "):]), n.created_at)
-    previews = [[(a, upd.render(a, s)[1]) for a in clients] for s in secs]
-    return render_template("admin/updates.html", secs=secs, clients=clients, previews=previews, sent=sent)
+    for n in Note.query.filter(db.or_(Note.body.like("Update emailed: %"), Note.body.like("Invite emailed: %"))).all():
+        sent.setdefault((n.account_id, n.body.split(": ", 1)[1]), n.created_at)
+    secs = invites if show == "invite" else notes
+    previews = [[(a, upd.page(a, s)[1], upd.owner_email(a)) for a in clients] for s in secs]
+    return render_template("admin/updates.html", secs=secs, clients=clients, previews=previews, sent=sent, show=show)

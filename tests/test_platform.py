@@ -679,10 +679,49 @@ def test_client_update_notes(app):
         assert "(Roland)" not in h_roland and "<ul" in h_roland and "<strong>" in h_roland
     a = app.test_client()
     _login(a, "admin@test")
-    page = a.get("/admin/updates").get_data(as_text=True)
+    page = a.get("/admin/updates?show=update").get_data(as_text=True)
     assert "Send a test to me" in page
-    r = _form(a, "/admin/updates", {"section": "0", "client": "rolands", "action": "test"}, page="/admin/updates")
-    assert r.status_code == 302 and any("Your new dashboard" in m for m in _outbox(app))
+    r = _form(a, "/admin/updates", {"kind": "update", "section": "0", "client": "rolands", "action": "test"},
+              page="/admin/updates")
+    assert r.status_code == 302 and any("improvements to your website" in m for m in _outbox(app))
+
+
+def test_dashboard_invite_friends_plan(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account, User
+    from utils import updates
+    from utils.plans import FRIENDS_DEFAULT_END
+    with app.test_request_context("/"):
+        a = Account.query.filter_by(slug="rolands").first()
+        owner = User.query.filter_by(account_id=a.id, role="owner").first()
+        owner.is_active_flag = False
+        db.session.commit()
+        sec = updates.sections(updates.INVITE_FILE)[0]
+        text, html = updates.page(a, sec)
+        end = max(FRIENDS_DEFAULT_END, dt.date.today())
+        assert f"free until {end:%-d %B %Y}" in text and "£25 a month" in text
+        assert "Your Friends plan" in html and "Open your dashboard" in html and owner.email in html
+        assert "[[" not in text and "{" not in text
+    ad = app.test_client()
+    _login(ad, "admin@test")
+    page = ad.get("/admin/updates").get_data(as_text=True)
+    assert "Dashboard invite" in page and "srcdoc=" in page
+    n = len(_outbox(app))
+    _form(ad, "/admin/updates", {"kind": "invite", "section": "0", "client": "rolands", "action": "test"}, page="/admin/updates")
+    with app.app_context():                                     # a test changes nothing
+        assert not User.query.filter_by(account_id=a.id, role="owner").first().is_active_flag
+    _form(ad, "/admin/updates", {"kind": "invite", "section": "0", "client": "rolands", "action": "send"}, page="/admin/updates")
+    outbox = _outbox(app)
+    assert len(outbox) == n + 2 and "Your new HapiTech dashboard is ready" in outbox[-1]
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        assert User.query.filter_by(account_id=a.id, role="owner").first().is_active_flag
+        assert a.addon().status == "friends" and a.addon().is_enabled and a.addon().trial_ends_at == end
+        assert "Friends plan" in a.addon().plan["name"]
+    assert "Sent" in ad.get("/admin/updates").get_data(as_text=True)
+    o = app.test_client(); _login(o, owner_email := "roland@test")
+    assert "Your plan: Friends plan" in o.get("/portal/settings").get_data(as_text=True)
 
 
 def test_open_form_reviews_wait_unless_customer(app, monkeypatch):
@@ -823,3 +862,29 @@ def test_review_age_and_admin_sets_date(app):
         assert db.session.get(Review, rid).reviewed_at.date().isoformat() == when
     o = app.test_client(); _login(o, "roland@test")
     assert "2 weeks ago" in o.get("/portal/reviews").get_data(as_text=True)
+
+
+def test_website_editor_cards_save_in_place(app):
+    import json as _json
+    from models import db
+    from models.core import Account
+    from models.content import ContentBlock
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        t = ContentBlock(account_id=a.id, key="services.wall.title", type="text", label="Wall: heading", group="Services",
+                         value=_json.dumps("Wall Mounting"), default_value=_json.dumps("Wall Mounting"), max_length=60)
+        d = ContentBlock(account_id=a.id, key="services.wall.intro", type="longtext", label="Wall: intro", group="Services",
+                         value=_json.dumps("TVs and shelves."), default_value=_json.dumps("TVs and shelves."), max_length=400)
+        db.session.add_all([t, d]); db.session.commit(); tid, did = t.id, d.id
+    o = app.test_client(); _login(o, "roland@test")
+    page = o.get("/portal/website").get_data(as_text=True)
+    assert "data-site-edit" in page and page.count(f'name="b{tid}"') == 1 and f'name="b{did}"' in page   # one card, both fields
+    r = _form(o, "/portal/website/save", {f"b{tid}": "Wall Mounting & Shelves", f"b{did}": "TVs and shelves."}, page="/portal/website")
+    assert r.status_code == 302 and r.headers["Location"].endswith(f"#b{tid}")
+    with app.app_context():
+        assert db.session.get(ContentBlock, tid).data == "Wall Mounting & Shelves"
+        assert db.session.get(ContentBlock, did).is_default                    # unchanged field untouched
+        assert len(db.session.get(ContentBlock, tid).versions) == 1          # undo still works
+    _form(o, "/portal/website/save", {f"b{tid}": "x" * 61}, page="/portal/website")
+    with app.app_context():
+        assert db.session.get(ContentBlock, tid).data == "Wall Mounting & Shelves"   # too long: rejected

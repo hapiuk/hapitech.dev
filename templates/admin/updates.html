@@ -1,31 +1,42 @@
 {% extends "app/base.html" %}
 {% from "app/_macros.html" import empty, howto with context %}
-{% block title %}Updates for clients{% endblock %}
+{% block title %}Emails to clients{% endblock %}
 {% block content %}
-<div class="page-top"><div><h1>Updates for clients</h1><p>Plain-English notes about what's new, from <span class="mono">docs/client-updates.md</span>.</p></div></div>
-{% call howto('How do I add an update?') %}
-  <p>Edit <span class="mono">docs/client-updates.md</span>: each <b>## heading</b> is one email, newest at the top. <b>{name}</b> becomes the client's first name, and lines starting <b>- (Roland)</b> or <b>- (Ray)</b> only go to that person. Deploy, then send from here. Send yourself a test first.</p>
+<div class="page-top"><div><h1>Emails to clients</h1><p>Preview exactly what each client will get, send yourself a test, then send.</p></div></div>
+<nav class="subnav">
+  <a href="{{ url_for('admin.updates', show='invite') }}" {% if show == 'invite' %}aria-current="page"{% endif %}>Dashboard invite</a>
+  <a href="{{ url_for('admin.updates', show='update') }}" {% if show != 'invite' %}aria-current="page"{% endif %}>What's new</a>
+</nav>
+{% if show == 'invite' %}
+{% call howto('What happens when I send the invite?') %}
+  <p>Their owner login is switched on and they're put on the <b>Friends plan</b> (everything free until the date on their client page, then £25 a month), unless they're already on it. The wording lives in <span class="mono">docs/client-invite.md</span>.</p>
 {% endcall %}
+{% else %}
+{% call howto('How do I add an update?') %}
+  <p>Edit <span class="mono">docs/client-updates.md</span>: each <b>## heading</b> is one email, newest at the top. <b>{name}</b> becomes the client's first name, and lines starting <b>- (Roland)</b> or <b>- (Ray)</b> only go to that person. Deploy, then send from here.</p>
+{% endcall %}
+{% endif %}
 {% for s in secs %}{% set si = loop.index0 %}
 <section class="card">
-  <div class="card__head"><h2>{{ s.title }}</h2>{% if loop.first %}<span class="badge badge--acc">Latest</span>{% endif %}</div>
+  <div class="card__head"><h2>{{ s.title }}</h2>{% if loop.first and show != 'invite' %}<span class="badge badge--acc">Latest</span>{% endif %}</div>
   <div class="grid grid--2">
-    {% for a, block in previews[si] %}
-    <div>
+    {% for a, html, to in previews[si] %}
+    <div class="mail-prev">
       <div class="row row--between" style="margin-bottom:8px">
-        <strong>{{ a.name }}</strong>
+        <span><strong>{{ a.name }}</strong><br><span class="small muted">To: {{ to or 'no email!' }}</span></span>
         {% set when = sent.get((a.id, s.title)) %}
         {% if when %}<span class="badge badge--ok">Sent {{ when | ukdate }}</span>{% else %}<span class="badge">Not sent</span>{% endif %}
       </div>
-      <div class="update-preview">{{ block | safe }}</div>
+      <iframe class="mail-prev__frame" title="Preview for {{ a.name }}" srcdoc="{{ html }}" loading="lazy" sandbox></iframe>
       <form method="post" class="row" style="margin-top:10px">
-        <input type="hidden" name="section" value="{{ si }}"><input type="hidden" name="client" value="{{ a.slug }}">
+        <input type="hidden" name="kind" value="{{ show }}"><input type="hidden" name="section" value="{{ si }}"><input type="hidden" name="client" value="{{ a.slug }}">
         <button class="btn btn--ghost btn--sm" name="action" value="test">Send a test to me</button>
-        <button class="btn btn--sm" name="action" value="send" data-confirm="Email this update to {{ a.name }} ({{ a.contact_email }})?">{{ 'Send again' if when else 'Send to ' ~ (a.contact_name or a.name) }}</button>
+        <button class="btn btn--sm" name="action" value="send" {% if not to %}disabled{% endif %}
+          data-confirm="{{ ('Send the dashboard invite to ' ~ a.name ~ ' (' ~ to ~ ')? This switches on their login and Friends plan.') if show == 'invite' else ('Email this update to ' ~ a.name ~ ' (' ~ to ~ ')?') }}">{{ 'Send again' if when else ('Send invite' if show == 'invite' else 'Send update') }}</button>
       </form>
     </div>
     {% endfor %}
   </div>
 </section>
-{% else %}{{ empty('No updates written yet', 'Add a ## section to docs/client-updates.md.') }}{% endfor %}
+{% else %}{{ empty('Nothing written yet', 'Add a ## section to the file.') }}{% endfor %}
 {% endblock %}

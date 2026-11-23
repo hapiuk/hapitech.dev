@@ -45,13 +45,17 @@
   <div>
     {% set ad = a.addon() %}
     <section class="card {% if ad and ad.is_enabled %}card--accent{% endif %}">
-      <div class="card__head"><h3>Reviews &amp; Updates add-on</h3>{% if ad %}{{ status_badge(ad.status) }}{% endif %}</div>
-      <p class="small muted">Their dashboard: review requests, review inbox, posts and website edits.</p>
-      {% if ad and ad.status == 'trial' %}<p class="small" style="margin-top:8px">Trial {{ 'ends' if ad.is_enabled else 'ended' }} {{ ad.trial_ends_at | ukdate }}{% if ad.trial_days_left %} ({{ ad.trial_days_left }} days left){% endif %}.</p>{% endif %}
+      <div class="card__head"><h3>Dashboard plan</h3>{% if ad %}<span class="badge {{ 'badge--ok' if ad.is_enabled else 'badge--warn' }}">{{ ad.plan.name }}</span>{% endif %}</div>
+      <p class="small muted">Their dashboard: reviews, jobs, posts, website edits, visitors. All features on every plan.</p>
+      {% if ad %}<p class="small" style="margin-top:8px">{{ ad.plan.line }}{% if ad.status in ('trial','friends') %} {{ '' if ad.is_enabled else '(ended)' }}{% if ad.trial_days_left %} · {{ ad.trial_days_left }} days left{% endif %}{% endif %}</p>{% endif %}
       <form method="post" action="{{ url_for('admin.addon_set', slug=a.slug) }}" class="row" style="margin-top:14px">
+        <input type="date" name="until" class="input-sm" value="{{ (ad.trial_ends_at if ad and ad.status == 'friends' else friends_end) }}" aria-label="Friends plan free until">
+        <button class="btn btn--sm" name="status" value="friends">{{ 'Update' if ad and ad.status == 'friends' else 'Start' }} Friends plan</button>
+      </form>
+      <form method="post" action="{{ url_for('admin.addon_set', slug=a.slug) }}" class="row" style="margin-top:8px">
         <input type="hidden" name="days" value="30">
-        <button class="btn btn--ghost btn--sm" name="status" value="trial">{{ 'Restart' if ad else 'Start' }} 30-day trial</button>
-        <button class="btn btn--sm" name="status" value="active">Turn on (paid)</button>
+        <button class="btn btn--ghost btn--sm" name="status" value="trial">{{ 'Restart' if ad and ad.status == 'trial' else 'Start' }} 30-day trial</button>
+        <button class="btn btn--ghost btn--sm" name="status" value="active">Paid (£{{ price }}/mo)</button>
         {% if ad %}<button class="btn btn--ghost btn--sm" name="status" value="paused">Pause</button>{% endif %}
       </form>
     </section>
