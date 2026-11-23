@@ -11,19 +11,23 @@ from . import admin_bp
 def settings():
     if request.method == "POST":
         action = request.form.get("action")
-        if action == "donate":
+        if action == "support":
             from models import db
             from models.core import SystemState
-            from utils.plan_value import DONATE_KEY
-            url = (request.form.get("donate_url") or "").strip()[:300]
-            if url and not url.startswith("https://"):
-                flash("The link needs to start with https://", "err")
+            pp = (request.form.get("support_paypal") or "").strip()[:300]
+            rv = (request.form.get("support_revolut") or "").strip()[:300]
+            if pp and not ("@" in pp or pp.startswith("https://")):
+                flash("PayPal: use your PayPal email address, or a link starting with https://", "err")
                 return redirect(url_for("admin.settings"))
-            row = db.session.get(SystemState, DONATE_KEY) or SystemState(key=DONATE_KEY)
-            row.value = url
-            db.session.add(row)
+            if rv and not rv.startswith("https://"):
+                flash("Revolut: the link needs to start with https://", "err")
+                return redirect(url_for("admin.settings"))
+            for key, val in (("support_paypal", pp), ("support_revolut", rv)):
+                row = db.session.get(SystemState, key) or SystemState(key=key)
+                row.value = val
+                db.session.add(row)
             db.session.commit()
-            flash("Support link saved." if url else "Support button hidden.", "ok")
+            flash("Support options saved." if (pp or rv) else "Support button hidden.", "ok")
             return redirect(url_for("admin.settings"))
         if action == "test-email":
             try:
@@ -44,4 +48,5 @@ def settings():
     return render_template("admin/settings.html", feeds=FEEDS, news=news, per_source=per_source,
                            updated=humanise_age(news.get("fetched_at")),
                            mail_mode=current_app.config.get("MAIL_MODE"),
-                           donate_url=__import__("utils.plan_value", fromlist=["x"]).donate_url() or "")
+                           support_paypal=__import__("utils.plan_value", fromlist=["x"])._setting("support_paypal"),
+                           support_revolut=__import__("utils.plan_value", fromlist=["x"])._setting("support_revolut"))

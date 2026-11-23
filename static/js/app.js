@@ -291,21 +291,35 @@ document.querySelectorAll("[data-check-all]").forEach(function (all) {
   document.querySelector("[data-txn-clear]").addEventListener("click", function () { month.value = ""; search.value = ""; apply(); });
 })();
 
-/* Support card: amount chips; PayPal.me links take the amount on the end */
+/* Support HapiTech: small button -> box with payment options -> thank-you (and Aaron is told) */
 (function () {
-  var pay = document.querySelector("[data-donate-base]");
-  if (!pay) return;
-  var base = pay.getAttribute("data-donate-base"), show = pay.querySelector("[data-donate-amount]");
-  function set(n) {
-    show.textContent = n || "…";
-    if (base) pay.href = n && /paypal\.me\//i.test(base) ? base.replace(/\/$/, "") + "/" + n + "GBP" : base;
+  var dlg = document.getElementById("supportDialog"), open = document.querySelector("[data-support-open]");
+  if (!dlg || !open) return;
+  var amount = "5", pick = dlg.querySelector("[data-support-pick]"), thanks = dlg.querySelector("[data-support-thanks]");
+  function links() {
+    dlg.querySelectorAll("[data-support-way]").forEach(function (a) {
+      var p = a.getAttribute("data-amount-param");
+      a.href = a.getAttribute("data-base") + (p && amount ? p.replace("{n}", amount) : "");
+    });
   }
-  document.querySelectorAll("[data-amount]").forEach(function (c) {
+  open.addEventListener("click", function () {
+    pick.hidden = false; thanks.hidden = true;
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+  });
+  dlg.querySelectorAll("[data-support-close]").forEach(function (b) { b.addEventListener("click", function () { dlg.close(); }); });
+  dlg.querySelectorAll("[data-amount]").forEach(function (c) {
     c.addEventListener("click", function () {
-      document.querySelectorAll("[data-amount]").forEach(function (x) { x.classList.toggle("is-on", x === c); });
-      set(c.getAttribute("data-amount"));
+      dlg.querySelectorAll("[data-amount]").forEach(function (x) { x.classList.toggle("is-on", x === c); });
+      amount = c.getAttribute("data-amount"); links();
     });
   });
-  pay.addEventListener("click", function (e) { if (pay.getAttribute("aria-disabled") === "true") { e.preventDefault(); } });
-  set("5");
+  dlg.querySelectorAll("[data-support-way]").forEach(function (a) {
+    a.addEventListener("click", function () {
+      var token = (document.querySelector('meta[name="csrf-token"]') || {}).content;
+      fetch("/portal/support", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-Token": token },
+        body: JSON.stringify({ method: a.getAttribute("data-support-way"), amount: amount }) }).catch(function () {});
+      setTimeout(function () { pick.hidden = true; thanks.hidden = false; }, 300);   // the payment page opens in a new tab
+    });
+  });
+  links();
 })();

@@ -8,11 +8,12 @@
     <p class="small muted">There are no passwords. Everyone (you included) logs in with a 6-digit code emailed to them. No password is stored anywhere.</p>
   </section>
   <section class="card">
-    <div class="card__head"><h2>☕ "Support HapiTech" button</h2><span class="badge {{ 'badge--ok' if donate_url else '' }}">{{ 'On' if donate_url else 'Hidden' }}</span></div>
-    <p class="small muted">Shown on the My plan page for clients on the Friends plan only. Paste a PayPal.me, Revolut.me or similar link (https://…). Leave it blank to hide the button.</p>
-    <form method="post" class="row" style="margin-top:12px"><input type="hidden" name="action" value="donate">
-      <input class="input-sm" style="flex:1;min-width:220px" name="donate_url" value="{{ donate_url }}" placeholder="https://paypal.me/hapitech">
-      <button class="btn btn--sm">Save</button></form>
+    <div class="card__head"><h2>☕ "Support HapiTech" button</h2><span class="badge {{ 'badge--ok' if support_paypal or support_revolut }}">{{ 'On' if support_paypal or support_revolut else 'Hidden' }}</span></div>
+    <p class="small muted">A small button on My plan, Friends-plan clients only. It opens a box with these options. When someone picks one, it's noted on their account and you get an email. Leave both blank to hide it.</p>
+    <form method="post" class="stack" style="margin-top:12px"><input type="hidden" name="action" value="support">
+      <label class="field"><span>PayPal <small>your PayPal email, or a PayPal.me link</small></span><input name="support_paypal" value="{{ support_paypal }}" placeholder="aaron@hapitech.dev"></label>
+      <label class="field"><span>Revolut <small>a checkout / payment link</small></span><input name="support_revolut" value="{{ support_revolut }}" placeholder="https://checkout.revolut.com/pay/…"></label>
+      <div><button class="btn btn--sm">Save</button></div></form>
   </section>
   <div>
     <section class="card">

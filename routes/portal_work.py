@@ -419,15 +419,46 @@ def finances_old():
 def plan():
     from decimal import Decimal
 
-    from utils.plan_value import donate_url, summary
+    from utils.plan_value import summary, support_options
     a = g.account
     ad = a.addon()
-    url = donate_url()
     friends = bool(ad and ad.status == "friends")
-    # the support card: real for Friends-plan clients once a link is set; a layout preview for admins until then
-    donate = {"url": url, "preview": False} if friends and url else (
-        {"url": None, "preview": True} if current_user.is_admin and friends else None)
-    return render_template("portal/plan.html", owed=Decimal(a.balance_gbp or 0), addon=ad, v=summary(a), donate=donate)
+    support = support_options() if friends else []      # a small "Support HapiTech" button, Friends plan only
+    return render_template("portal/plan.html", owed=Decimal(a.balance_gbp or 0), addon=ad, v=summary(a), support=support)
+
+
+@portal_bp.route("/support", methods=["POST"])
+@owner_required
+def support_pick():
+    """A client chose a way to support HapiTech: note it on their account and tell Aaron.
+    (We can't see whether the payment went through, only what they picked.)"""
+    from flask import jsonify
+
+    from models.core import Note
+    d = request.get_json(silent=True) or {}
+    method = {"paypal": "PayPal", "revolut": "Revolut"}.get(d.get("method"), "")
+    if not method:
+        return jsonify({"ok": False}), 400
+    try:
+        amount = f"£{int(d['amount'])}" if str(d.get("amount") or "").isdigit() else "an amount of their choice"
+    except (KeyError, ValueError):
+        amount = "an amount of their choice"
+    who = current_user.name or current_user.email
+    if not current_user.is_admin:
+        db.session.add(Note(account_id=g.account.id, author_id=current_user.id,
+                            body=f"Support HapiTech: chose {method} ({amount})"))
+        db.session.commit()
+        try:
+            from utils import email_html
+            email_html.send("aaron@hapitech.dev", f"{g.account.name} chose to support HapiTech ☕",
+                            heading="Someone wants to support HapiTech ☕",
+                            lines=[f"{who} ({g.account.name}) tapped Support HapiTech on their My plan page.",
+                                   f"They chose {method}, {amount}. Check {method} to see if it came through, and say thanks!"],
+                            box=[("Business", g.account.name), ("Chose", f"{method} · {amount}"), ("Their email", current_user.email)],
+                            reply_to=current_user.email)
+        except Exception as exc:
+            print(f"[SUPPORT_NOTIFY] {exc}")
+    return jsonify({"ok": True})
 
 
 @portal_bp.route("/plan/<ref>")

@@ -496,3 +496,13 @@ html.lv-pending body{visibility:hidden}
 .support__pp{font-style:italic;font-weight:800;color:#003087}
 .support__pp b{color:#009cde}
 .support__foot{margin-top:8px}
+.support-row{display:flex;justify-content:center;margin-top:12px}
+.support-dlg h2{font-size:1.1rem;margin-bottom:4px}
+.support__ways{display:grid;gap:8px}
+.support__way{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 16px;border-radius:14px;border:1px solid var(--line);background:var(--bg);color:var(--ink);text-decoration:none;transition:border-color .15s}
+.support__way:hover{border-color:var(--acc)}
+.support__way small{color:var(--muted)}
+.support__way--paypal strong{font-style:italic;color:#009cde}
+.support__way--revolut strong{color:var(--ink)}
+.support__thanks{text-align:center;padding:10px 0}
+.support__big{font-size:2.6rem;line-height:1;margin-bottom:6px}

@@ -1119,17 +1119,26 @@ def test_my_plan_value_running_costs_and_support_button(app):
     rc = o.get(f"/portal/plan/{ref}").get_data(as_text=True)
     assert "Download PDF" in rc and ref in rc and "Friends plan" in rc
     assert o.get("/portal/plan/HT-999-20200101").status_code == 404
-    assert "Support HapiTech" not in page                                          # no link set yet (clients)
+    assert "data-support-open" not in page                                          # no options set yet
     assert "£40" not in page                                                        # HapiTech's own cost stays private
     adm = app.test_client(); _login(adm, "admin@test")
-    adm.get("/admin/clients/rolands/portal")
-    assert "Layout preview" in adm.get("/portal/plan").get_data(as_text=True)                   # admin sees a preview
-    _form(adm, "/admin/settings", {"action": "donate", "donate_url": "https://paypal.me/hapitech"}, page="/admin/settings")
-    assert "Support HapiTech" in o.get("/portal/plan").get_data(as_text=True)
+    _form(adm, "/admin/settings", {"action": "support", "support_paypal": "aaron@hapitech.dev",
+                                   "support_revolut": "https://checkout.revolut.com/pay/test"}, page="/admin/settings")
+    page = o.get("/portal/plan").get_data(as_text=True)
+    assert "data-support-open" in page and "paypal.com/donate/?business=aaron%40hapitech.dev" in page
+    assert "checkout.revolut.com/pay/test" in page and page.index("Saved on this plan") < page.index("data-support-open")
+    n = len(_outbox(app))
+    r = o.post("/portal/support", json={"method": "revolut", "amount": "10"}, headers={"X-CSRF-Token": _csrf(o, "/portal/plan")})
+    assert r.json["ok"]
+    from models.core import Note
+    with app.app_context():
+        assert Note.query.filter_by(body="Support HapiTech: chose Revolut (£10)").count() == 1
+    mail = _outbox(app)[n:]
+    assert len(mail) == 1 and "aaron@hapitech.dev" in mail[0] and "Revolut" in mail[0]
     with app.app_context():
         Account.query.filter_by(slug="rolands").first().addon().status = "active"
         db.session.commit()
-    assert "Support HapiTech" not in o.get("/portal/plan").get_data(as_text=True)  # Friends plan only
+    assert "data-support-open" not in o.get("/portal/plan").get_data(as_text=True)  # Friends plan only
     money = adm.get("/admin/clients/rolands?tab=money").get_data(as_text=True)
     assert "Running costs" in money and "costs you £40.00" in money
     _form(adm, "/admin/clients/rolands/costs", {"title": "Domain renewal", "kind": "domain", "value_gbp": "12",

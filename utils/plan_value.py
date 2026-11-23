@@ -7,7 +7,8 @@
 # Everything on one date is one transaction (one receipt). The next 31 days show as "upcoming".
 import datetime as dt
 
-DONATE_KEY = "donate_url"
+DONATE_KEY = "donate_url"          # (old single link, no longer used)
+SUPPORT_KEYS = ("support_paypal", "support_revolut")
 UPCOMING_DAYS = 31
 
 
@@ -97,8 +98,35 @@ def find(account, ref):
     return next((t for t in transactions(account) if t["ref"] == ref), None)
 
 
-def donate_url():
+def _setting(key):
     from models import db
     from models.core import SystemState
-    row = db.session.get(SystemState, DONATE_KEY)
-    return (row.value or "").strip() if row and (row.value or "").strip().startswith("https://") else None
+    row = db.session.get(SystemState, key)
+    return (row.value or "").strip() if row else ""
+
+
+def support_options():
+    """Ways to support HapiTech, from Admin → Settings. PayPal: an email address (or a PayPal.me / PayPal link);
+    Revolut: a checkout link. Returns [] when none are set."""
+    from urllib.parse import quote
+    out = []
+    pp = _setting("support_paypal")
+    if pp:
+        if "@" in pp and not pp.startswith("http"):
+            base = ("https://www.paypal.com/donate/?business=" + quote(pp) +
+                    "&no_recurring=1&currency_code=GBP&item_name=" + quote("Support HapiTech"))
+            out.append({"key": "paypal", "label": "PayPal", "sub": "Card or PayPal", "url": base, "amount_param": "&amount={n}"})
+        elif pp.startswith("https://"):
+            me = "paypal.me/" in pp.lower()
+            out.append({"key": "paypal", "label": "PayPal", "sub": "Card or PayPal", "url": pp.rstrip("/"),
+                        "amount_param": "/{n}GBP" if me else ""})
+    rv = _setting("support_revolut")
+    if rv.startswith("https://"):
+        out.append({"key": "revolut", "label": "Revolut", "sub": "Card, Apple Pay or Google Pay", "url": rv, "amount_param": ""})
+    return out
+
+
+def donate_url():
+    """Kept for older callers: the first support link, or None."""
+    opts = support_options()
+    return opts[0]["url"] if opts else None

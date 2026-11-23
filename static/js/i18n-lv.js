@@ -191,6 +191,10 @@
     "Support HapiTech": "Atbalstīt HapiTech", "Other": "Cita summa", "Amount": "Summa",
     "🔒 Card or PayPal accepted, handled securely by PayPal.": "🔒 Pieņem karti vai PayPal, droši apstrādā PayPal.",
     "Hosting, maintenance, security, email and more": "Mitināšana, uzturēšana, drošība, e-pasts un vairāk",
+    "☕ Support HapiTech": "☕ Atbalstīt HapiTech", "Not now": "Ne tagad", "Thank you!": "Paldies!", "Close": "Aizvērt",
+    "Card or PayPal": "Karte vai PayPal", "Card, Apple Pay or Google Pay": "Karte, Apple Pay vai Google Pay",
+    "Totally optional, and your plan stays the same either way. If you'd like to chip in towards the running costs, thank you!": "Pilnīgi brīvprātīgi, un jūsu plāns jebkurā gadījumā paliek tāds pats. Ja vēlaties piedalīties uzturēšanas izmaksās, paldies!",
+    "That really helps keep everything running. Aaron's been told, so expect a thank-you from him too.": "Tas tiešām palīdz visu uzturēt. Ārons ir informēts, tāpēc gaidiet paldies arī no viņa.",
     /* fragments around bold words (help, calendar) */
     "iPhone:": "iPhone:", "tap": "pieskarieties", ", then Settings → Calendar → Accounts → Add Account → Other →": ", tad Iestatījumi → Kalendārs → Konti → Pievienot kontu → Cits →",
     "Add Subscribed Calendar": "Pievienot abonētu kalendāru", ", and paste.": ", un ielīmējiet.", "Android / Google Calendar:": "Android / Google kalendārs:",

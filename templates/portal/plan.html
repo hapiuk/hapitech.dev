@@ -61,24 +61,7 @@
 </section>
 {% endif %}
 
-{% if donate %}
-<section class="card support" style="margin-top:12px">
-  {% if donate.preview %}<p class="support__preview">👀 Layout preview: only you can see this until a PayPal link is added in Admin → Settings.</p>{% endif %}
-  <div class="support__head">
-    <span class="support__icon" aria-hidden="true">☕</span>
-    <div><h2>Support HapiTech</h2>
-      <p class="small muted">Totally optional, and your plan stays exactly the same either way. If you'd like to chip in towards the running costs, it's very much appreciated.</p></div>
-  </div>
-  <div class="support__amounts" role="group" aria-label="Amount">
-    {% for n in [3, 5, 10, 20] %}<button type="button" class="support__chip {{ 'is-on' if n == 5 }}" data-amount="{{ n }}">£{{ n }}</button>{% endfor %}
-    <button type="button" class="support__chip" data-amount="">Other</button>
-  </div>
-  <a class="support__pay" href="{{ donate.url or '#' }}" data-donate-base="{{ donate.url or '' }}" target="_blank" rel="noopener" {% if donate.preview %}aria-disabled="true"{% endif %}>
-    <span class="support__pp">Pay<b>Pal</b></span><span>Donate £<span data-donate-amount>5</span></span>
-  </a>
-  <p class="small muted support__foot">🔒 Card or PayPal accepted, handled securely by PayPal.</p>
-</section>
-{% endif %}
+
 
 {% if v.saved %}
 <section class="card card--accent value-hero" style="margin-top:12px">
@@ -86,6 +69,31 @@
   <p class="value-hero__total">{{ v.saved | gbp(true) }}</p>
   <p class="small muted">Hosting, maintenance, security, email and more{% if v.since %} since {{ v.since | ukdate('%B %Y') }}{% endif %}, covered by HapiTech.</p>
 </section>
+{% endif %}
+{% if support %}
+<div class="support-row"><button type="button" class="btn btn--ghost btn--sm" data-support-open>☕ Support HapiTech</button></div>
+<dialog class="report support-dlg" id="supportDialog" aria-labelledby="supportTitle">
+  <div data-support-pick>
+    <h2 id="supportTitle">☕ Support HapiTech</h2>
+    <p class="small muted">Totally optional, and your plan stays the same either way. If you'd like to chip in towards the running costs, thank you!</p>
+    <div class="support__amounts" role="group" aria-label="Amount">
+      {% for n in [3, 5, 10, 20] %}<button type="button" class="support__chip {{ 'is-on' if n == 5 }}" data-amount="{{ n }}">£{{ n }}</button>{% endfor %}
+      <button type="button" class="support__chip" data-amount="">Other</button>
+    </div>
+    <div class="support__ways">
+      {% for o in support %}<a class="support__way support__way--{{ o.key }}" href="{{ o.url }}" target="_blank" rel="noopener"
+         data-support-way="{{ o.key }}" data-base="{{ o.url }}" data-amount-param="{{ o.amount_param }}">
+        <strong>{{ o.label }}</strong><small>{{ o.sub }}</small></a>{% endfor %}
+    </div>
+    <div class="row" style="margin-top:12px"><button type="button" class="btn btn--ghost btn--sm" data-support-close>Not now</button></div>
+  </div>
+  <div data-support-thanks hidden class="support__thanks">
+    <p class="support__big" aria-hidden="true">😎</p>
+    <h2>Thank you!</h2>
+    <p class="small muted">That really helps keep everything running. Aaron's been told, so expect a thank-you from him too.</p>
+    <div class="row" style="justify-content:center;margin-top:12px"><button type="button" class="btn btn--sm" data-support-close>Close</button></div>
+  </div>
+</dialog>
 {% endif %}
 <p class="small muted" style="margin-top:14px">Questions about anything here? <a href="{{ url_for('portal.help') }}">Message Aaron</a>.</p>
 {% endblock %}
