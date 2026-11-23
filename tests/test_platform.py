@@ -1623,3 +1623,57 @@ def test_remove_review_request_kills_link(app):
     assert app.test_client().get(f"/r/{t2}").status_code == 404
     with app.app_context():
         assert db.session.get(ReviewRequest, id1) is None and db.session.get(ReviewRequest, id2) is None
+
+
+# ---------------------------------------------------------------- new-review emails, HapiTech on hapitech.report, photo viewer
+
+def _leave_via_link(app, slug, name, photo=True):
+    import datetime as dt
+    from models import db
+    from models.core import Account
+    from models.reviews import ReviewRequest
+    with app.app_context():
+        a = Account.query.filter_by(slug=slug).first()
+        rq = ReviewRequest(account_id=a.id, customer_name=name, created_at=dt.datetime.utcnow())
+        db.session.add(rq)
+        db.session.commit()
+        token = rq.token
+    cust = app.test_client()
+    tok = re.search(r'name="csrf-token" content="([^"]+)"', cust.get(f"/r/{token}").get_data(as_text=True)).group(1)
+    data = {"csrf_token": tok, "rating": "5", "name": name, "body": "Lovely job, thank you very much"}
+    if photo:
+        data["photos"] = (_png(), "pic.png")
+    r = cust.post(f"/r/{token}", data=data, content_type="multipart/form-data")
+    assert r.status_code == 200
+
+
+def test_new_review_emails_owner_and_admin(app):
+    from models import db
+    from models.core import Account
+    with app.app_context():
+        Account.query.filter_by(slug="rolands").first().contact_email = "roland@test"
+        db.session.commit()
+    _leave_via_link(app, "rolands", "Sarah")
+    mails = _outbox(app)
+    to_owner = [m for m in mails if "roland@test" in m and "New 5-star review from Sarah" in m]
+    to_admin = [m for m in mails if "aaron@hapitech.dev" in m and "New review for Roland's Handyman" in m]
+    assert to_owner and "Reply to it" in to_owner[0] and "1 photo" in to_owner[0]
+    assert to_admin and ("as=rolands" in to_admin[0] or "as=3Drolands" in to_admin[0])
+
+
+def test_hapitech_own_review_emails_admin_once_and_is_listed_on_report(app):
+    from utils.hapitech_account import ensure_own_sites
+    with app.app_context():
+        ensure_own_sites()
+    before = len(_outbox(app))
+    _leave_via_link(app, "hapitech", "Rolands")
+    new = _outbox(app)[before:]
+    assert len(new) == 1 and "aaron@hapitech.dev" in new[0]          # contact is Aaron: one email, not two
+    pub = app.test_client()
+    home = pub.get("/", base_url="https://hapitech.report").get_data(as_text=True)
+    assert 'href="/hapitech"' in home
+    assert "/hapitech-reviews" not in home                            # our other own sites stay off the list
+    page = pub.get("/hapitech", base_url="https://hapitech.report").get_data(as_text=True)
+    assert 'data-lightbox="r' in page and 'target="_blank" rel="noopener"><img' not in page
+    site = pub.get("/").get_data(as_text=True)                        # hapitech.dev home shows the photo too
+    assert 'class="rev__pics"' in site and "js/lightbox.js" in site

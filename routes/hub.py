@@ -59,9 +59,12 @@ def source_stats(a, rows):
 
 
 def _businesses():
-    """Client businesses with at least one public review, most reviewed first."""
+    """Client businesses (and HapiTech itself, reviewed by its clients) with at least one public review,
+    most reviewed first. HapiTech's other own sites (e.g. hapitech.report) are never listed."""
+    from utils.hapitech_account import SLUG as HAPITECH_SLUG
     out = []
-    for a in Account.query.filter(Account.kind == "client", Account.status == "active").all():
+    for a in Account.query.filter(db.or_(Account.kind == "client", Account.slug == HAPITECH_SLUG),
+                                  Account.status == "active").all():
         rows = (Review.query.filter(Review.account_id == a.id, Review.status.in_(["published", "reported"]))
                 .order_by(Review.reviewed_at.desc().nullslast(), Review.sort_hint).all())
         if not rows:

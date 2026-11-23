@@ -46,7 +46,7 @@
             {% if r.photo_count and r.link and not (r.photos | fromjson) %}<a href="{{ r.link }}" target="_blank" rel="noopener">📷 {{ r.photo_count }} photo{{ '' if r.photo_count == 1 else 's' }} on {{ r.source_label }}</a>{% endif %}
             {% if r.truncated and r.link %}<a href="{{ r.link }}" target="_blank" rel="noopener">Read it all on {{ r.source_label }} ↗</a>{% endif %}
           </div>{% endif %}
-          {% set pics = r.photos | fromjson %}{% if pics %}<div class="hb-pics">{% for pid in pics[:6] %}{% set m = media_by_id(pid) %}{% if m %}<a href="{{ url_for('reviews_public.media_file', path=m.file_path) }}" target="_blank" rel="noopener"><img src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="Photo from {{ r.author_name }}'s review" loading="lazy"></a>{% endif %}{% endfor %}</div>{% endif %}
+          {% set pics = r.photos | fromjson %}{% if pics %}<div class="hb-pics">{% for pid in pics[:6] %}{% set m = media_by_id(pid) %}{% if m %}<a href="{{ url_for('reviews_public.media_file', path=m.file_path) }}" data-lightbox="r{{ r.id }}"><img src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="Photo from {{ r.author_name }}'s review" loading="lazy"></a>{% endif %}{% endfor %}</div>{% endif %}
           {% if r.reply %}<div class="hb-reply"><b>↩ Reply from {{ a.name }}</b>{{ r.reply.body }}</div>{% endif %}
           <div class="hb-review__foot"><button class="hb-link" type="button" data-report="{{ hub_url('hub.report', rid=r.id) }}">Report</button></div>
         </article>

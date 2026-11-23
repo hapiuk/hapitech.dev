@@ -66,6 +66,7 @@ def leave(token):
         req.completed_at = dt.datetime.utcnow()
         db.session.add(review)
         db.session.commit()
+        _tell_new_review(a, review)
         return render_template("reviews/thanks.html", a=a, review=review, already=False)
     name = "" if req.customer_name == "your customer" else req.customer_name
     return render_template("reviews/leave.html", a=a, req=req, f={"name": name}, error=None)
@@ -123,6 +124,47 @@ def _tell_owner_pending(a, review):
         print(f"[REVIEW_PENDING_NOTIFY] {exc}")
 
 
+ADMIN_EMAIL = "aaron@hapitech.dev"
+
+
+def _tell_new_review(a, review):
+    """Email the business (unless it's waiting for their OK: that has its own email) and Aaron about a new review.
+    Sent after the review is saved, so a mail failure never loses a review."""
+    from utils import email_html
+    from utils.links import public_url
+    stars = "★" * review.rating + "☆" * (5 - review.rating)
+    photos = len(json.loads(review.photos or "[]"))
+    box = [("Rating", f"{stars} ({review.rating} out of 5)"), ("Review", (review.body or "(no words, just stars)")[:400])]
+    if photos:
+        box.append(("Photos", f"{photos} photo{'' if photos == 1 else 's'}"))
+    via = "through your review link" if review.request_id else "from your website"
+    live = review.status == "published"
+    owner = (a.contact_email or "").strip()
+    if live and owner and owner.lower() != ADMIN_EMAIL:
+        try:
+            email_html.send(owner, f"New {review.rating}-star review from {review.author_name}",
+                            heading=f"{review.author_name} left you a review",
+                            lines=[f"{review.author_name} left you a {review.rating}-star review {via}. "
+                                   "It's on your website and on hapitech.report now.",
+                                   "A short thank-you reply shows other customers you look after people."],
+                            box=box,
+                            button={"label": "Reply to it", "url": public_url(url_for("portal.reviews", show="unreplied"))})
+        except Exception as exc:
+            print(f"[REVIEW_NOTIFY_OWNER] {exc}")
+    try:
+        state = "Live now" if live else "Waiting for the owner's OK"
+        email_html.send(ADMIN_EMAIL, f"New review for {a.name}: {review.rating}★ from {review.author_name}",
+                        heading=f"New review for {a.name}",
+                        lines=[f"{review.author_name} left a {review.rating}-star review "
+                               f"{'through a review link' if review.request_id else 'from the website form'}."],
+                        box=[("Status", state)] + box,
+                        button={"label": "Open their reviews",
+                                "url": public_url(url_for("portal.reviews", **{"as": a.slug}))},
+                        after=[f"Public page: {public_url(url_for('reviews_public.business', slug=a.slug))}"])
+    except Exception as exc:
+        print(f"[REVIEW_NOTIFY_ADMIN] {exc}")
+
+
 @reviews_public_bp.route("/reviews/<slug>/write", methods=["GET", "POST"])
 def write(slug):
     """Open review form behind each client site's "Leave a review" button (no request link needed)."""
@@ -178,6 +220,7 @@ def write(slug):
         db.session.commit()
         if not verified:
             _tell_owner_pending(a, review)
+        _tell_new_review(a, review)
         return render_template("reviews/thanks.html", a=a, review=review, already=False)
     return render_template("reviews/leave.html", a=a, req=None, f={}, open_form=True,
                            t=signer.dumps(dt.datetime.utcnow().timestamp()), error=None)

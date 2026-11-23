@@ -44,7 +44,7 @@
   {% if photos %}
   <div class="review__photos">
     {% for pid in photos %}{% set m = media_by_id(pid) %}{% if m %}
-      <a href="{{ url_for('reviews_public.media_file', path=m.file_path) }}" target="_blank"><img src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="{{ m.alt or '' }}" loading="lazy"></a>
+      <a href="{{ url_for('reviews_public.media_file', path=m.file_path) }}" data-lightbox="r{{ r.id }}"><img src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="{{ m.alt or '' }}" loading="lazy"></a>
     {% endif %}{% endfor %}
   </div>
   {% endif %}

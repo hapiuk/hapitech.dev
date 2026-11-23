@@ -710,6 +710,8 @@ a.cred{cursor:pointer}
 .rev__stars span{color:var(--line)}
 .rev blockquote{margin:12px 0 14px;font-size:1rem;line-height:1.6}
 .rev figcaption{font-size:.9rem;color:var(--ink-3)}
+.rev__pics{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.rev__pics img{width:84px;height:84px;object-fit:cover;border-radius:12px;border:1px solid var(--line);display:block}
 .rev__ok{color:var(--acc);font-weight:600;margin-left:4px}
 @media (max-width:900px){.upd-grid,.rev-grid{grid-template-columns:1fr}}
 

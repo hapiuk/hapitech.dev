@@ -432,6 +432,7 @@
         <figure class="rev reveal">
           <div class="rev__stars" aria-label="{{ r.rating }} out of 5 stars">{{ '★' * r.rating }}<span>{{ '★' * (5 - r.rating) }}</span></div>
           {% if r.body %}<blockquote>{{ r.body }}</blockquote>{% endif %}
+          {% set pics = r.photos | fromjson %}{% if pics %}<div class="rev__pics">{% for pid in pics[:3] %}{% set m = media_by_id(pid) %}{% if m %}<a href="{{ url_for('reviews_public.media_file', path=m.file_path) }}" data-lightbox="r{{ r.id }}"><img src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="Photo from {{ r.author_name }}'s review" loading="lazy"></a>{% endif %}{% endfor %}</div>{% endif %}
           <figcaption><strong>{{ r.author_name }}</strong>{% if r.service %} · {{ r.service }}{% endif %}{% if r.verified %} <span class="rev__ok">✓ Client</span>{% endif %}</figcaption>
         </figure>
         {% endfor %}

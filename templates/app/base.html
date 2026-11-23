@@ -155,6 +155,7 @@
 
   {% if area == 'portal' and g.account.offers_lv %}<script src="{{ url_for('static', filename='js/i18n-lv.js') }}"></script>{% endif %}
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/lightbox.js') }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

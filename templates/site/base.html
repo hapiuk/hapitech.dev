@@ -93,5 +93,6 @@
 
   {% if not current_user.is_authenticated %}{% include "auth/_modal.html" %}{% endif %}
   <script src="{{ url_for('static', filename='js/site.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/lightbox.js') }}" defer></script>
 </body>
 </html>
