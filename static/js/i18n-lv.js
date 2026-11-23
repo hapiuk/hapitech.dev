@@ -211,6 +211,12 @@
     "Aaron builds it and shows you": "Ārons to izveido un parāda jums", "Go live": "Palaišana", "Then edit it all from here": "Tad visu rediģējiet šeit",
     "Pages, features, photos, ideas from other sites you like: add as many as you want. Offer an amount if you have a budget in mind, or leave it blank for a quote.": "Lapas, funkcijas, foto, idejas no citām vietnēm, kas jums patīk: pievienojiet, cik vēlaties. Piedāvājiet summu, ja jums ir budžets, vai atstājiet tukšu, lai saņemtu tāmi.",
     /* reply rate, shortcuts, platforms, extras */
+    "Search words, names or jobs…": "Meklēt tekstu, vārdus vai darbus…", "All places": "Visas vietas", "Any stars": "Jebkuras zvaigznes",
+    "Replied or not": "Atbildēts vai nē", "With a reply": "Ar atbildi", "No reply yet": "Vēl nav atbildes", "Newest first": "Jaunākās vispirms",
+    "Oldest first": "Vecākās vispirms", "Lowest rating": "Zemākais vērtējums", "Highest rating": "Augstākais vērtējums", "clear": "notīrīt",
+    "Something bigger?": "Kaut kas lielāks?", "Somewhere else?": "Kaut kur citur?", "Tell Aaron": "Pastāstīt Āronam", "Set one up": "Izveidot",
+    "Ask Aaron to add it": "Lūgt Āronam to pievienot", "Not now": "Ne tagad", "Add a shortcut": "Pievienot saīsni", "Cancel": "Atcelt",
+    "included": "iekļauts", "Top-of-page photo": "Lapas augšas foto", "Change": "Mainīt",
     "Reply rate": "Atbilžu īpatsvars", "Find more work:": "Atrast vairāk darba:", "Ask Aaron": "Jautāt Āronam",
     "✓ No reply needed": "✓ Atbilde nav vajadzīga", "↺ Needs a reply after all": "↺ Tomēr vajag atbildi",
     "🌍 Get reviewed in more places": "🌍 Saņemiet atsauksmes vairāk vietās", "we collect these": "mēs tās apkopojam",
@@ -250,6 +256,7 @@
     week: ["nedēļas", "nedēļām"], month: ["mēneša", "mēnešiem"], year: ["gada", "gadiem"] };
 
   var P = [
+    [/^Show (\d+) more \((\d+) left\)$/, "Rādīt vēl $1 ($2 atlikušas)"], [/^(\d+) reviews?$/, "$1 atsauksmes"],
     [/^(\d+)% this month · (\d+) waiting$/, "$1% šomēnes · $2 gaida"], [/^this year · (\d+)% this month · (\d+) waiting$/, "šogad · $1% šomēnes · $2 gaida"],
     [/^this year · (\d+) waiting$/, "šogad · $1 gaida"],
     [/^🛠 Request work(.*)$/, "🛠 Pieprasīt darbu$1"], [/^📷 (\d+) photos? on Google$/, "📷 $1 foto Google"],

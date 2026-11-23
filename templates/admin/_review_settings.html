@@ -1,0 +1,14 @@
+{# ⚙ settings for one review (admin): date, and remove only if faulty. Opened by data-open-dlg="rvSettings". #}
+<dialog class="report" id="rvSettings" aria-labelledby="rvsTitle">
+  <h2 id="rvsTitle">⚙ Review by <span data-fill="name"></span></h2>
+  <form method="post" data-fill-action="action" class="stack" style="gap:12px">
+    <input type="hidden" name="back" value="{{ request.full_path }}">
+    <label class="small">Date written <span class="muted">(copy from Google if needed: rough is fine)</span>
+      <span class="row"><input type="date" name="reviewed_at" data-fill-value="date" max="{{ today }}" class="input-sm"><button class="btn btn--ghost btn--sm" name="action" value="date">Save date</button></span></label>
+    <div data-show-if="live" class="rv-danger">
+      <p class="small muted">We keep every genuine review, good or bad. Only take one down if the entry is <b>broken, a duplicate or imported wrongly</b>, or it's fake or abusive.</p>
+      <button class="linkish small" style="color:var(--bad,#ef4444)" name="action" value="remove" data-confirm="Take this review off public view? It's kept on record and can be shown again.">Remove from public view</button>
+    </div>
+    <div class="row"><button type="button" class="btn btn--ghost btn--sm" data-close-dlg>Close</button></div>
+  </form>
+</dialog>

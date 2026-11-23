@@ -21,12 +21,15 @@ def reviews():
     if acct:
         a = Account.query.filter_by(slug=acct).first()
         q = q.filter_by(account_id=a.id if a else -1)
-    rows = q.order_by(Review.reviewed_at.desc().nullslast(), Review.sort_hint).limit(300).all()
+    from utils import review_search
+    q, active = review_search.apply(q, request.args)
+    total = q.count()
+    rows = q.limit(300).all()
     counts = dict(db.session.query(Review.status, db.func.count()).group_by(Review.status).all())
     clients = Account.query.filter_by(kind="client").order_by(Account.name).all()
     return render_template("admin/reviews.html", rows=rows, status=status, counts=counts, clients=clients,
                            client=acct, sources=REVIEW_SOURCES, today=dt.date.today(),
-                           undated=sum(1 for r in rows if not r.reviewed_at))
+                           undated=sum(1 for r in rows if not r.reviewed_at), total=total, active=active)
 
 
 @admin_bp.route("/reviews/<int:rid>", methods=["POST"])

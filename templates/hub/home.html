@@ -9,7 +9,7 @@
       <h1>Every review.<br><span class="hb-grad">Every platform.</span><br>One honest home.</h1>
       <p class="lede">HapiTech Reviews brings a local business's reviews together from Google, Facebook and its own customers, so you see the full picture in one place. Good or bad, nothing genuine is ever hidden.</p>
       <div class="hb-row"><a class="hb-btn" href="#businesses">Find a business</a><a class="hb-btn hb-btn--ghost" href="#how">How it works</a></div>
-      {% if biz | length > 0 %}<label class="hb-search"><span class="sr-only" hidden>Search</span><input type="search" placeholder="Search by business, trade or town…" data-biz-search aria-label="Search businesses"></label>{% endif %}
+      {% if biz %}<button type="button" class="hb-search" data-search-open aria-haspopup="dialog"><span>Search by business, trade or town…</span><kbd>/</kbd></button>{% endif %}
       {% if total %}<div class="hb-counters">
         <div class="hb-counter"><b data-count="{{ total }}">0</b><span>reviews</span></div>
         <div class="hb-counter"><b data-count="{{ '%.1f' % avg }}" data-dec="1">0</b><span>average ★</span></div>
@@ -80,7 +80,6 @@
       </a>
       {% endfor %}
     </div>
-    <p class="hb-muted" data-biz-none hidden>No businesses match that yet.</p>
   </div>
 </section>
 
@@ -112,4 +111,12 @@
     <aside class="hb-ad"><div><small>Advertisement</small>A small, tasteful spot for a local business.</div><a href="mailto:aaron@hapitech.dev?subject=Advertising%20on%20HapiTech%20Reviews">Ask about this space →</a></aside>
   </div>
 </section>
+<dialog class="hb-dialog hb-sdlg" id="searchDialog" aria-label="Search">
+  <label class="hb-sdlg__q"><span aria-hidden="true">⌕</span><input type="search" placeholder="Business, trade or town…" data-search-input autocomplete="off"><button type="button" class="hb-link" data-search-close>Close</button></label>
+  <div class="hb-sdlg__chips">{% for t in picks %}<button type="button" class="hb-chip" data-search-pick="{{ t }}">{{ t }}</button>{% endfor %}</div>
+  <ul class="hb-sdlg__list" data-search-list>
+    {% for b in biz %}<li data-biz="{{ b.a.name }} {{ b.a.trade or '' }} {{ b.a.town or '' }}"><a href="{{ hub_url('hub.business', slug=b.a.slug) }}"><img src="/app/{{ b.a.slug }}/icon-192.png" alt=""><span><b>{{ b.a.name }}</b><small>{{ b.a.trade or '' }}{% if b.a.town %} · {{ b.a.town }}{% endif %}</small></span><span class="hb-sdlg__score">{{ '%.1f' % b.avg }}★<small>{{ b.count }}</small></span></a></li>{% endfor %}
+  </ul>
+  <p class="hb-muted hb-sdlg__none" data-search-none hidden>No businesses match that yet. <a href="https://hapitech.dev/#contact">Suggest one →</a></p>
+</dialog>
 {% endblock %}

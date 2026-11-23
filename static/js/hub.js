@@ -77,9 +77,28 @@
     });
     card.addEventListener("mouseleave", function () { card.style.transform = ""; });
   });
-  var none = document.querySelector("[data-biz-none]"), search = document.querySelector("[data-biz-search]");
-  if (search && none) search.addEventListener("input", function () {
-    setTimeout(function () { none.hidden = !!document.querySelector("[data-biz]:not([hidden])"); }, 0);
-    if (search.value && location.hash !== "#businesses") document.getElementById("businesses").scrollIntoView({ behavior: "smooth" });
+})();
+
+/* Search: a pop-up box you can type in straight away (also opens with "/" or Ctrl+K); the page itself doesn't move */
+(function () {
+  var dlg = document.getElementById("searchDialog"); if (!dlg) return;
+  var input = dlg.querySelector("[data-search-input]"), items = dlg.querySelectorAll("[data-search-list] li"), none = dlg.querySelector("[data-search-none]");
+  function filter() {
+    var q = input.value.trim().toLowerCase(), any = false;
+    items.forEach(function (li) { var hit = !q || li.getAttribute("data-biz").toLowerCase().indexOf(q) >= 0; li.hidden = !hit; any = any || hit; });
+    none.hidden = any;
+  }
+  function open() { input.value = ""; filter(); dlg.showModal(); input.focus(); }
+  document.querySelectorAll("[data-search-open]").forEach(function (b) { b.addEventListener("click", open); });
+  document.addEventListener("keydown", function (e) {
+    var typing = /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || "");
+    if (!dlg.open && ((e.key === "/" && !typing) || (e.key === "k" && (e.ctrlKey || e.metaKey)))) { e.preventDefault(); open(); }
   });
+  input.addEventListener("input", filter);
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { var first = dlg.querySelector("[data-search-list] li:not([hidden]) a"); if (first) location.href = first.href; }
+  });
+  dlg.querySelector("[data-search-close]").addEventListener("click", function () { dlg.close(); });
+  dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+  dlg.querySelectorAll("[data-search-pick]").forEach(function (b) { b.addEventListener("click", function () { input.value = b.getAttribute("data-search-pick"); filter(); input.focus(); }); });
 })();

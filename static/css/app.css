@@ -574,3 +574,49 @@ button.support__way{width:100%;font:inherit;text-align:left;cursor:pointer}
 .extra__icon{font-size:1.6rem}
 .extra__body p{margin-top:2px}
 @media (max-width:600px){.extra{grid-template-columns:auto 1fr}.extra__act{grid-column:2}}
+/* My website: a lone card fills the row; "Something bigger?" banner */
+.site-section .grid--2 > .edit-item:only-child,.site-section .grid--2 > .edit-item:last-child:nth-child(odd){grid-column:1/-1}
+.site-bigger{display:flex;align-items:center;gap:14px;padding:16px 18px;margin:0 0 14px;border-radius:16px;border:1px solid color-mix(in srgb,var(--acc) 35%,var(--line));background:linear-gradient(120deg,var(--acc-soft),var(--card) 70%);color:inherit;text-decoration:none}
+.site-bigger:hover{border-color:var(--acc)}
+.site-bigger__icon{font-size:1.6rem}
+.site-bigger strong{display:block}
+.site-bigger small{display:block;color:var(--muted);font-size:.86rem;margin-top:2px}
+.site-bigger .btn{margin-left:auto;flex:none}
+@media (max-width:600px){.site-bigger{flex-wrap:wrap}.site-bigger .btn{margin-left:44px}}
+.shortcut img{width:18px;height:18px;border-radius:4px;margin-right:7px}
+.shortcut--add{font:inherit;font-size:1rem;padding:6px 12px}
+.chip-pick{border:1px solid var(--line);background:none;color:var(--ink);border-radius:999px;padding:4px 10px;font:inherit;font-size:.8rem;cursor:pointer}
+.chip-pick:hover{border-color:var(--acc)}
+.plat-logo{width:28px;height:28px;border-radius:7px;flex:none}
+.plat-logo--other{display:grid;place-items:center;border:1px dashed var(--line);color:var(--muted)}
+.platforms__txt{flex:1;min-width:0}
+.plat-steps{padding-left:20px;display:grid;gap:10px;font-size:.92rem}
+.plat-steps .btn{margin-top:6px}
+/* review search bar */
+.rv-search{display:grid;gap:10px;padding:12px;margin-bottom:14px}
+.rv-search__q{display:flex;align-items:center;gap:8px;padding:0 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.rv-search__q input{flex:1;border:0;background:none;color:var(--ink);font:inherit;padding:10px 0;outline:none;min-width:0}
+.rv-search__q:focus-within{border-color:var(--acc)}
+.rv-search__f{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.rv-search__f select{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:.86rem}
+@media (max-width:640px){.rv-search__f{grid-template-columns:1fr 1fr}}
+.rv-search__n{margin:0}
+.icon-btn{margin-left:auto;width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--muted);font-size:1.05rem;cursor:pointer}
+.icon-btn:hover{color:var(--ink);border-color:var(--acc)}
+.rv-danger{padding-top:12px;border-top:1px solid var(--line)}
+/* "Get reviewed in more places": a plain show/hide, not an editor */
+details.platforms > summary{display:block}
+details.platforms > summary::after{content:" ▾";color:var(--muted)}
+details.platforms[open] > summary::after{content:" ▴"}
+@media (max-width:600px){
+  .site-bigger{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:start}
+  .site-bigger .btn{grid-column:2;margin:8px 0 0;justify-self:start}
+  .platforms__list li{flex-wrap:wrap}
+  .platforms__act{margin-left:40px}
+}
+.paged-more{display:flex;margin:14px auto 0}
+/* text boxes inside pop-ups */
+.report form label{display:grid;gap:6px}
+.report input[name=what]{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line-2,var(--line));background:var(--bg);color:var(--ink);font:inherit;font-size:1rem}
+.report input[name=what]:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+.report label .row{flex-wrap:nowrap}

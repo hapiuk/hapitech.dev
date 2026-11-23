@@ -352,3 +352,54 @@ document.querySelectorAll("[data-check-all]").forEach(function (all) {
   dlg.querySelector("[data-work-close]").addEventListener("click", function () { dlg.close(); });
   if (location.hash === "#work") show();
 })();
+
+/* Any [data-open-dlg="id"] opens that dialog: fills [data-fill]/[data-fill-href]/[data-fill-value] and
+   toggles [data-show-if]/[data-hide-if] from the button's data-*, then puts the cursor in the first box. */
+(function () {
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-open-dlg]");
+    if (b) {
+      var dlg = document.getElementById(b.getAttribute("data-open-dlg")); if (!dlg) return;
+      var d = b.dataset;
+      dlg.querySelectorAll("[data-fill]").forEach(function (el) { if (!el.hasAttribute("data-default")) el.setAttribute("data-default", el.textContent); el.textContent = d[el.getAttribute("data-fill")] || el.getAttribute("data-default"); });
+      dlg.querySelectorAll("[data-fill-href]").forEach(function (el) { el.href = d[el.getAttribute("data-fill-href")] || "#"; });
+      dlg.querySelectorAll("[data-show-if]").forEach(function (el) { el.hidden = !d[el.getAttribute("data-show-if")]; });
+      dlg.querySelectorAll("[data-hide-if]").forEach(function (el) { el.hidden = !!d[el.getAttribute("data-hide-if")]; });
+      dlg.querySelectorAll("[data-fill-value]").forEach(function (el) { var v = d[el.getAttribute("data-fill-value")]; el.value = v ? v + (el.getAttribute("data-suffix") || "") : ""; });
+      dlg.querySelectorAll("[data-fill-action]").forEach(function (el) { el.setAttribute("action", d[el.getAttribute("data-fill-action")]); });
+      if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+      var f = dlg.querySelector("input:not([type=hidden]),textarea"); if (f) { f.focus(); f.setSelectionRange && f.setSelectionRange(f.value.length, f.value.length); }
+      return;
+    }
+    var c = e.target.closest("[data-close-dlg]"); if (c) { c.closest("dialog").close(); return; }
+    var p = e.target.closest("[data-pick]");
+    if (p) { var inp = p.closest("form").querySelector("input[name=what]"); inp.value = p.getAttribute("data-pick"); inp.focus(); }
+  });
+})();
+
+/* Review search: typing searches after a short pause; the cursor stays at the end of the box after reload */
+(function () {
+  var box = document.querySelector("[data-live-search]"); if (!box) return;
+  var t;
+  box.addEventListener("input", function () { clearTimeout(t); t = setTimeout(function () { box.form.requestSubmit ? box.form.requestSubmit() : box.form.submit(); }, 650); });
+  if (box.value) { var n = box.value.length; box.setSelectionRange(n, n); }
+})();
+
+/* Long lists: show 20 at a time with a "Show more" button. A link to #r123 still shows that one. */
+(function () {
+  document.querySelectorAll("[data-paged]").forEach(function (box) {
+    var step = +box.getAttribute("data-paged") || 20, items = [].slice.call(box.children), shown = step;
+    if (items.length <= step) return;
+    var btn = document.createElement("button");
+    btn.type = "button"; btn.className = "btn btn--ghost btn--sm paged-more";
+    function draw() {
+      items.forEach(function (el, i) { el.hidden = i >= shown; });
+      var left = items.length - shown;
+      btn.hidden = left <= 0; btn.textContent = "Show " + Math.min(step, left) + " more (" + left + " left)";
+    }
+    btn.addEventListener("click", function () { shown += step; draw(); });
+    var target = location.hash && document.getElementById(location.hash.slice(1));
+    if (target && items.indexOf(target) >= step) shown = items.indexOf(target) + 1;
+    box.after(btn); draw();
+  });
+})();

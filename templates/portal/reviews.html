@@ -20,6 +20,7 @@
 </section>
 {% endif %}
 <nav class="subnav">{% for s, label in [('all','All'),('unreplied','Needs a reply')] %}<a href="{{ url_for('portal.reviews', show=s) }}" {% if show == s %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+{% with total=rows|length, keep={'show': show if show != 'all' else ''} %}{% include "app/_review_search.html" %}{% endwith %}
 {% macro owner_actions(r) %}
   <div class="review__acts">
   {% if r.external %}
@@ -53,17 +54,32 @@
 {% endmacro %}
 <details class="card fold platforms" style="margin-bottom:12px">
   <summary><strong>🌍 Get reviewed in more places</strong> <span class="small muted">· more places = more people finding you</span></summary>
+  <p class="small muted" style="margin:10px 0 0">Every site here has public reviews we can bring into your dashboard and website. Google and Facebook are included; others can be added for you.</p>
   <ul class="platforms__list">
     {% for p in platforms %}
-    <li><span><strong>{{ p.name }}</strong>{% if p.collect %} <span class="badge badge--ok">we collect these</span>{% endif %}<br><span class="small muted">{{ p.why }}</span></span>
-      <span class="platforms__act">{% if p.have %}<span class="small" style="color:var(--ok,#22c55e)">✓ You're on it</span>{% else %}<a class="btn btn--ghost btn--sm" href="{{ p.url }}" target="_blank" rel="noopener">Set one up ↗</a>{% endif %}</span></li>
+    <li><img class="plat-logo" src="{{ url_for('static', filename=p.logo) }}" alt="" width="28" height="28">
+      <span class="platforms__txt"><strong>{{ p.name }}</strong>{% if p.collect %} <span class="badge badge--ok">included</span>{% endif %}<br><span class="small muted">{{ p.why }}</span></span>
+      <span class="platforms__act">{% if p.have %}<span class="small" style="color:var(--ok,#22c55e)">✓ You're on it</span>{% else %}<button type="button" class="btn btn--ghost btn--sm" data-open-dlg="platDialog" data-name="{{ p.name }}" data-url="{{ p.url }}" data-collect="{{ 'yes' if p.collect else '' }}">Set one up</button>{% endif %}</span></li>
     {% endfor %}
+    <li><span class="plat-logo plat-logo--other" aria-hidden="true">＋</span>
+      <span class="platforms__txt"><strong>Somewhere else?</strong><br><span class="small muted">Already on a site we don't list (including outside the UK)? Tell us and we'll see if we can collect from it.</span></span>
+      <span class="platforms__act"><button type="button" class="btn btn--ghost btn--sm" data-open-dlg="platDialog" data-name="" data-url="">Tell Aaron</button></span></li>
   </ul>
-  <form method="post" action="{{ url_for('portal.work_request') }}" class="row" style="margin-top:10px">
-    <input type="hidden" name="kind" value="other"><input type="hidden" name="back" value="reviews">
-    <input class="input-sm" name="what" required placeholder="I've joined… (e.g. Checkatrade: link to my page)" style="flex:1;min-width:220px">
-    <button class="btn btn--sm">Tell Aaron to collect from it</button>
-  </form>
 </details>
-{% for r in rows %}{{ review_card(r, actions=owner_actions) }}{% else %}{{ empty('Nothing here', 'You are all caught up.' if show == 'unreplied' else 'No reviews yet.') }}{% endfor %}
+<dialog class="report" id="platDialog" aria-labelledby="platTitle">
+  <h2 id="platTitle">Get reviews on <span data-fill="name">another site</span></h2>
+  <ol class="plat-steps">
+    <li data-show-if="url"><b>Make your page</b>: it's free to start. <a class="btn btn--ghost btn--sm" data-fill-href="url" href="#" target="_blank" rel="noopener">Open <span data-fill="name"></span> ↗</a></li>
+    <li><b>Want those reviews in your dashboard and on your website too?</b>
+      <span data-show-if="collect">Google and Facebook are included in your plan: just send us the link to your page.</span>
+      <span data-hide-if="collect">Collecting from a new site is an <b>add-on with a small monthly cost</b>. Aaron will tell you the price before anything is switched on.</span></li>
+  </ol>
+  <form method="post" action="{{ url_for('portal.work_request') }}" class="stack" style="gap:10px">
+    <input type="hidden" name="kind" value="other"><input type="hidden" name="back" value="reviews"><input type="hidden" name="prefix" value="Please collect my reviews from: ">
+    <label class="small"><span data-hide-if="name">Which site?</span><span data-show-if="name">Link to your <span data-fill="name"></span> page (if you have it yet)</span>
+      <input name="what" required data-fill-value="name" data-suffix=": " placeholder="e.g. https://… or the site's name and your page link"></label>
+    <div class="row"><button class="btn btn--sm">Ask Aaron to add it</button><button type="button" class="btn btn--ghost btn--sm" data-close-dlg>Not now</button></div>
+  </form>
+</dialog>
+<div data-paged="20">{% for r in rows %}{{ review_card(r, actions=owner_actions) }}{% endfor %}</div>{% if not rows %}{{ empty('Nothing here', 'Nothing matches that search.' if active else ('You are all caught up.' if show == 'unreplied' else 'No reviews yet.')) }}{% endif %}
 {% endblock %}

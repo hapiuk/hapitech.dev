@@ -85,7 +85,13 @@ def home():
     replied = sum(1 for r in live if r.reply)
     wall = sorted([r for r in live if r.body and len(r.body) > 40 and r.rating >= 4],
                   key=lambda r: r.reviewed_at or r.created_at, reverse=True)[:18]
-    return render_template("hub/home.html", biz=biz, total=total, avg=avg, by_src=by_src, wall=wall,
+    import re as _re
+    picks = []
+    for b in biz:                                   # quick-pick words in the search box: towns, then trade words
+        for w in [b["a"].town] + _re.split(r"[^A-Za-z]+", b["a"].trade or ""):
+            if w and len(w) > 3 and w.lower() not in ("and", "home", "services") and w.capitalize() not in picks:
+                picks.append(w.capitalize() if w.islower() else w)
+    return render_template("hub/home.html", biz=biz, total=total, avg=avg, by_src=by_src, wall=wall, picks=picks[:8],
                            reply_rate=round(100 * replied / len(live)) if live else 0)
 
 

@@ -30,13 +30,11 @@
   {% if last %}<span>Last change {{ last | ago }}</span>{% endif %}
 </div>
 
-{# ---------- jump tiles ---------- #}
-<nav class="jump" aria-label="Sections">
-  <a class="jump__tile" href="{{ url_for('portal.hero') }}"><span class="jump__icon">🖼️</span><span><strong>Top-of-page photo</strong><small>{{ {'all':'Random from all','liked':'Most-liked','chosen':'Your picks'}.get(hero_mode, 'Random') }}</small></span></a>
-  {% if photos %}<a class="jump__tile" href="#photos"><span class="jump__icon">📸</span><span><strong>Photos</strong><small>{{ photos | sum(attribute='count') }} on your site</small></span></a>{% endif %}
-  {% for group, items in groups.items() %}<a class="jump__tile" href="#g-{{ group | lower | replace(' ', '-') }}"><span class="jump__icon">{{ '🛠️' if group == 'Services' else '📝' }}</span><span><strong>{{ group }}</strong><small>{{ items | length }} to edit</small></span></a>{% endfor %}
-  <a class="jump__tile" href="{{ url_for('portal.help') }}"><span class="jump__icon">💬</span><span><strong>Something bigger?</strong><small>Ask Aaron</small></span></a>
-</nav>
+<a class="site-bigger" href="{{ url_for('portal.help') }}">
+  <span class="site-bigger__icon" aria-hidden="true">💬</span>
+  <span><strong>Something bigger?</strong><small>A new page, a new section, a redesign, or something you can't find here: ask Aaron and he'll sort it.</small></span>
+  <span class="btn btn--ghost btn--sm">Ask Aaron</span>
+</a>
 
 <label class="site-find"><span class="sr-only">Find something to change</span><input type="search" placeholder="🔎  Find something to change…" data-site-find></label>
 
@@ -45,6 +43,10 @@
 <section class="site-section" id="photos">
   <h2 class="site-section__title">Photos</h2>
   <div class="grid grid--2">
+    <a class="card photo-card edit-item" href="{{ url_for('portal.hero') }}" data-find="top of page photo hero">
+      <div class="row row--between"><span><strong>🖼️ Top-of-page photo</strong><br><span class="small muted">{{ {'all':'Random from all your photos','liked':'Random from your most-liked','chosen':'Random from photos you choose'}.get(hero_mode, 'Random') }}</span></span>
+      <span class="btn btn--ghost btn--sm">Change</span></div>
+    </a>
   {% for p in photos %}
     <a class="card photo-card edit-item" id="b{{ p.b.id }}" href="{{ url_for('portal.block_edit', bid=p.b.id) }}" data-find="{{ p.b.label }} photos gallery">
       <div class="photo-card__strip">

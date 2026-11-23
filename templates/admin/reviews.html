@@ -1,6 +1,7 @@
 {% extends "app/base.html" %}
 {% from "app/_macros.html" import empty, review_card with context %}
-{% block title %}Reviews{% endblock %}
+{% block title %}Reviews{% include "admin/_review_settings.html" %}
+{% endblock %}
 {% block content %}
 <div class="page-top">
   <div><h1>Reviews</h1><p>Every client's reviews. Reported ones wait here for your decision and stay visible until you act.</p></div>
@@ -18,14 +19,28 @@
     <option value="">All clients</option>{% for c in clients %}<option value="{{ c.slug }}" {{ 'selected' if client == c.slug }}>{{ c.name }}</option>{% endfor %}
   </select>
 </form>
+{% with keep={'status': status, 'client': client} %}{% include "app/_review_search.html" %}{% endwith %}
+{% if total > rows|length %}<p class="small muted">Showing the first {{ rows|length }}. Search or filter to narrow it down.</p>{% endif %}
 {% macro admin_actions(r) %}
   <form method="post" action="{{ url_for('admin.review_set', rid=r.id) }}" class="review__actions">
-    <input type="date" name="reviewed_at" value="{{ r.reviewed_at.date() if r.reviewed_at else '' }}" max="{{ today }}" aria-label="Date written" class="input-sm" title="When the customer wrote it. Copy from Google if needed.">
-    <button class="btn btn--ghost btn--sm" name="action" value="date">{{ 'Change date' if r.reviewed_at else 'Set date' }}</button>
     <input type="hidden" name="back" value="{{ request.full_path }}">
-    {% if r.status != 'published' %}<button class="btn btn--ghost btn--sm" name="action" value="publish">{{ 'Keep it (dismiss report)' if r.status == 'reported' else ('Approve' if r.status == 'pending' else 'Show it') }}</button>{% endif %}
-    {% if r.status != 'removed' %}<button class="btn btn--danger btn--sm" name="action" value="remove" data-confirm="Hide this review from the public? Only for fake, abusive or off-topic reviews.">Remove</button>{% endif %}
+    {% if r.status in ('reported', 'pending', 'removed') %}<button class="btn btn--ghost btn--sm" name="action" value="publish">{{ 'Keep it (dismiss report)' if r.status == 'reported' else ('Approve' if r.status == 'pending' else 'Show it again') }}</button>{% endif %}
+    {% if not r.reviewed_at %}<span class="small muted">📅 no date</span>{% endif %}
+    <button type="button" class="icon-btn" title="Settings" aria-label="Review settings" data-open-dlg="rvSettings" data-action="{{ url_for('admin.review_set', rid=r.id) }}" data-name="{{ r.author_name }}" data-date="{{ r.reviewed_at.date() if r.reviewed_at else '' }}" data-live="{{ 'yes' if r.status != 'removed' }}">⚙</button>
   </form>
 {% endmacro %}
-{% for r in rows %}{{ review_card(r, actions=admin_actions, show_client=true) }}{% else %}{{ empty('Nothing here', 'No reviews match this filter.') }}{% endfor %}
+<div data-paged="20">{% for r in rows %}{{ review_card(r, actions=admin_actions, show_client=true) }}{% endfor %}</div>{% if not rows %}{{ empty('Nothing here', 'No reviews match this filter.') }}{% endif %}
+<dialog class="report" id="rvSettings" aria-labelledby="rvsTitle">
+  <h2 id="rvsTitle">⚙ Review by <span data-fill="name"></span></h2>
+  <form method="post" data-fill-action="action" class="stack" style="gap:12px">
+    <input type="hidden" name="back" value="{{ request.full_path }}">
+    <label class="small">Date written <span class="muted">(copy from Google if needed: rough is fine)</span>
+      <span class="row"><input type="date" name="reviewed_at" data-fill-value="date" max="{{ today }}" class="input-sm"><button class="btn btn--ghost btn--sm" name="action" value="date">Save date</button></span></label>
+    <div data-show-if="live" class="rv-danger">
+      <p class="small muted">We keep every genuine review, good or bad. Only take one down if the entry is <b>broken, a duplicate or imported wrongly</b>, or it's fake or abusive.</p>
+      <button class="linkish small" style="color:var(--bad,#ef4444)" name="action" value="remove" data-confirm="Take this review off public view? It's kept on record and can be shown again.">Remove from public view</button>
+    </div>
+    <div class="row"><button type="button" class="btn btn--ghost btn--sm" data-close-dlg>Close</button></div>
+  </form>
+</dialog>
 {% endblock %}

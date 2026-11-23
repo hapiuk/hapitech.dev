@@ -234,9 +234,12 @@ def reviews():
     q = scoped(Review).filter(Review.status.in_(["published", "reported"]))
     if show == "unreplied":
         q = q.filter(~Review.replies.any(), Review.reviewed_at.isnot(None), Review.reply_skipped_at.is_(None))
-    rows = q.order_by(Review.reviewed_at.desc().nullslast(), Review.sort_hint).all()
+    from utils import review_search
+    q, active = review_search.apply(q, request.args)
+    rows = q.all()
     from utils.review_platforms import for_account
-    return render_template("portal/reviews.html", rows=rows, show=show, pending=pending, platforms=for_account(g.account))
+    return render_template("portal/reviews.html", rows=rows, show=show, pending=pending, platforms=for_account(g.account),
+                           active=active)
 
 
 @portal_bp.route("/reviews/<int:rid>", methods=["POST"])

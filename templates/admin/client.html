@@ -302,16 +302,17 @@
 </section>
 <div class="page-top" style="margin-bottom:14px">
   <p>{{ reviews|length }} review{{ '' if reviews|length == 1 else 's' }} · shown on {{ a.domain or 'their site' }} and <a href="{{ url_for('reviews_public.business', slug=a.slug) }}" target="_blank">their review page</a></p>
-  <a class="btn btn--sm" href="{{ url_for('admin.review_new', client=a.slug) }}">Add a review by hand</a>
+  <div class="row"><a class="btn btn--ghost btn--sm" href="{{ url_for('admin.reviews', status='all', client=a.slug) }}">🔍 Search these</a><a class="btn btn--sm" href="{{ url_for('admin.review_new', client=a.slug) }}">Add a review by hand</a></div>
 </div>
 {% macro admin_actions(r) %}
   <form method="post" action="{{ url_for('admin.review_set', rid=r.id) }}" class="review__actions">
     <input type="hidden" name="back" value="{{ url_for('admin.client', slug=a.slug, tab='reviews') }}">
     {% if r.status != 'published' %}<button class="btn btn--ghost btn--sm" name="action" value="publish">Show it</button>{% endif %}
-    {% if r.status != 'removed' %}<button class="btn btn--danger btn--sm" name="action" value="remove" data-confirm="Hide this review from the public? Only do this for fake, abusive or off-topic reviews.">Remove</button>{% endif %}
+    <button type="button" class="icon-btn" title="Settings" aria-label="Review settings" data-open-dlg="rvSettings" data-action="{{ url_for('admin.review_set', rid=r.id) }}" data-name="{{ r.author_name }}" data-date="{{ r.reviewed_at.date() if r.reviewed_at else '' }}" data-live="{{ 'yes' if r.status != 'removed' }}">⚙</button>
   </form>
 {% endmacro %}
-{% for r in reviews %}{{ review_card(r, actions=admin_actions) }}{% else %}{{ empty('No reviews yet') }}{% endfor %}
+{% include "admin/_review_settings.html" %}
+<div data-paged="20">{% for r in reviews %}{{ review_card(r, actions=admin_actions) }}{% endfor %}</div>{% if not reviews %}{{ empty('No reviews yet') }}{% endif %}
 
 {% elif tab == 'traffic' %}
 {% include "app/_traffic.html" %}

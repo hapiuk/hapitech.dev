@@ -511,7 +511,7 @@ def work_request():
     from utils import work_requests as wr
     f = request.form
     what = (f.get("what") or "").strip()[:4000]
-    if what and f.get("prefix") in ("Please add a Jobs shortcut to: ", "I'd like this extra: "):
+    if what and f.get("prefix") in ("Please add a Jobs shortcut to: ", "I'd like this extra: ", "Please collect my reviews from: "):
         what = f.get("prefix") + what
     back = f.get("back") if f.get("back") in ("plan", "website", "jobs", "reviews") else "plan"
     if not what:

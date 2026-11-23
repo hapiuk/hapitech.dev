@@ -1445,3 +1445,28 @@ def test_unedited_sections_follow_new_defaults_and_arent_sent(app):
         assert ContentBlock.query.filter_by(account_id=a.id, key="hero.title").first().data == "Edited by Roland"
     content = app.test_client().get("/api/v1/sites/rolands/content", headers=_site_key(app, "rolands")).json["content"]
     assert content == {"hero.title": "Edited by Roland"}           # only real edits are sent
+
+
+def test_review_search_filters(app):
+    from models import db
+    from models.core import Account
+    from models.reviews import Review
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        db.session.add_all([Review(account_id=a.id, author_name="Zed Finder", rating=2, body="Wardrobe wobbles a bit", source="google", status="published"),
+                            Review(account_id=a.id, author_name="Yan Other", rating=5, body="Lovely shelves", source="facebook", status="published")])
+        db.session.commit()
+    c = app.test_client(); _login(c, "roland@test")
+    page = c.get("/portal/reviews?q=wardrobe").get_data(as_text=True)
+    assert "Zed Finder" in page and "Yan Other" not in page and "1 review matches" in page
+    page = c.get("/portal/reviews?src=facebook&stars=5").get_data(as_text=True)
+    assert "Yan Other" in page and "Zed Finder" not in page
+    a = app.test_client(); _login(a, "admin@test")
+    page = a.get("/admin/reviews?status=all&q=zed").get_data(as_text=True)
+    assert "Zed Finder" in page and "Yan Other" not in page and 'data-open-dlg="rvSettings"' in page and "Remove from public view" in page
+    assert 'class="btn btn--danger btn--sm" name="action" value="remove"' not in page     # no big red button any more
+    j = app.test_client(); _login(j, "roland@test")
+    jobs = j.get("/portal/jobs").get_data(as_text=True)
+    assert 'data-open-dlg="shortcutDialog"' in jobs
+    rv = j.get("/portal/reviews").get_data(as_text=True)
+    assert "Trustpilot" in rv and "Bark" not in rv and "Somewhere else?" in rv and "small monthly cost" in rv

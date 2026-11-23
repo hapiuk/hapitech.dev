@@ -85,6 +85,8 @@ def create_app(test_config: dict | None = None):
     for bp in (pwa_bp, customer_bp, public_bp, auth_bp, news_bp, admin_bp, portal_bp, reviews_public_bp, site_api_bp, lab_bp, hub_bp):
         app.register_blueprint(bp)
     app.jinja_env.globals["hub_url"] = hub_url
+    from utils.review_platforms import logo_for
+    app.jinja_env.globals["platform_logo"] = logo_for
     app.wsgi_app = HubHost(app.wsgi_app)          # hapitech.report -> /r/... (the reviews site)
 
     from cli import register_cli
