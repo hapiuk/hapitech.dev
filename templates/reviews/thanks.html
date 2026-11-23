@@ -5,7 +5,7 @@
 <div class="rv__card rv__thanks">
   <p class="rv__big">🙏</p>
   <h1 class="rv__title">{{ 'Thanks, you already left a review!' if already else 'Thank you, ' ~ (review.author_name.split()[0] if review else '') ~ '!' }}</h1>
-  <p class="rv__sub">{{ a.first_name }} really appreciates it. Your review will show on {{ a.domain or 'their website' }} shortly.</p>
+  <p class="rv__sub">{{ a.first_name }} really appreciates it. {% if review and review.status == 'pending' %}Your review will show on {{ a.domain or 'their website' }} once {{ a.first_name }} has seen it.{% else %}Your review will show on {{ a.domain or 'their website' }} shortly.{% endif %}</p>
   {% if review and a.google_profile_url %}
   <div class="rv__google">
     <p><strong>Got 30 more seconds?</strong> Posting the same review on Google helps local people find {{ a.first_name }}.</p>

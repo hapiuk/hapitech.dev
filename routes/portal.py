@@ -19,6 +19,18 @@ portal_bp = Blueprint("portal", __name__, url_prefix="/portal")
 
 MAX_POST_PHOTOS = 6
 
+TIPS = [
+    "Posting photos of finished jobs keeps your website fresh, and Google tends to show fresh websites higher.",
+    "Mention the town in your posts, like “New bathroom in Tettenhall”. It helps local people find you on Google.",
+    "Every new review helps. Ask at the end of each job, while the customer is happy with the work.",
+    "Reply to your reviews, even with a quick thank-you. New customers read the replies too.",
+    "Reviews on Google count most for “near me” searches. After someone reviews you here, we offer them a one-tap way to post it on Google too.",
+    "Share your posts on Facebook and Instagram. Every share sends people back to your website.",
+    "Keep your photos up to date. You can put your best (or most-liked) photos at the top of your homepage.",
+    "Going on holiday? Turn on Away mode in Settings so customers know when you're back.",
+    "Send quotes from your dashboard. Customers can accept with one tap, and it goes straight into your calendar.",
+]
+
 
 @portal_bp.context_processor
 def _shell():
@@ -26,7 +38,8 @@ def _shell():
     if not getattr(g, "account", None):
         return {}
     unreplied = (Review.query.filter(Review.account_id == g.account.id, Review.status.in_(["published", "reported"]),
-                                     ~Review.replies.any(), Review.reviewed_at.isnot(None)).count()) or None
+                                     ~Review.replies.any(), Review.reviewed_at.isnot(None)).count()
+                 + Review.query.filter_by(account_id=g.account.id, status="pending").count()) or None
     from models.work import Lead
     new_jobs = Lead.query.filter_by(account_id=g.account.id, status="new", archived_at=None).count() or None
     return {"area": "portal", "nav": portal_nav({"unreplied": unreplied, "new_jobs": new_jobs},
@@ -74,8 +87,10 @@ def home():
         "waiting": scoped(ReviewRequest).filter(ReviewRequest.completed_at.is_(None)).count(),
     }
     last_post = scoped(Post, status="published").order_by(Post.published_at.desc()).first()
-    latest = live.order_by(Review.reviewed_at.desc().nullslast(), Review.sort_hint).limit(3).all()
-    return render_template("portal/home.html", stats=stats, last_post=last_post, latest=latest)
+    stats["pending"] = scoped(Review, status="pending").count()
+    from utils.traffic import summary
+    return render_template("portal/home.html", stats=stats, last_post=last_post, t=summary(a), tips=TIPS,
+                           tip_start=dt.date.today().timetuple().tm_yday % len(TIPS))
 
 
 # ---------------------------------------------------------------- ask for a review
@@ -137,11 +152,12 @@ def requests_list():
 @addon_required
 def reviews():
     show = request.args.get("show", "all")
+    pending = scoped(Review, status="pending").order_by(Review.created_at.desc()).all()
     q = scoped(Review).filter(Review.status.in_(["published", "reported"]))
     if show == "unreplied":
         q = q.filter(~Review.replies.any(), Review.reviewed_at.isnot(None))
     rows = q.order_by(Review.reviewed_at.desc().nullslast(), Review.sort_hint).all()
-    return render_template("portal/reviews.html", rows=rows, show=show)
+    return render_template("portal/reviews.html", rows=rows, show=show, pending=pending)
 
 
 @portal_bp.route("/reviews/<int:rid>", methods=["POST"])
@@ -163,6 +179,12 @@ def review_action(rid):
         for old in list(r.replies):
             db.session.delete(old)
         flash("Reply removed.", "ok")
+    elif action == "approve" and r.status == "pending":
+        r.status = "published"
+        flash("Approved. It shows on your website within 10 minutes.", "ok")
+    elif action == "spam" and r.status == "pending":
+        r.status, r.report_reason = "removed", "Marked as spam by the business"
+        flash("Marked as spam. It won't be shown.", "ok")
     elif action == "report":
         reason = (request.form.get("reason") or "").strip()
         if not reason:
@@ -242,8 +264,11 @@ def post_edit(pid=None):
         db.session.commit()
         for e in errors:
             flash(e, "err")
-        flash("Published. It appears on your website within 10 minutes." if p.status == "published"
-              else "Saved as a draft.", "ok")
+        if p.status == "published":
+            flash("Published. It appears on your website within 10 minutes. Now share it!" if publish
+                  else "Saved.", "ok")
+            return redirect(url_for("portal.post_edit", pid=p.id) + "#share")
+        flash("Saved as a draft.", "ok")
         return redirect(url_for("portal.posts"))
     return render_template("portal/post_form.html", p=p)
 

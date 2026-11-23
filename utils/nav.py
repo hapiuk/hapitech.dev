@@ -18,6 +18,7 @@ ICONS = {
     "list": '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
     "briefcase": '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>',
     "calendar": '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    "chart": '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
     "lab": '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/><path d="M7.5 15h9"/>',
 }
 
@@ -57,6 +58,7 @@ def portal_nav(counts=None, owner=True):
         _item("Reviews", "portal.reviews", "star", prefix="/portal/reviews", tab=True, badge=c.get("unreplied")),
         _item("Calendar", "portal.calendar", "calendar", prefix="/portal/calendar"),
         _item("Posts", "portal.posts", "image", prefix="/portal/posts"),
+        _item("Visitors", "portal.traffic", "chart", prefix="/portal/visitors"),
     ]
     if owner:
         items.append(_item("My website", "portal.website", "edit", prefix="/portal/website"))

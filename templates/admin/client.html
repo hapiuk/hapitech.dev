@@ -16,7 +16,7 @@
 </div>
 
 <nav class="subnav" aria-label="Client sections">
-  {% for key, label in [('overview','Overview'),('jobs','Jobs'),('money','Money'),('users','Logins'),('reviews','Reviews'),('site','Website')] %}
+  {% for key, label in [('overview','Overview'),('jobs','Jobs'),('money','Money'),('users','Logins'),('reviews','Reviews'),('traffic','Visitors'),('site','Website')] %}
     <a href="{{ url_for('admin.client', slug=a.slug, tab=key) }}" {% if tab == key %}aria-current="page"{% endif %}>{{ label }}</a>
   {% endfor %}
 </nav>
@@ -199,6 +199,9 @@
   </form>
 {% endmacro %}
 {% for r in reviews %}{{ review_card(r, actions=admin_actions) }}{% else %}{{ empty('No reviews yet') }}{% endfor %}
+
+{% elif tab == 'traffic' %}
+{% include "app/_traffic.html" %}
 
 {% elif tab == 'site' %}
 <div class="grid grid--2">

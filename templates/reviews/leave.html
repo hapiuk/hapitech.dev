@@ -19,6 +19,8 @@
     <textarea name="body" rows="4" maxlength="3000" placeholder="What did they do, and how did it go?">{{ f.get('body','') }}</textarea></label>
   {% if open_form %}<label class="field"><span>What was the job? <em>(optional)</em></span>
     <input name="service" value="{{ f.get('service','') }}" maxlength="120" placeholder="e.g. Bathroom fitting"></label>{% endif %}
+  {% if open_form %}<label class="field"><span>Your email <em>(optional, never shown)</em></span>
+    <input type="email" name="email" value="{{ f.get('email','') }}" autocomplete="email" placeholder="So {{ a.first_name }} can see you're a customer"></label>{% endif %}
   <label class="field"><span>Your name, as shown on the review</span>
     <input name="name" value="{{ f.get('name','') }}" maxlength="120" autocomplete="name" required></label>
   <label class="field"><span>Add photos <em>(optional, up to 3)</em></span><input type="file" name="photos" accept="image/*" multiple></label>

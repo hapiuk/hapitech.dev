@@ -1,0 +1,23 @@
+{# templates/app/_traffic.html — visitor numbers card set; expects `t` from utils.traffic.summary #}
+<div class="grid grid--3">
+  <div class="stat"><p class="stat__label">Visits, last {{ t.days }} days</p><p class="stat__value">{{ '{:,}'.format(t.total) }}</p>
+    <p class="stat__sub">{% if t.change is not none %}{{ ('▲ ' if t.change >= 0 else '▼ ') ~ (t.change|abs) ~ '%' }} on the {{ t.days }} days before{% else %}Counting started recently{% endif %}</p></div>
+  <div class="stat"><p class="stat__label">From Google</p><p class="stat__value">{{ '{:,}'.format(t.google) }}</p><p class="stat__sub">people who searched and found you</p></div>
+  <div class="stat"><p class="stat__label">Busiest day</p><p class="stat__value">{{ t.peak if t.total else 0 }}</p><p class="stat__sub">visits in one day</p></div>
+</div>
+<section class="card" style="margin-top:12px">
+  <div class="card__head"><h3>Visits per day</h3><span class="small muted">last {{ t.days }} days</span></div>
+  <div class="bars" role="img" aria-label="Visits per day over the last {{ t.days }} days">
+    {% for d, n in t.daily %}<span class="bars__bar" style="height:{{ (n / t.peak * 100) | round(0, 'ceil') if n else 1 }}%" title="{{ d.strftime('%a %-d %b') }}: {{ n }} visit{{ '' if n == 1 else 's' }}"></span>{% endfor %}
+  </div>
+  <div class="bars__axis small muted"><span>{{ t.daily[0][0].strftime('%-d %b') }}</span><span>Today</span></div>
+</section>
+<div class="grid grid--2" style="margin-top:12px">
+  <section class="card"><div class="card__head"><h3>Where visitors came from</h3></div>
+    {% if t.sources %}<ul class="list">{% for name, n in t.sources %}<li><span>{{ name }}</span><strong>{{ n }}</strong></li>{% endfor %}</ul>
+    {% else %}<p class="small muted">No visits counted yet.</p>{% endif %}</section>
+  <section class="card"><div class="card__head"><h3>Most visited pages</h3></div>
+    {% if t.pages %}<ul class="list">{% for name, n in t.pages %}<li><span>{{ name }}</span><strong>{{ n }}</strong></li>{% endfor %}</ul>
+    {% else %}<p class="small muted">No visits counted yet.</p>{% endif %}</section>
+</div>
+<p class="small muted" style="margin-top:10px">Counted without cookies or tracking: just the page and the site people came from. Search engines and bots aren't counted.</p>

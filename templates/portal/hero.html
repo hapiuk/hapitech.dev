@@ -11,6 +11,7 @@
     {% for key, label in modes.items() %}
       <label class="check" style="font-size:1rem"><input type="radio" name="mode" value="{{ key }}" {{ 'checked' if mode == key }}> <span>{{ label }}{% if key == 'liked' and not any_likes %} <span class="small muted">(no likes yet: shows all photos until there are some)</span>{% endif %}</span></label>
     {% endfor %}
+    <div><button class="btn btn--sm">Save</button></div>
   </section>
   <section class="card">
     <div class="card__head"><h2>Your photos</h2><span class="small muted">Most liked first · tick for "photos I choose"</span></div>

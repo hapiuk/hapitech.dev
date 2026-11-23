@@ -3,6 +3,22 @@
 {% block title %}Reviews{% endblock %}
 {% block content %}
 <div class="page-top"><div><h1>Your reviews</h1><p>Everything here shows on your website. Replying shows customers you care.</p></div></div>
+{% if pending %}
+<section class="card card--accent" id="pending" style="margin-bottom:14px">
+  <div class="card__head"><h2>Waiting for your OK ({{ pending|length }})</h2></div>
+  <p class="small muted" style="margin-bottom:10px">Left on your website by someone we couldn't match to one of your jobs. Please approve every genuine review, good or bad. Only mark spam or fake ones. Anything left here goes live by itself after 14 days.</p>
+  {% for r in pending %}
+  <article class="review">
+    <div class="review__top"><div class="review__who"><strong>{{ r.author_name }}</strong><div class="review__meta">{{ r.rating | stars }}<span>{{ r.created_at | ago }}</span>{% if r.service %}<span>{{ r.service }}</span>{% endif %}</div></div></div>
+    {% if r.body %}<p class="review__body">{{ r.body }}</p>{% endif %}
+    <form method="post" action="{{ url_for('portal.review_action', rid=r.id, show='pending') }}" class="review__actions">
+      <button class="btn btn--sm" name="action" value="approve">Approve</button>
+      <button class="btn btn--ghost btn--sm" name="action" value="spam" data-confirm="Mark as spam? Only for fake or junk reviews, not genuine ones you don't like.">It's spam</button>
+    </form>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
 <nav class="subnav">{% for s, label in [('all','All'),('unreplied','Needs a reply')] %}<a href="{{ url_for('portal.reviews', show=s) }}" {% if show == s %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
 {% macro owner_actions(r) %}
   <div class="review__acts">

@@ -145,8 +145,13 @@ def client(slug):
         "requests": ReviewRequest.query.filter_by(account_id=a.id).count(),
     }
     new_key = session.pop("new_site_key", None) if session.get("new_site_key_for") == a.slug else None
+    traffic = None
+    if tab == "traffic":
+        from utils.traffic import summary
+        traffic = summary(a)
     return render_template("admin/client.html", a=a, tab=tab, reviews=reviews, stats=stats,
-                           job_types=JOB_TYPES, job_statuses=JOB_STATUSES, today=dt.date.today(), new_key=new_key)
+                           job_types=JOB_TYPES, job_statuses=JOB_STATUSES, today=dt.date.today(), new_key=new_key,
+                           t=traffic)
 
 
 @admin_bp.route("/clients/<slug>/notes", methods=["POST"])

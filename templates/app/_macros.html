@@ -10,7 +10,7 @@
 {% macro status_badge(s) -%}
 {% set map = {
   'active':'ok','published':'ok','done':'ok','paid':'ok','completed':'ok',
-  'trial':'warn','draft':'warn','quote':'warn','reported':'warn','doing':'acc','in_progress':'acc','booked':'acc','new':'acc',
+  'trial':'warn','draft':'warn','quote':'warn','reported':'warn','pending':'warn','doing':'acc','in_progress':'acc','booked':'acc','new':'acc',
   'paused':'','candidate':'','withdrawn':'err','removed':'err','cancelled':'err','archived':'','blocked':'err','retired':''} %}
 <span class="badge badge--{{ map.get(s, '') }}">{{ (s or '').replace('_', ' ') | capitalize }}</span>
 {%- endmacro %}

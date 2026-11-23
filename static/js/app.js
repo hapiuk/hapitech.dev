@@ -124,3 +124,45 @@
     p.insertAdjacentElement("afterend", b);
   });
 })();
+
+/* dashboard home: cycle tips */
+(function () {
+  var card = document.querySelector(".tip[data-tips]");
+  if (!card) return;
+  var tips = JSON.parse(card.getAttribute("data-tips")), i = Number(card.getAttribute("data-start")) || 0;
+  card.querySelector(".tip__next").addEventListener("click", function () {
+    i = (i + 1) % tips.length;
+    card.querySelector(".tip__text").textContent = tips[i];
+  });
+})();
+
+/* posts: share with photos (phone share sheet), copy text */
+(function () {
+  function copy(btn, text) {
+    (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () {
+      var t = btn.textContent; btn.textContent = "Copied ✓"; setTimeout(function () { btn.textContent = t; }, 1600);
+    }, function () { window.prompt("Copy this:", text); });
+  }
+  document.querySelectorAll("[data-copy-text]").forEach(function (b) {
+    b.addEventListener("click", function () { copy(b, b.getAttribute("data-copy-text")); });
+  });
+  document.querySelectorAll("[data-share]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var url = b.getAttribute("data-url"), text = b.getAttribute("data-text");
+      var photos = JSON.parse(b.getAttribute("data-photos") || "[]");
+      var full = text + (url ? "\n\n" + url : "");
+      if (!navigator.share) { copy(b, full); return; }
+      b.disabled = true;
+      Promise.all(photos.slice(0, 6).map(function (src, i) {
+        return fetch(src).then(function (r) { return r.blob(); }).then(function (bl) {
+          return new File([bl], "photo-" + (i + 1) + "." + ((bl.type.split("/")[1] || "jpg").replace("jpeg", "jpg")), { type: bl.type || "image/jpeg" });
+        });
+      })).catch(function () { return []; }).then(function (files) {
+        var data = { title: text.split("\n")[0], text: full };
+        if (files.length && navigator.canShare && navigator.canShare({ files: files })) data.files = files;
+        else if (url) { data.text = text; data.url = url; }
+        return navigator.share(data);
+      }).catch(function () {}).then(function () { b.disabled = false; });
+    });
+  });
+})();

@@ -8,7 +8,7 @@
 </div>
 <form class="row" style="margin-bottom:16px">
   <nav class="subnav" style="margin:0;border:0">
-    {% for s, label in [('reported','Reported'),('published','Published'),('removed','Removed'),('all','All')] %}
+    {% for s, label in [('pending','Waiting for OK'),('reported','Reported'),('published','Published'),('removed','Removed'),('all','All')] %}
       <a href="{{ url_for('admin.reviews', status=s, client=client) }}" {% if status == s %}aria-current="page"{% endif %}>{{ label }}{% if counts.get(s) %} ({{ counts[s] }}){% endif %}</a>
     {% endfor %}
   </nav>
@@ -20,7 +20,7 @@
 {% macro admin_actions(r) %}
   <form method="post" action="{{ url_for('admin.review_set', rid=r.id) }}" class="review__actions">
     <input type="hidden" name="back" value="{{ request.full_path }}">
-    {% if r.status != 'published' %}<button class="btn btn--ghost btn--sm" name="action" value="publish">{{ 'Keep it (dismiss report)' if r.status == 'reported' else 'Show it' }}</button>{% endif %}
+    {% if r.status != 'published' %}<button class="btn btn--ghost btn--sm" name="action" value="publish">{{ 'Keep it (dismiss report)' if r.status == 'reported' else ('Approve' if r.status == 'pending' else 'Show it') }}</button>{% endif %}
     {% if r.status != 'removed' %}<button class="btn btn--danger btn--sm" name="action" value="remove" data-confirm="Hide this review from the public? Only for fake, abusive or off-topic reviews.">Remove</button>{% endif %}
   </form>
 {% endmacro %}

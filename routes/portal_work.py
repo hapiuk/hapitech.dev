@@ -389,3 +389,13 @@ def hero():
     photos.sort(key=lambda p: -p["likes"])
     return render_template("portal/hero.html", modes=HERO_MODES, mode=hero_mode(a), pick=set(hero_pick(a)),
                            photos=photos, any_likes=bool(likes))
+
+
+# ---------------------------------------------------------------- visitors
+
+@portal_bp.route("/visitors")
+@owner_required
+@addon_required
+def traffic():
+    from utils.traffic import summary
+    return render_template("portal/traffic.html", t=summary(g.account))

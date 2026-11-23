@@ -3,6 +3,26 @@
 {% block content %}
 <p class="crumbs"><a href="{{ url_for('portal.posts') }}">Posts</a> / {{ p.title or 'New' }}</p>
 <div class="page-top"><h1>{{ 'Edit post' if p.id else 'Post an update' }}</h1></div>
+{% if p.id and p.status == 'published' %}
+{% set link = ('https://' ~ g.account.domain ~ '/posts/' ~ p.id) if g.account.domain else '' %}
+{% set share_photos = [] %}{% for m in p.photos %}{% set _ = share_photos.append(url_for('reviews_public.media_file', path=m.file_path)) %}{% endfor %}
+{% set share_text = p.title ~ ('\n\n' ~ p.body if p.body else '') %}
+<section class="card card--accent share" id="share" style="max-width:640px;margin-bottom:12px">
+  <div class="card__head"><h2>Share it</h2></div>
+  <p class="small muted">Every share sends people to your website. On your phone, “Share with photos” lets you pick Facebook, Instagram, WhatsApp and more.</p>
+  <div class="share__btns">
+    <button type="button" class="btn btn--sm" data-share data-url="{{ link }}" data-text="{{ share_text }}"
+            data-photos='{{ share_photos | tojson }}'>Share with photos</button>
+    {% if link %}
+    <a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="https://www.facebook.com/sharer/sharer.php?u={{ link | urlencode }}">Facebook</a>
+    <a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="https://www.linkedin.com/sharing/share-offsite/?url={{ link | urlencode }}">LinkedIn</a>
+    <a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="https://wa.me/?text={{ (p.title ~ ' ' ~ link) | urlencode }}">WhatsApp</a>
+    {% endif %}
+    <button type="button" class="btn btn--ghost btn--sm" data-copy-text="{{ share_text }}{{ ('\n\n' ~ link) if link else '' }}">Copy text</button>
+  </div>
+  <p class="small muted" style="margin-top:8px">Instagram: tap “Share with photos” on your phone and choose Instagram (it needs a photo).</p>
+</section>
+{% endif %}
 <form method="post" enctype="multipart/form-data" class="card stack" style="max-width:640px">
   <label class="field"><span>Title</span><input name="title" value="{{ p.title or '' }}" maxlength="160" placeholder="New bathroom in Tettenhall" required></label>
   <label class="field"><span>Town <small>optional, helps local searches</small></span><input name="town" value="{{ p.town or '' }}" placeholder="Wolverhampton"></label>

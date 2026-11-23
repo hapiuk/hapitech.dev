@@ -297,10 +297,10 @@ def test_bad_jsonl_is_rejected(app):
 
 ADMIN_PAGES = ["/admin/", "/admin/clients", "/admin/clients/new", "/admin/clients/rolands",
                "/admin/clients/rolands?tab=jobs", "/admin/clients/rolands?tab=money", "/admin/clients/rolands?tab=users",
-               "/admin/clients/rolands?tab=reviews", "/admin/clients/rolands?tab=site", "/admin/reviews",
+               "/admin/clients/rolands?tab=reviews", "/admin/clients/rolands?tab=site", "/admin/clients/rolands?tab=traffic", "/admin/reviews",
                "/admin/reviews/new", "/admin/requests", "/admin/settings", "/admin/lab/runs", "/admin/lab/runs/new",
                "/admin/lab/prompts", "/admin/lab/prompts/new", "/admin/lab/models", "/admin/lab/models/new", "/admin/work"]
-PORTAL_PAGES = ["/portal/", "/portal/ask", "/portal/requests", "/portal/reviews", "/portal/posts", "/portal/posts/new", "/portal/jobs", "/portal/jobs/new", "/portal/calendar", "/portal/settings",
+PORTAL_PAGES = ["/portal/", "/portal/visitors", "/portal/website/hero", "/portal/ask", "/portal/requests", "/portal/reviews", "/portal/posts", "/portal/posts/new", "/portal/jobs", "/portal/jobs/new", "/portal/calendar", "/portal/settings",
                 "/portal/website", "/portal/help"]
 PUBLIC_PAGES = ["/", "/news", "/privacy", "/terms", "/login", "/lab", "/reviews/rolands", "/reviews/rolands/write"]
 
@@ -683,3 +683,64 @@ def test_client_update_notes(app):
     assert "Send a test to me" in page
     r = _form(a, "/admin/updates", {"section": "0", "client": "rolands", "action": "test"}, page="/admin/updates")
     assert r.status_code == 302 and any("Your new dashboard" in m for m in _outbox(app))
+
+
+def test_open_form_reviews_wait_unless_customer(app, monkeypatch):
+    import datetime as dt
+    import routes.reviews_public as rp
+    from models import db
+    from models.core import Account
+    from models.reviews import Review
+    from models.work import Lead
+    from utils.tasks import run_all
+    monkeypatch.setattr(rp, "MIN_SECONDS_TO_WRITE", 0)
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        a.contact_email = "owner@test"
+        db.session.add(Lead(account_id=a.id, name="Real Customer", email="real@example.com", status="done"))
+        db.session.commit()
+    def post(name, email):
+        c = app.test_client()
+        html = c.get("/reviews/rolands/write").get_data(as_text=True)
+        tok = re.search(r'name="csrf-token" content="([^"]+)"', html).group(1)
+        t = re.search(r'name="t" value="([^"]+)"', html).group(1)
+        return c.post("/reviews/rolands/write", data={"csrf_token": tok, "t": t, "rating": "5", "name": name,
+                                                       "body": "Great", "email": email})
+    assert "once Roland has seen it" in post("Stranger", "who@example.com").get_data(as_text=True)
+    post("Real", "REAL@example.com")
+    with app.app_context():
+        s = Review.query.filter_by(author_name="Stranger").first()
+        r = Review.query.filter_by(author_name="Real").first()
+        assert s.status == "pending" and not s.verified
+        assert r.status == "published" and r.verified
+    assert any("waiting for your OK" in m for m in _outbox(app))
+    assert "Stranger" not in app.test_client().get("/reviews/rolands").get_data(as_text=True)   # not public yet
+    o = app.test_client()
+    _login(o, "roland@test")
+    page = o.get("/portal/reviews").get_data(as_text=True)
+    assert "Waiting for your OK (1)" in page
+    with app.app_context():
+        sid = Review.query.filter_by(author_name="Stranger").first().id
+    _form(o, f"/portal/reviews/{sid}", {"action": "approve"}, page="/portal/reviews")
+    with app.app_context():
+        assert db.session.get(Review, sid).status == "published"
+        # an untouched one goes live after 14 days
+        old = Review(account_id=Account.query.filter_by(slug="rolands").first().id, author_name="Old", rating=3,
+                     status="pending", source="website", created_at=dt.datetime.utcnow() - dt.timedelta(days=15))
+        db.session.add(old); db.session.commit(); oid = old.id
+    assert run_all(app, force=True)["auto_published"] == 1
+    with app.app_context():
+        assert db.session.get(Review, oid).status == "published"
+
+
+def test_publish_post_shows_share_card_and_home_tips(app):
+    o = app.test_client()
+    _login(o, "roland@test")
+    r = _form(o, "/portal/posts/new", {"title": "New bathroom in Tettenhall", "town": "Tettenhall",
+                                       "body": "Four days.", "action": "publish"}, page="/portal/posts/new")
+    assert r.status_code == 302 and r.headers["Location"].endswith("#share")
+    page = o.get(r.headers["Location"].split("#")[0]).get_data(as_text=True)
+    assert "Share it" in page and "facebook.com/sharer" in page and "/posts/" in page
+    home = o.get("/portal/").get_data(as_text=True)
+    assert "Edit my website" in home and "tip__text" in home and "Latest reviews" not in home
+    assert "Visitors" in o.get("/portal/visitors").get_data(as_text=True)

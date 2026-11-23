@@ -70,6 +70,14 @@ def run_all(app, force=False) -> dict:
                 print(f"[TASK repeat {rem.id}] {exc}")
         db.session.commit()
 
+        # fairness: open-form reviews nobody acted on go live after 14 days (unless marked spam)
+        from models.reviews import Review
+        from routes.reviews_public import PENDING_AUTO_PUBLISH_DAYS
+        stale = now - dt.timedelta(days=PENDING_AUTO_PUBLISH_DAYS)
+        out["auto_published"] = Review.query.filter(Review.status == "pending", Review.created_at < stale) \
+            .update({"status": "published"}, synchronize_session=False)
+        db.session.commit()
+
         # retention: declined jobs go after 30 days (accepted/done ones are never auto-deleted)
         cutoff = now - dt.timedelta(days=DECLINED_RETENTION_DAYS)
         for lead in Lead.query.filter(Lead.status == "declined", Lead.declined_at < cutoff).all():

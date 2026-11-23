@@ -85,6 +85,36 @@ def _save_review_photos(a, files, name):
     return ids
 
 
+PENDING_AUTO_PUBLISH_DAYS = 14
+
+
+def _matches_customer(a, email):
+    from models.work import Lead
+    email = (email or "").strip().lower()
+    if "@" not in email:
+        return False
+    return db.session.query(Lead.id).filter(Lead.account_id == a.id, db.func.lower(Lead.email) == email,
+                                            Lead.status.in_(["accepted", "booked", "done"])).first() is not None
+
+
+def _tell_owner_pending(a, review):
+    if not a.contact_email:
+        return
+    try:
+        from utils import email_html
+        from utils.links import public_url
+        email_html.send(a.contact_email, f"New review from {review.author_name}: waiting for your OK",
+                        heading="A new review is waiting for your OK",
+                        lines=[f"{review.author_name} left a {review.rating}-star review from your website.",
+                               "Approve it to show it on your site. Please approve every genuine review, good or bad. "
+                               f"Only mark spam or fake ones. If you don't get to it, it goes live by itself after "
+                               f"{PENDING_AUTO_PUBLISH_DAYS} days."],
+                        box=[("Review", (review.body or "(no text)")[:300])],
+                        button={"label": "Check the review", "url": public_url(url_for("portal.reviews", show="pending"))})
+    except Exception as exc:
+        print(f"[REVIEW_PENDING_NOTIFY] {exc}")
+
+
 @reviews_public_bp.route("/reviews/<slug>/write", methods=["GET", "POST"])
 def write(slug):
     """Open review form behind each client site's "Leave a review" button (no request link needed)."""
@@ -127,13 +157,19 @@ def write(slug):
             photo_ids = _save_review_photos(a, request.files, name)
         except UploadError as e:
             return render_template("reviews/leave.html", a=a, req=None, f=f, open_form=True, t=f.get("t"), error=str(e))
+        # Verified if the email matches one of this business's own customers; otherwise it waits for an OK.
+        # The email is only used for this check and is never stored.
+        verified = _matches_customer(a, f.get("email"))
         review = Review(account_id=a.id, source="website", author_name=name, rating=rating,
                         body=(f.get("body") or "").strip()[:3000], photos=json.dumps(photo_ids),
-                        service=(f.get("service") or "").strip()[:120] or None, status="published",
-                        verified=False, reviewed_at=dt.datetime.utcnow())
+                        service=(f.get("service") or "").strip()[:120] or None,
+                        status="published" if verified else "pending",
+                        verified=verified, reviewed_at=dt.datetime.utcnow())
         db.session.add(review)
         db.session.add(LoginAttempt(ip=ip_key(), email=f"review:{a.slug}", kind="review", success=True))
         db.session.commit()
+        if not verified:
+            _tell_owner_pending(a, review)
         return render_template("reviews/thanks.html", a=a, review=review, already=False)
     return render_template("reviews/leave.html", a=a, req=None, f={}, open_form=True,
                            t=signer.dumps(dt.datetime.utcnow().timestamp()), error=None)

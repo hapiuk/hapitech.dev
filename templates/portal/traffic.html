@@ -1,0 +1,10 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import howto with context %}
+{% block title %}Visitors{% endblock %}
+{% block content %}
+<div class="page-top"><div><h1>Visitors</h1><p>How many people visit your website, and how they find you.</p></div></div>
+{% call howto('How do I get more visitors?') %}
+  <p>Post photos of finished jobs (mention the town), ask every happy customer for a review, and reply to reviews. Google notices sites that are kept fresh and that customers talk about.</p>
+{% endcall %}
+{% include "app/_traffic.html" %}
+{% endblock %}

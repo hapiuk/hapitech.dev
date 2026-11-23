@@ -15,10 +15,14 @@
     {% for row in d %}<div class="form-grid"><input class="field" name="day" value="{{ row[0] }}"><input class="field" name="hours" value="{{ row[1] }}"></div>{% endfor %}
     <div class="form-grid"><input class="field" name="day" placeholder="Add a day"><input class="field" name="hours" placeholder="e.g. 8am – 6pm"></div>
   {% elif b.type == 'images' %}
+    <div class="photo-top">
+      <label class="field"><span>Add photos <small>from your phone or computer</small></span><input type="file" name="photos" accept="image/*" multiple></label>
+      <button class="btn btn--sm" name="action" value="save">Save</button>
+    </div>
+    <p class="small muted">{{ d|length }} photo{{ '' if d|length == 1 else 's' }} below. Untick any you want to remove, then Save.</p>
     <div class="photos">{% for x in d %}
-      <figure>{% if x is string %}<img src="https://{{ g.account.domain }}/static/{{ x[7:] }}" alt="">{% else %}{% set m = media_by_id(x) %}{% if m %}<img src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="">{% endif %}{% endif %}
+      <figure>{% if x is string %}<img src="https://{{ g.account.domain }}/static/{{ x[7:] }}" alt="" loading="lazy">{% else %}{% set m = media_by_id(x) %}{% if m %}<img src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="" loading="lazy">{% endif %}{% endif %}
         <label><input type="checkbox" name="keep" value="{{ x }}" checked> keep</label></figure>{% endfor %}</div>
-    <label class="field"><span>Add photos</span><input type="file" name="photos" accept="image/*" multiple></label>
   {% endif %}
   <div class="form-actions">
     <button class="btn" name="action" value="save">Save</button>
