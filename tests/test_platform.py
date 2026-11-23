@@ -1126,3 +1126,13 @@ def test_my_plan_value_running_costs_and_support_button(app):
                                                 "interval": "yearly", "covered": "1"}, page="/admin/clients/rolands")
     with app.app_context():
         assert RunningCost.query.filter_by(title="Domain renewal").first().covered
+
+
+def test_language_switch_on_client_dashboard_only(app):
+    o = app.test_client(); _login(o, "roland@test")
+    page = o.get("/portal/").get_data(as_text=True)
+    assert 'data-lang="lv"' in page and "i18n-lv.js" in page and "lv-pending" in page
+    adm = app.test_client(); _login(adm, "admin@test")
+    assert 'data-lang="lv"' not in adm.get("/admin/").get_data(as_text=True)
+    js = app.test_client().get("/static/js/i18n-lv.js").get_data(as_text=True)
+    assert '"My plan": "Mans plāns"' in js and '"Saved on this plan": "Ietaupīts ar šo plānu"' in js

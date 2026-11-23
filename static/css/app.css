@@ -449,3 +449,11 @@ a.stat:hover{border-color:var(--line-2)}
 .statement__totals dt{color:var(--muted)}
 .statement__totals dd{margin:0;text-align:right;font-weight:600}
 .statement__totals dt:last-of-type,.statement__totals dd:last-of-type{padding-top:6px;border-top:1px solid var(--line);color:var(--ink);font-weight:700}
+/* EN | LV switch (client dashboard) */
+html.lv-pending body{visibility:hidden}
+.lang{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;gap:2px;flex:none}
+.lang button{border:0;background:none;color:var(--muted,inherit);font:600 .74rem/1 var(--mono,inherit);letter-spacing:.06em;padding:6px 9px;border-radius:999px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--acc-soft);color:var(--acc)}
+.lang-row{display:flex;justify-content:flex-end;margin:-14px 0 6px}
+.topbar .lang{margin-left:auto}
+@media (max-width:960px){ .lang-row{display:none} }

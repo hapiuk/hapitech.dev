@@ -258,3 +258,17 @@ document.querySelectorAll("[data-check-all]").forEach(function (all) {
       .then(function () { btn.disabled = false; });
   });
 })();
+
+/* EN | LV switch: saved on this device, English by default */
+(function () {
+  var cur = "en"; try { cur = localStorage.getItem("lang") === "lv" ? "lv" : "en"; } catch (e) {}
+  document.querySelectorAll("[data-lang]").forEach(function (b) {
+    b.setAttribute("aria-pressed", b.getAttribute("data-lang") === cur ? "true" : "false");
+    b.addEventListener("click", function () {
+      var v = b.getAttribute("data-lang");
+      if (v === cur) return;
+      try { localStorage.setItem("lang", v); } catch (e) {}
+      location.reload();
+    });
+  });
+})();
