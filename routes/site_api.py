@@ -145,15 +145,19 @@ def enquiry(slug):
     if not name:
         return jsonify({"ok": False, "message": "Name required."}), 400
     source = "booking" if d.get("source") == "booking" else "website"
+    from utils.spam import looks_like_spam
+    spam = looks_like_spam(name, d.get("email") or "", d.get("message") or "", d.get("phone") or "")
     lead = Lead(account_id=a.id, source=source, name=name, email=(d.get("email") or "").strip()[:255] or None,
                 phone=(d.get("phone") or "").strip()[:40] or None,
                 postcode=(d.get("postcode") or "").strip().upper()[:12] or None,
                 title=(d.get("job") or "").strip()[:160] or None, message=(d.get("message") or "").strip()[:5000] or None,
                 preferred=(d.get("preferred") or "").strip()[:200] or None,
                 travel_note=(d.get("travel_note") or "").strip()[:200] or None)
+    if spam:                       # kept out of Jobs, nobody notified, deleted after 14 days
+        lead.status, lead.notes = "spam", f"Blocked as spam: {spam}"
     db.session.add(lead)
     db.session.commit()
-    if source == "booking" and a.contact_email:
+    if source == "booking" and a.contact_email and not spam:
         from utils.mailer import send_email
         try:
             from utils import email_html

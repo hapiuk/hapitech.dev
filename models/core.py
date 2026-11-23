@@ -36,6 +36,8 @@ class Account(TimestampMixin, db.Model):
     contact_email = db.Column(db.String(255))
     contact_phone = db.Column(db.String(40))
     google_profile_url = db.Column(db.String(500))                           # Google "write a review" link
+    balance_gbp = db.Column(db.Numeric(10, 2))                               # what they owe HapiTech (shown on Finances)
+    billing_note = db.Column(db.Text)                                        # optional message on their Finances page
     google_reviews_url = db.Column(db.String(500))                           # page listing their Google reviews ("via Google")
     logo_path = db.Column(db.String(300))                                    # static-relative path
     brand_colour = db.Column(db.String(9))                                   # "#f97316"

@@ -3,7 +3,7 @@
 {% block title %}Clients' jobs{% endblock %}
 {% block content %}
 <div class="page-top"><div><h1>Clients' jobs</h1><p>Every client's enquiries and bookings. Open one to manage it as if you were them.</p></div></div>
-<nav class="subnav">{% for k, label in [('open','Open'),('new','New enquiries'),('done','Done'),('all','All')] %}<a href="{{ url_for('admin.work', show=k) }}" {% if show == k %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+<nav class="subnav">{% for k, label in [('open','Open'),('new','New enquiries'),('done','Done'),('all','All'),('spam','Blocked spam')] %}<a href="{{ url_for('admin.work', show=k) }}" {% if show == k %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
 <div class="grid grid--side">
   <section class="card card--flush">
     {% for l in rows %}

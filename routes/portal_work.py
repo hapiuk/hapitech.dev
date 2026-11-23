@@ -75,7 +75,7 @@ def _items_from_form(form):
 @addon_required
 def jobs():
     show = request.args.get("show", "active")
-    q = scoped(Lead)
+    q = scoped(Lead).filter(Lead.status != "spam")
     if show == "archive":
         q = q.filter(Lead.archived_at.isnot(None))
     else:
@@ -87,7 +87,7 @@ def jobs():
     rows = q.order_by(db.case((Lead.status == "new", 0), else_=1), Lead.start_at.is_(None),
                       Lead.start_at, Lead.created_at.desc()).all()
     counts = dict(db.session.query(Lead.status, db.func.count()).filter(
-        Lead.account_id == g.account.id, Lead.archived_at.is_(None)).group_by(Lead.status).all())
+        Lead.account_id == g.account.id, Lead.archived_at.is_(None), Lead.status != "spam").group_by(Lead.status).all())
     return render_template("portal/jobs.html", rows=rows, show=show, filters=FILTERS, counts=counts)
 
 
@@ -165,6 +165,11 @@ def job(lid):
                 except Exception as exc:
                     msg += f" (Review email failed: {exc})"
             flash(msg, "ok")
+        elif action == "spam" and lead.status == "new":
+            db.session.delete(lead)
+            db.session.commit()
+            flash("Deleted as spam.", "ok")
+            return redirect(url_for("portal.jobs"))
         elif action == "decline":
             lead.status, lead.declined_at = "declined", now
             flash("Marked as not going ahead. It'll be deleted automatically in 30 days.", "ok")
@@ -399,3 +404,15 @@ def hero():
 def traffic():
     from utils.traffic import summary
     return render_template("portal/traffic.html", t=summary(g.account))
+
+
+
+# ---------------------------------------------------------------- finances (with HapiTech)
+
+@portal_bp.route("/finances")
+@owner_required
+def finances():
+    from decimal import Decimal
+    a = g.account
+    owed = Decimal(a.balance_gbp or 0)
+    return render_template("portal/finances.html", owed=owed, addon=a.addon())

@@ -99,6 +99,13 @@ def _fill_account(a: Account, form):
     for f in ACCOUNT_FIELDS:
         if f in form:
             setattr(a, f, (form.get(f) or "").strip() or None)
+    if "balance_gbp" in form:
+        try:
+            a.balance_gbp = _money(form.get("balance_gbp")) or None
+        except Exception:
+            pass
+    if "billing_note" in form:
+        a.billing_note = (form.get("billing_note") or "").strip()[:1000] or None
     a.name = a.name or "Untitled client"
     a.status = a.status or "active"
     if a.domain:
@@ -362,6 +369,10 @@ def work():
         q = q.filter(Lead.status == "new")
     elif show == "done":
         q = q.filter(Lead.status == "done")
+    elif show == "spam":
+        q = q.filter(Lead.status == "spam")
+    if show != "spam":
+        q = q.filter(Lead.status != "spam")
     rows = q.order_by(Lead.created_at.desc()).limit(300).all()
     unpaid = Invoice.query.filter(Invoice.status == "sent").order_by(Invoice.sent_at).all()
     return render_template("admin/work.html", rows=rows, show=show, unpaid=unpaid)
@@ -387,58 +398,119 @@ def change_request_set(rid):
 
 # ---------------------------------------------------------------- update notes for clients (docs/client-updates.md)
 
+ADDED_NOTE = "Added from Emails to clients, ready to invite"
+
+
 @admin_bp.route("/updates", methods=["GET", "POST"])
 def updates():
-    """Emails to clients: the dashboard invite (docs/client-invite.md) and what's-new notes (docs/client-updates.md)."""
+    """Emails to clients. Tabs: What's new (a mailing list: write a message, or send a note from
+    docs/client-updates.md), Dashboard invite (docs/client-invite.md), Invite new clients."""
     from utils import updates as upd
     from utils.plans import start_friends
     invites, notes = upd.sections(upd.INVITE_FILE), upd.sections(upd.FILE)
     clients = Account.query.filter(Account.kind == "client", Account.status != "archived").order_by(Account.name).all()
+    added_ids = {n.account_id for n in Note.query.filter_by(body=ADDED_NOTE).all()}
+    show = request.values.get("show") or request.form.get("kind") or "update"
+    if show not in ("update", "invite", "new", "message"):
+        show = "update"
+    compose, compose_previews = {}, []
+
     if request.method == "POST":
         kind = request.form.get("kind")
-        secs, label = (invites, "Invite emailed") if kind == "invite" else (notes, "Update emailed")
-        try:
-            sec = secs[int(request.form.get("section", -1))]
-        except (ValueError, IndexError):
-            abort(400)
-        a = Account.query.filter_by(slug=request.form.get("client")).first_or_404()
-        test = request.form.get("action") == "test"
-        to = current_user.email if test else upd.owner_email(a)
-        if not to:
-            flash(f"{a.name} has no owner login or contact email.", "err")
-            return redirect(url_for("admin.updates", show=kind))
-        if kind == "invite" and not test:
-            # switch on their login and the Friends plan (unless they're already on it)
-            owner = User.query.filter_by(account_id=a.id, role="owner").order_by(User.id).first()
-            if owner is None:
-                owner = User(email=to, username=to, name=a.contact_name, role="owner", account_id=a.id)
-                db.session.add(owner)
-            owner.is_active_flag = True
-            ad = a.addon() or AddOn(account_id=a.id, kind="reviews_updates")
-            if ad.status != "friends":
-                start_friends(ad)
-            if ad.id is None:
-                db.session.add(ad)
-            db.session.commit()
-        try:
-            upd.send(a, sec, to=to)
-        except Exception as exc:
-            flash(f"Email failed: {exc}", "err")
-            return redirect(url_for("admin.updates", show=kind))
-        if test:
-            flash(f"Test copy of {a.name}'s email sent to {current_user.email}.", "ok")
+        action = request.form.get("action")
+        if kind == "message":
+            # a one-off message written here, to the ticked clients
+            subject = (request.form.get("subject") or "").strip()[:150]
+            body = (request.form.get("body") or "").strip()[:8000]
+            picked = [c for c in clients if c.slug in request.form.getlist("to")]
+            compose = {"subject": subject, "body": body, "to": [c.slug for c in picked]}
+            if not subject or not body:
+                flash("Add a subject and a message.", "err")
+            elif action == "preview" or not picked and action != "test":
+                if not picked:
+                    flash("Tick who it's for.", "err")
+                compose_previews = [(c, upd.page(c, {"title": subject, "body": body})[1]) for c in (picked or clients[:1])]
+            else:
+                sec = {"title": subject, "body": body}
+                targets = [(picked[0] if picked else clients[0], current_user.email)] if action == "test" else \
+                          [(c, upd.owner_email(c)) for c in picked]
+                sent, failed = [], []
+                for c, to in targets:
+                    if not to:
+                        failed.append(f"{c.name} (no email)")
+                        continue
+                    try:
+                        upd.send(c, sec, to=to)
+                        sent.append(c.name)
+                        if action != "test":
+                            db.session.add(Note(account_id=c.id, author_id=current_user.id, body=f"Message emailed: {subject}"))
+                    except Exception as exc:
+                        failed.append(f"{c.name} ({exc})")
+                db.session.commit()
+                if action == "test":
+                    flash(f"Test sent to {current_user.email}.", "ok") if sent else flash("Test failed: " + "; ".join(failed), "err")
+                    compose_previews = [(targets[0][0], upd.page(targets[0][0], sec)[1])]
+                else:
+                    if sent:
+                        flash(f"Sent to {', '.join(sent)}.", "ok")
+                        compose = {}
+                    if failed:
+                        flash("Not sent: " + "; ".join(failed), "err")
+            show = "update"
         else:
-            db.session.add(Note(account_id=a.id, author_id=current_user.id, body=f"{label}: {sec['title']}"))
-            db.session.commit()
-            flash(f"Sent to {a.name} ({to})." + (" Their login and Friends plan are switched on." if kind == "invite" else ""), "ok")
-        return redirect(url_for("admin.updates", show=kind))
-    show = request.args.get("show", "invite")
+            secs, label = (invites, "Invite emailed") if kind == "invite" else (notes, "Update emailed")
+            try:
+                sec = secs[int(request.form.get("section", -1))]
+            except (ValueError, IndexError):
+                abort(400)
+            a = Account.query.filter_by(slug=request.form.get("client")).first_or_404()
+            back = request.form.get("back") or kind
+            test = action == "test"
+            to = current_user.email if test else upd.owner_email(a)
+            if not to:
+                flash(f"{a.name} has no owner login or contact email.", "err")
+                return redirect(url_for("admin.updates", show=back))
+            if kind == "invite" and not test:
+                # switch on their login and the Friends plan (unless they're already on it)
+                owner = User.query.filter_by(account_id=a.id, role="owner").order_by(User.id).first()
+                if owner is None:
+                    owner = User(email=to, username=to, name=a.contact_name, role="owner", account_id=a.id)
+                    db.session.add(owner)
+                owner.is_active_flag = True
+                ad = a.addon() or AddOn(account_id=a.id, kind="reviews_updates")
+                if ad.status != "friends":
+                    start_friends(ad)
+                if ad.id is None:
+                    db.session.add(ad)
+                db.session.commit()
+            try:
+                upd.send(a, sec, to=to)
+            except Exception as exc:
+                flash(f"Email failed: {exc}", "err")
+                return redirect(url_for("admin.updates", show=back))
+            if test:
+                flash(f"Test copy of {a.name}'s email sent to {current_user.email}.", "ok")
+            else:
+                db.session.add(Note(account_id=a.id, author_id=current_user.id, body=f"{label}: {sec['title']}"))
+                db.session.commit()
+                flash(f"Sent to {a.name} ({to})." + (" Their login and Friends plan are switched on." if kind == "invite" else ""), "ok")
+            return redirect(url_for("admin.updates", show=back) + f"#c-{a.slug}")
+
     sent = {}
     for n in Note.query.filter(db.or_(Note.body.like("Update emailed: %"), Note.body.like("Invite emailed: %"))).all():
         sent.setdefault((n.account_id, n.body.split(": ", 1)[1]), n.created_at)
-    secs = invites if show == "invite" else notes
-    previews = [[(a, upd.page(a, s)[1], upd.owner_email(a)) for a in clients] for s in secs]
-    return render_template("admin/updates.html", secs=secs, clients=clients, previews=previews, sent=sent, show=show)
+    history = (Note.query.filter(Note.body.like("Message emailed: %")).order_by(Note.created_at.desc()).limit(40).all()
+               if show == "update" else [])
+    if show == "update":
+        secs, people = notes, clients
+    elif show == "invite":
+        secs, people = invites, [c for c in clients if c.id not in added_ids]
+    else:
+        secs, people = invites, [c for c in clients if c.id in added_ids]
+    previews = [[(a, upd.page(a, s)[1], upd.owner_email(a)) for a in people] for s in secs]
+    return render_template("admin/updates.html", secs=secs, clients=clients, previews=previews, sent=sent, show=show,
+                           compose=compose, compose_previews=compose_previews, history=history,
+                           kind="update" if show == "update" else "invite")
 
 
 @admin_bp.route("/updates/new", methods=["POST"])
@@ -449,10 +521,10 @@ def invite_new():
     email = (f.get("email") or "").strip().lower()
     if not name or "@" not in email:
         flash("Add their business name and email.", "err")
-        return redirect(url_for("admin.updates", show="invite"))
+        return redirect(url_for("admin.updates", show="new"))
     if User.query.filter(db.func.lower(User.email) == email).first():
         flash("That email already has a login.", "err")
-        return redirect(url_for("admin.updates", show="invite"))
+        return redirect(url_for("admin.updates", show="new"))
     base, n, slug = slugify(name), 2, slugify(name)
     while Account.query.filter_by(slug=slug).first():
         slug, n = f"{base}-{n}", n + 1
@@ -461,7 +533,18 @@ def invite_new():
     db.session.add(a)
     db.session.flush()
     db.session.add(User(email=email, username=email, name=who or None, role="owner", account_id=a.id, is_active_flag=False))
-    db.session.add(Note(account_id=a.id, author_id=current_user.id, body="Added from Emails to clients, ready to invite"))
+    db.session.add(Note(account_id=a.id, author_id=current_user.id, body=ADDED_NOTE))
     db.session.commit()
     flash(f"{name} added. Check their invite below, then send it.", "ok")
-    return redirect(url_for("admin.updates", show="invite") + f"#c-{a.slug}")
+    return redirect(url_for("admin.updates", show="new") + f"#c-{a.slug}")
+
+
+@admin_bp.route("/me/<what>")
+def me(what):
+    """HapiTech's own posts / reviews: open them in the same dashboard screens the clients use."""
+    from utils.hapitech_account import get
+    a = get()
+    session["portal_as"] = a.slug
+    target = {"post": "/portal/posts/new", "posts": "/portal/posts", "reviews": "/portal/reviews",
+              "ask": "/portal/ask"}.get(what, "/portal/posts")
+    return redirect(target)

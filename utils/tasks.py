@@ -84,6 +84,12 @@ def run_all(app, force=False) -> dict:
             .update({"status": "published"}, synchronize_session=False)
         db.session.commit()
 
+        # spam enquiries: kept 14 days (in case one was real), then deleted
+        from models.work import Lead as _Lead
+        out["spam_deleted"] = _Lead.query.filter(_Lead.status == "spam",
+                                                 _Lead.created_at < now - dt.timedelta(days=14)).delete(synchronize_session=False)
+        db.session.commit()
+
         # retention: declined jobs go after 30 days (accepted/done ones are never auto-deleted)
         cutoff = now - dt.timedelta(days=DECLINED_RETENTION_DAYS)
         for lead in Lead.query.filter(Lead.status == "declined", Lead.declined_at < cutoff).all():

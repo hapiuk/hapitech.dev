@@ -89,10 +89,16 @@ PENDING_AUTO_PUBLISH_DAYS = 14
 
 
 def _matches_customer(a, email):
+    from models.core import Account, User
     from models.work import Lead
     email = (email or "").strip().lower()
     if "@" not in email:
         return False
+    if a.kind == "internal":     # HapiTech's own reviews: our clients are the customers
+        return (db.session.query(User.id).filter(db.func.lower(User.email) == email, User.account_id.isnot(None),
+                                                 User.account_id != a.id).first() is not None
+                or db.session.query(Account.id).filter(Account.kind == "client",
+                                                       db.func.lower(Account.contact_email) == email).first() is not None)
     return db.session.query(Lead.id).filter(Lead.account_id == a.id, db.func.lower(Lead.email) == email,
                                             Lead.status.in_(["accepted", "booked", "done"])).first() is not None
 
@@ -121,7 +127,7 @@ def write(slug):
     from itsdangerous import BadSignature, URLSafeTimedSerializer
     from models.core import LoginAttempt
     from utils.security import ip_key
-    a = Account.query.filter_by(slug=slug, kind="client").first()
+    a = Account.query.filter(Account.slug == slug, Account.kind.in_(["client", "internal"])).first()
     if not a or a.status == "archived":
         abort(404)
     if not a.has_addon():                       # add-on off: the button keeps working, straight to Google
@@ -177,7 +183,7 @@ def write(slug):
 
 @reviews_public_bp.route("/reviews/<slug>")
 def business(slug):
-    a = Account.query.filter_by(slug=slug, kind="client").first()
+    a = Account.query.filter(Account.slug == slug, Account.kind.in_(["client", "internal"])).first()
     if not a or a.status == "archived":
         abort(404)
     q = Review.query.filter(Review.account_id == a.id, Review.status.in_(["published", "reported"]))

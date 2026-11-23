@@ -18,6 +18,7 @@ ICONS = {
     "list": '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
     "briefcase": '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>',
     "calendar": '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    "pound": '<path d="M17 20H7c2-1.5 2.5-3.5 2.5-6V8a4 4 0 0 1 7.5-2"/><path d="M6 13h9"/>',
     "chart": '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
     "lab": '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/><path d="M7.5 15h9"/>',
 }
@@ -40,6 +41,10 @@ def admin_nav(counts=None):
         _item("Reviews", "admin.reviews", "star", prefix="/admin/reviews", badge=c.get("reported")),
         _item("Change requests", "admin.change_requests", "inbox", prefix="/admin/requests", badge=c.get("requests")),
         _item("Emails to clients", "admin.updates", "send", prefix="/admin/updates"),
+        {"section": "My site (hapitech.dev)"},
+        _item("My updates", "admin.me", "image", url="/admin/me/posts", prefix="/admin/me/posts"),
+        _item("My reviews", "admin.me", "star", url="/admin/me/reviews", prefix="/admin/me/reviews"),
+        _item("Ask for a review", "admin.me", "send", url="/admin/me/ask", prefix="/admin/me/ask"),
         {"section": "HapiTech Lab"},
         _item("Benchmark runs", "admin.bench_runs", "play", prefix="/admin/lab/runs"),
         _item("Prompts", "admin.bench_prompts", "doc", prefix="/admin/lab/prompts"),
@@ -51,17 +56,21 @@ def admin_nav(counts=None):
 
 def portal_nav(counts=None, owner=True):
     c = counts or {}
-    items = [
-        _item("Home", "portal.home", "home", url="/portal", tab=True),
-        _item("Jobs", "portal.jobs", "briefcase", prefix="/portal/jobs", tab=True, badge=c.get("new_jobs")),
-        _item("Ask for a review", "portal.ask", "send", prefix="/portal/ask", tab=True, short="Ask", primary=True),
-        _item("Reviews", "portal.reviews", "star", prefix="/portal/reviews", tab=True, badge=c.get("unreplied")),
-        _item("Calendar", "portal.calendar", "calendar", prefix="/portal/calendar"),
-        _item("Posts", "portal.posts", "image", prefix="/portal/posts"),
-        _item("Visitors", "portal.traffic", "chart", prefix="/portal/visitors"),
-    ]
+    # sidebar order: Home, My website, Visitors, Reviews, Posts, Jobs, Calendar, Finances, Settings, Help.
+    # `tab` = position in the phone's bottom bar (Home, Jobs, Ask, Reviews); `tab_only` = bottom bar only.
+    items = [_item("Home", "portal.home", "home", url="/portal", tab=1)]
     if owner:
         items.append(_item("My website", "portal.website", "edit", prefix="/portal/website"))
+    items += [
+        _item("Visitors", "portal.traffic", "chart", prefix="/portal/visitors"),
+        _item("Reviews", "portal.reviews", "star", prefix="/portal/reviews", tab=4, badge=c.get("unreplied")),
+        _item("Posts", "portal.posts", "image", prefix="/portal/posts"),
+        _item("Jobs", "portal.jobs", "briefcase", prefix="/portal/jobs", tab=2, badge=c.get("new_jobs")),
+        _item("Ask for a review", "portal.ask", "send", prefix="/portal/ask", tab=3, tab_only=True, short="Ask", primary=True),
+        _item("Calendar", "portal.calendar", "calendar", prefix="/portal/calendar"),
+    ]
+    if owner:
+        items.append(_item("Finances", "portal.finances", "pound", prefix="/portal/finances"))
         items.append(_item("Settings", "portal.settings", "cog", prefix="/portal/settings"))
     items.append(_item("Help", "portal.help", "help", prefix="/portal/help"))
     return items

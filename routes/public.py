@@ -20,7 +20,7 @@ def index():
             news_items.append(item)
         if len(news_items) == 3:
             break
-    return render_template("home.html", news_items=news_items)
+    return render_template("home.html", news_items=news_items, updates=_updates(3), reviews=_reviews(6))
 
 
 @public_bp.route("/privacy")
@@ -55,3 +55,46 @@ def contact():
         print(f"[CONTACT_EMAIL_ERROR] {e}")
         return jsonify({"success": False, "message": "Could not send right now. Try again shortly."}), 500
     return jsonify({"success": True, "message": "Sent — we’ll get back to you shortly."})
+
+
+
+# ---------------------------------------------------------------- HapiTech's own updates + reviews
+
+def _updates(limit=None):
+    from models.content import Post
+    from utils.hapitech_account import get
+    a = get(create=False)
+    if not a:
+        return []
+    q = Post.query.filter_by(account_id=a.id, status="published").order_by(Post.published_at.desc())
+    return q.limit(limit).all() if limit else q.all()
+
+
+def _reviews(limit=6):
+    from models.reviews import Review
+    from utils.hapitech_account import get
+    a = get(create=False)
+    if not a:
+        return []
+    return (Review.query.filter_by(account_id=a.id, status="published")
+            .order_by(Review.reviewed_at.desc().nullslast(), Review.created_at.desc()).limit(limit).all())
+
+
+@public_bp.route("/updates")
+@public_bp.route("/updates/<int:pid>")
+def updates(pid=None):
+    from flask import abort, url_for
+    rows = _updates()
+    post = None
+    if pid is not None:
+        post = next((p for p in rows if p.id == pid), None)
+        if post is None:
+            abort(404)
+    return render_template("site/updates.html", rows=rows, post=post)
+
+
+@public_bp.route("/posts/<int:pid>")
+def post_link(pid):
+    """The dashboard's share links use /posts/<id> on every site; on hapitech.dev those are /updates/<id>."""
+    from flask import url_for
+    return redirect(url_for("public.updates", pid=pid), code=301)

@@ -41,10 +41,17 @@ def _shell():
                                      ~Review.replies.any(), Review.reviewed_at.isnot(None)).count()
                  + Review.query.filter_by(account_id=g.account.id, status="pending").count()) or None
     from models.work import Lead
-    new_jobs = Lead.query.filter_by(account_id=g.account.id, status="new", archived_at=None).count() or None
+    new_jobs = Lead.query.filter_by(account_id=g.account.id, status="new", archived_at=None).count() or None   # spam has its own status
     return {"area": "portal", "nav": portal_nav({"unreplied": unreplied, "new_jobs": new_jobs},
                                                 owner=current_user.is_owner),
-            "addon": g.account.addon()}
+            "addon": g.account.addon(), "brand_accent": brand_accent(g.account)}
+
+
+def brand_accent(account):
+    """The client's brand colour for their dashboard accent, only if it's a plain #rrggbb (it goes into CSS)."""
+    import re
+    c = (account.brand_colour or "").strip()
+    return c.lower() if re.fullmatch(r"#[0-9a-fA-F]{6}", c) else None
 
 
 def addon_required(fn):

@@ -4,21 +4,52 @@
 {% block content %}
 <div class="page-top"><div><h1>Emails to clients</h1><p>Preview exactly what each client will get, send yourself a test, then send.</p></div></div>
 <nav class="subnav">
+  <a href="{{ url_for('admin.updates', show='update') }}" {% if show == 'update' %}aria-current="page"{% endif %}>What's new</a>
   <a href="{{ url_for('admin.updates', show='invite') }}" {% if show == 'invite' %}aria-current="page"{% endif %}>Dashboard invite</a>
-  <a href="{{ url_for('admin.updates', show='update') }}" {% if show != 'invite' %}aria-current="page"{% endif %}>What's new</a>
+  <a href="{{ url_for('admin.updates', show='new') }}" {% if show == 'new' %}aria-current="page"{% endif %}>Invite new clients</a>
 </nav>
-{% if show == 'invite' %}
+
+{% if show == 'update' %}
+{# ---------------- write a message (mailing list) ---------------- #}
+<section class="card card--accent" id="compose">
+  <div class="card__head"><h2>✉️ Write a message</h2><span class="small muted">to any or all clients</span></div>
+  <form method="post" class="stack">
+    <input type="hidden" name="kind" value="message">
+    <label class="field"><span>Subject</span><input name="subject" maxlength="150" value="{{ compose.subject or '' }}" placeholder="A quick update from HapiTech" required></label>
+    <label class="field"><span>Message <small>{name} = their first name · blank line = new paragraph · start a line with "- " for a bullet · **bold**</small></span>
+      <textarea name="body" rows="8" required placeholder="Hi {name},&#10;&#10;Just a quick note to say…&#10;&#10;Thanks,&#10;Aaron">{{ compose.body or '' }}</textarea></label>
+    <fieldset class="to-list"><legend class="small muted">Send to</legend>
+      <label class="check"><input type="checkbox" data-check-all> <span><strong>Everyone</strong></span></label>
+      {% for c in clients %}<label class="check"><input type="checkbox" name="to" value="{{ c.slug }}" {{ 'checked' if c.slug in (compose.to or []) }}> <span>{{ c.name }} <small class="muted">{{ c.contact_email or 'no email' }}</small></span></label>{% endfor %}
+    </fieldset>
+    <div class="row">
+      <button class="btn btn--ghost btn--sm" name="action" value="preview">Preview</button>
+      <button class="btn btn--ghost btn--sm" name="action" value="test">Send a test to me</button>
+      <button class="btn btn--sm" name="action" value="send" data-confirm="Send this message to everyone ticked?">Send</button>
+    </div>
+  </form>
+  {% if compose_previews %}
+  <div class="grid grid--2" style="margin-top:14px">
+    {% for c, html in compose_previews %}<div class="mail-prev"><p class="small muted" style="margin-bottom:6px">Preview for {{ c.name }}</p>
+      <iframe class="mail-prev__frame" title="Preview for {{ c.name }}" srcdoc="{{ html }}" sandbox></iframe></div>{% endfor %}
+  </div>
+  {% endif %}
+  {% if history %}
+  <details class="fold" style="margin-top:12px"><summary class="small">Sent messages ({{ history|length }})</summary>
+    <ul class="list">{% for n in history %}<li><span>{{ n.body[17:] }}</span><span class="small muted">{{ n.account.name }} · {{ n.created_at | ukdate }}</span></li>{% endfor %}</ul>
+  </details>
+  {% endif %}
+</section>
+{% call howto('Ready-written updates') %}
+  <p>Longer "what's new" notes live in <span class="mono">docs/client-updates.md</span>: each <b>## heading</b> is one email, newest at the top. Lines starting <b>- (Roland)</b> or <b>- (Ray)</b> only go to that person.</p>
+{% endcall %}
+{% elif show == 'invite' %}
 {% call howto('What happens when I send the invite?') %}
   <p>Their owner login is switched on and they're put on the <b>Friends plan</b> (auto-renewing every 3 months; change it on their client page), unless they're already on it. The wording lives in <span class="mono">docs/client-invite.md</span>.</p>
 {% endcall %}
 {% else %}
-{% call howto('How do I add an update?') %}
-  <p>Edit <span class="mono">docs/client-updates.md</span>: each <b>## heading</b> is one email, newest at the top. <b>{name}</b> becomes the client's first name, and lines starting <b>- (Roland)</b> or <b>- (Ray)</b> only go to that person. Deploy, then send from here.</p>
-{% endcall %}
-{% endif %}
-{% if show == 'invite' %}
-<details class="card fold" style="margin-bottom:12px" {% if not clients %}open{% endif %}>
-  <summary><strong>+ Invite someone new</strong> <span class="small muted">· they get the Friends plan when you send it</span></summary>
+<details class="card fold" style="margin-bottom:12px" open>
+  <summary><strong>+ Add someone we've made a site for</strong> <span class="small muted">· they get the Friends plan when you send the invite</span></summary>
   <form method="post" action="{{ url_for('admin.invite_new') }}" class="form-grid" style="margin-top:12px">
     <label class="field"><span>Business name</span><input name="business" required placeholder="Smith Plumbing"></label>
     <label class="field"><span>Their name</span><input name="contact_name" placeholder="Dave Smith"></label>
@@ -28,9 +59,11 @@
   </form>
 </details>
 {% endif %}
+
 {% for s in secs %}{% set si = loop.index0 %}
 <section class="card">
-  <div class="card__head"><h2>{{ s.title }}</h2>{% if loop.first and show != 'invite' %}<span class="badge badge--acc">Latest</span>{% endif %}</div>
+  <div class="card__head"><h2>{{ s.title }}</h2>{% if loop.first and show == 'update' %}<span class="badge badge--acc">Latest</span>{% endif %}</div>
+  {% if not previews[si] %}<p class="small muted">{{ 'Nobody added yet. Add someone above.' if show == 'new' else 'No clients yet.' }}</p>{% endif %}
   <div class="grid grid--2">
     {% for a, html, to in previews[si] %}
     <div class="mail-prev" id="c-{{ a.slug }}">
@@ -41,10 +74,10 @@
       </div>
       <iframe class="mail-prev__frame" title="Preview for {{ a.name }}" srcdoc="{{ html }}" loading="lazy" sandbox></iframe>
       <form method="post" class="row" style="margin-top:10px">
-        <input type="hidden" name="kind" value="{{ show }}"><input type="hidden" name="section" value="{{ si }}"><input type="hidden" name="client" value="{{ a.slug }}">
+        <input type="hidden" name="kind" value="{{ kind }}"><input type="hidden" name="back" value="{{ show }}"><input type="hidden" name="section" value="{{ si }}"><input type="hidden" name="client" value="{{ a.slug }}">
         <button class="btn btn--ghost btn--sm" name="action" value="test">Send a test to me</button>
         <button class="btn btn--sm" name="action" value="send" {% if not to %}disabled{% endif %}
-          data-confirm="{{ ('Send the dashboard invite to ' ~ a.name ~ ' (' ~ to ~ ')? This switches on their login and Friends plan.') if show == 'invite' else ('Email this update to ' ~ a.name ~ ' (' ~ to ~ ')?') }}">{{ 'Send again' if when else ('Send invite' if show == 'invite' else 'Send update') }}</button>
+          data-confirm="{{ ('Send the dashboard invite to ' ~ a.name ~ ' (' ~ to ~ ')? This switches on their login and Friends plan.') if kind == 'invite' else ('Email this update to ' ~ a.name ~ ' (' ~ to ~ ')?') }}">{{ 'Send again' if when else ('Send invite' if kind == 'invite' else 'Send update') }}</button>
       </form>
     </div>
     {% endfor %}

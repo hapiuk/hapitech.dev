@@ -19,7 +19,7 @@ HAPITECH = {"slug": "_hapitech", "name": "HapiTech Admin", "short": "HapiTech", 
 def _brand(slug):
     if slug == "_hapitech":
         return HAPITECH
-    a = Account.query.filter_by(slug=slug, kind="client").first()
+    a = Account.query.filter(Account.slug == slug, Account.kind.in_(["client", "internal"])).first()
     if not a or a.status == "archived":
         abort(404)
     short = a.name

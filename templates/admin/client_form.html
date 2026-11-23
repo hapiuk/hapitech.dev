@@ -15,7 +15,9 @@
     <label class="field full"><span>Google review link <small>the "write a review" link from their Google Business Profile</small></span><input name="google_profile_url" value="{{ a.google_profile_url or '' if a else '' }}" placeholder="https://g.page/r/…/review"></label>
     <label class="field full"><span>Google reviews page <small>where "via Google" links go: search Google for the business + "reviews" and copy the link</small></span><input name="google_reviews_url" value="{{ a.google_reviews_url or '' if a else '' }}" placeholder="https://www.google.com/search?q=…+Reviews"></label>
     <label class="field"><span>Logo <small>path under /static, e.g. media/clients/rayg.png</small></span><input name="logo_path" value="{{ a.logo_path or '' if a else '' }}"></label>
-    <label class="field"><span>Brand colour</span><input name="brand_colour" value="{{ a.brand_colour or '' if a else '' }}" placeholder="#f97316"></label>
+    <label class="field"><span>They owe (£) <small>shown on their Finances page; blank = nothing</small></span><input name="balance_gbp" inputmode="decimal" value="{{ a.balance_gbp or '' if a else '' }}" placeholder="0.00"></label>
+    <label class="field full"><span>Message on their Finances page <small>optional</small></span><textarea name="billing_note" rows="2" placeholder="e.g. Thanks, all paid up!">{{ a.billing_note or '' if a else '' }}</textarea></label>
+    <label class="field"><span>Brand colour <small>also their dashboard colour</small></span><input name="brand_colour" value="{{ a.brand_colour or '' if a else '' }}" placeholder="#f97316"></label>
     {% if a %}
     <label class="field"><span>Status</span>
       <select name="status">{% for s in ['active','paused','archived'] %}<option value="{{ s }}" {{ 'selected' if a.status == s }}>{{ s|capitalize }}</option>{% endfor %}</select></label>

@@ -9,6 +9,23 @@
   <div><p class="plan-card__name">You're on our {{ ad.plan.name }}{{ ' 🤝' if ad.status == 'friends' }}</p><p class="small muted">{{ ad.plan.line }}</p></div>
 </section>
 {% endif %}
+<section class="card look" style="margin-bottom:12px">
+  <div class="card__head"><h2>🎨 Dashboard look</h2><span class="small muted">just on this device</span></div>
+  <div class="look__rows">
+    {% if brand_accent %}
+    <div class="look__row"><span class="small muted">Colours</span>
+      <div class="seg" role="radiogroup" aria-label="Colours">
+        <button type="button" data-look="accent" data-val="brand"><i style="background:{{ brand_accent }}"></i>Your brand colours</button>
+        <button type="button" data-look="accent" data-val="hapitech"><i style="background:#2563eb"></i>HapiTech blue</button>
+      </div></div>
+    {% endif %}
+    <div class="look__row"><span class="small muted">Theme</span>
+      <div class="seg" role="radiogroup" aria-label="Theme">
+        <button type="button" data-look="theme" data-val="dark">🌙 Dark</button>
+        <button type="button" data-look="theme" data-val="light">☀️ Light</button>
+      </div></div>
+  </div>
+</section>
 <div class="grid grid--2">
   <section class="card {{ 'card--accent' if g.account.is_away }}">
     <div class="card__head"><h2>🏖️ Away mode</h2>{% if g.account.is_away %}<span class="badge badge--warn">On</span>{% endif %}</div>

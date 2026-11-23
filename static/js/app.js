@@ -200,3 +200,32 @@
     var none = document.querySelector(".site-find__none"); if (none) none.hidden = any;
   });
 })();
+
+/* Settings → Dashboard look: brand / HapiTech colours, dark / light (saved on this device) */
+(function () {
+  var root = document.documentElement;
+  function current(kind) { return root.getAttribute(kind === "accent" ? "data-accent" : "data-theme"); }
+  function paint() {
+    document.querySelectorAll("[data-look]").forEach(function (b) {
+      b.setAttribute("role", "radio");
+      b.setAttribute("aria-checked", current(b.getAttribute("data-look")) === b.getAttribute("data-val") ? "true" : "false");
+    });
+  }
+  document.querySelectorAll("[data-look]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var kind = b.getAttribute("data-look"), val = b.getAttribute("data-val");
+      root.setAttribute(kind === "accent" ? "data-accent" : "data-theme", val);
+      try { localStorage.setItem(kind, val); } catch (e) {}
+      paint();
+    });
+  });
+  paint();
+})();
+
+/* "Everyone" tick box */
+document.querySelectorAll("[data-check-all]").forEach(function (all) {
+  var boxes = all.closest("fieldset").querySelectorAll('input[name="to"]');
+  var sync = function () { all.checked = Array.prototype.every.call(boxes, function (b) { return b.checked; }); };
+  all.addEventListener("change", function () { boxes.forEach(function (b) { b.checked = all.checked; }); });
+  boxes.forEach(function (b) { b.addEventListener("change", sync); }); sync();
+});

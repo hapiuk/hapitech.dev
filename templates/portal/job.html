@@ -126,6 +126,7 @@
     </details>
     <form method="post" class="card stack">
       {% if lead.status in ('new', 'quoted', 'accepted', 'booked') %}<button class="btn btn--ghost btn--sm" name="action" value="decline" data-confirm="Mark as not going ahead? It'll be deleted in 30 days.">Not going ahead</button>{% endif %}
+      {% if lead.status == 'new' and lead.source in ('website', 'booking') %}<button class="btn btn--ghost btn--sm" name="action" value="spam" data-confirm="Delete this as spam?">It's spam</button>{% endif %}
       {% if lead.archived_at %}<button class="btn btn--ghost btn--sm" name="action" value="unarchive">Move back to jobs</button>
       {% elif lead.status in ('done', 'declined') %}<button class="btn btn--ghost btn--sm" name="action" value="archive">Archive</button>{% endif %}
       {% if lead.can_delete %}<button class="btn btn--danger btn--sm" name="action" value="delete" data-confirm="Delete this job and the customer's details for good?">Delete</button>

@@ -934,8 +934,9 @@ def test_invite_someone_new(app):
         a = Account.query.filter_by(slug="smith-plumbing").first()
         u = User.query.filter_by(email="dave@smith.test").first()
         assert a and a.domain == "smithplumbing.co.uk" and u.account_id == a.id and not u.is_active_flag
-    page = adm.get("/admin/updates").get_data(as_text=True)
+    page = adm.get("/admin/updates?show=new").get_data(as_text=True)
     assert 'id="c-smith-plumbing"' in page and "Hi Dave" in page
+    assert 'id="c-smith-plumbing"' not in adm.get("/admin/updates?show=invite").get_data(as_text=True)
     _form(adm, "/admin/updates", {"kind": "invite", "section": "0", "client": "smith-plumbing", "action": "send"}, page="/admin/updates")
     with app.app_context():
         assert User.query.filter_by(email="dave@smith.test").first().is_active_flag
@@ -944,3 +945,115 @@ def test_invite_someone_new(app):
     dup = _form(adm, "/admin/updates/new", {"business": "Other", "email": "dave@smith.test"}, page="/admin/updates")
     with app.app_context():
         assert not Account.query.filter_by(name="Other").first()
+
+
+def test_spam_enquiries_kept_out_of_jobs(app):
+    import datetime as dt
+    from models import db
+    from models.work import Lead
+    from utils.tasks import run_all
+    key = _site_key(app, "rolands")
+    c = app.test_client()
+    real = c.post("/api/v1/sites/rolands/enquiries", json={"name": "Jane", "message": "Shelves please"}, headers=key)
+    spam = c.post("/api/v1/sites/rolands/enquiries", headers=key, json={
+        "name": "Garland", "message": 'No verification payid casino <a href="https://x.example">here</a>'})
+    assert real.status_code == spam.status_code == 201
+    with app.app_context():
+        assert db.session.get(Lead, spam.json["id"]).status == "spam"
+        assert db.session.get(Lead, real.json["id"]).status == "new"
+    o = app.test_client(); _login(o, "roland@test")
+    jobs = o.get("/portal/jobs").get_data(as_text=True)
+    assert "Jane" in jobs and "Garland" not in jobs
+    page = o.get(f"/portal/jobs/{real.json['id']}").get_data(as_text=True)
+    assert "It's spam" in page
+    adm = app.test_client(); _login(adm, "admin@test")
+    assert "Garland" not in adm.get("/admin/work?show=all").get_data(as_text=True)
+    assert "Garland" in adm.get("/admin/work?show=spam").get_data(as_text=True)
+    with app.app_context():
+        db.session.get(Lead, spam.json["id"]).created_at = dt.datetime.utcnow() - dt.timedelta(days=15)
+        db.session.commit()
+    assert run_all(app, force=True)["spam_deleted"] == 1
+
+
+def test_hapitech_own_updates_and_reviews(app, monkeypatch):
+    import routes.reviews_public as rp
+    from models.reviews import Review
+    monkeypatch.setattr(rp, "MIN_SECONDS_TO_WRITE", 0)
+    adm = app.test_client(); _login(adm, "admin@test")
+    r = adm.get("/admin/me/post")
+    assert r.status_code == 302 and r.headers["Location"].endswith("/portal/posts/new")
+    r = _form(adm, "/portal/posts/new", {"title": "New site for a local plumber", "body": "Launched today.",
+                                         "action": "publish"}, page="/portal/posts/new")
+    pid = int(r.headers["Location"].split("/portal/posts/")[1].split("#")[0])
+    share = adm.get(f"/portal/posts/{pid}").get_data(as_text=True)
+    assert f"https://hapitech.dev/posts/{pid}" in share or "hapitech.dev%2Fposts%2F" in share
+    pub = app.test_client()
+    assert "New site for a local plumber" in pub.get("/updates").get_data(as_text=True)
+    one = pub.get(f"/updates/{pid}").get_data(as_text=True)
+    assert 'property="og:title" content="New site for a local plumber"' in one
+    assert pub.get(f"/posts/{pid}").headers["Location"].endswith(f"/updates/{pid}")
+    assert "What we've been up to" in pub.get("/").get_data(as_text=True)
+    # Roland reviews HapiTech with his login email: verified, straight onto the homepage
+    html = pub.get("/reviews/hapitech/write").get_data(as_text=True)
+    tok = re.search(r'name="csrf-token" content="([^"]+)"', html).group(1)
+    t = re.search(r'name="t" value="([^"]+)"', html).group(1)
+    pub.post("/reviews/hapitech/write", data={"csrf_token": tok, "t": t, "rating": "5", "name": "Roland",
+                                               "body": "Aaron built my site", "email": "roland@test"})
+    with app.app_context():
+        rv = Review.query.filter_by(author_name="Roland", body="Aaron built my site").first()
+        assert rv.verified and rv.status == "published"
+    home = pub.get("/").get_data(as_text=True)
+    assert "What clients say" in home and "Aaron built my site" in home
+    assert "My reviews" in adm.get("/admin/").get_data(as_text=True)
+
+
+def test_finances_nav_order_brand_and_website_button(app):
+    from models import db
+    from models.core import Account
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        a.brand_colour, a.domain = "#f97316", "rolandshandyman.co.uk"
+        db.session.commit()
+    o = app.test_client(); _login(o, "roland@test")
+    fin = o.get("/portal/finances").get_data(as_text=True)
+    assert "£0.00" in fin and "all square" in fin
+    home = o.get("/portal/").get_data(as_text=True)
+    side = home[home.index('class="side__nav"'):home.index("</nav>", home.index('class="side__nav"'))]
+    order = [label for label in ("Home", "My website", "Visitors", "Reviews", "Posts", "Jobs", "Calendar", "Finances", "Settings", "Help")
+             if f"<span>{label}</span>" in side]
+    positions = [side.index(f"<span>{label}</span>") for label in order]
+    assert len(order) == 10 and positions == sorted(positions) and "Ask for a review</span>" not in side
+    assert 'href="https://rolandshandyman.co.uk" target="_blank"' in home          # Website button -> their site
+    assert ':root[data-accent="brand"]{--acc:#f97316' in home
+    tabbar = home[home.index('class="tabbar"'):]
+    assert tabbar.index("Home") < tabbar.index("Jobs") < tabbar.index("Ask") < tabbar.index("Reviews")
+    adm = app.test_client(); _login(adm, "admin@test")
+    _form(adm, "/admin/clients/rolands/edit", {"name": "Roland's Handyman", "balance_gbp": "45.50",
+                                               "billing_note": "Hosting for December"}, page="/admin/clients/rolands/edit")
+    fin = o.get("/portal/finances").get_data(as_text=True)
+    assert "£45.50" in fin and "Hosting for December" in fin
+    with app.app_context():
+        Account.query.filter_by(slug="rolands").first().brand_colour = "red;}body{display:none"
+        db.session.commit()
+    assert "display:none" not in o.get("/portal/").get_data(as_text=True)            # only #rrggbb gets into CSS
+
+
+
+def test_write_a_message_to_clients(app):
+    from models.core import Note
+    adm = app.test_client(); _login(adm, "admin@test")
+    page = adm.get("/admin/updates").get_data(as_text=True)
+    assert "Write a message" in page and page.index(">What's new<") < page.index(">Dashboard invite<")
+    body = "Hi {name},\n\nQuick note: **new features** are live.\n\n- Visitors page\n- Finances page\n\nThanks,\nAaron"
+    prev = adm.post("/admin/updates", data={"kind": "message", "subject": "Small update", "body": body, "to": ["rolands"],
+                                            "action": "preview", "csrf_token": _csrf(adm, "/admin/updates")})
+    html = prev.get_data(as_text=True)
+    assert "Preview for Roland" in html and "Hi Roland," in html
+    n = len(_outbox(app))
+    _form(adm, "/admin/updates", {"kind": "message", "subject": "Small update", "body": body, "to": ["rolands", "rayg"],
+                                  "action": "send"}, page="/admin/updates")
+    out = _outbox(app)[n:]
+    assert len(out) == 2 and any("Hi Roland," in m for m in out) and any("Hi Ray" in m for m in out)
+    with app.app_context():
+        assert Note.query.filter_by(body="Message emailed: Small update").count() == 2
+    assert "Sent messages (2)" in adm.get("/admin/updates").get_data(as_text=True)

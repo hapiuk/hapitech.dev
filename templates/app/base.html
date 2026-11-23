@@ -12,6 +12,10 @@
     (function () {
       var t = null; try { t = localStorage.getItem("theme"); } catch (e) {}
       document.documentElement.setAttribute("data-theme", t === "light" ? "light" : "dark");
+      {% if area == 'portal' and brand_accent %}
+      var c = null; try { c = localStorage.getItem("accent"); } catch (e) {}
+      document.documentElement.setAttribute("data-accent", c === "hapitech" ? "hapitech" : "brand");
+      {% endif %}
       document.documentElement.classList.add("js");
     })();
   </script>
@@ -27,6 +31,12 @@
   <link rel="preload" href="{{ url_for('static', filename='fonts/geist-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  {% if area == 'portal' and brand_accent %}
+  <style>
+    :root[data-accent="brand"]{--acc:{{ brand_accent }};--acc-ink:{{ brand_accent }};
+      --acc-soft:color-mix(in srgb,{{ brand_accent }} 16%,transparent);--acc-glow:color-mix(in srgb,{{ brand_accent }} 45%,transparent)}
+  </style>
+  {% endif %}
   {% block head %}{% endblock %}
 </head>
 <body class="site app app--{{ area }}">
@@ -43,7 +53,7 @@
       {% endif %}
     </a>
     <nav class="side__nav">
-      {% for item in nav %}
+      {% for item in nav if not item.tab_only %}
         {% if item.section %}<p class="side__section">{{ item.section }}</p>
         {% else %}
         <a href="{{ item.url }}" class="side__link{% if item.active %} is-active{% endif %}"{% if item.active %} aria-current="page"{% endif %}>
@@ -69,7 +79,8 @@
           <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
           <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
         </button>
-        <a class="btn btn--ghost btn--sm" href="/" title="View hapitech.dev">Website</a>
+        {% if area == 'portal' and g.account.domain %}<a class="btn btn--ghost btn--sm" href="https://{{ g.account.domain }}" target="_blank" rel="noopener" title="View {{ g.account.domain }}">Website</a>
+        {% else %}<a class="btn btn--ghost btn--sm" href="/" title="View hapitech.dev">Website</a>{% endif %}
         <form method="post" action="{{ url_for('auth.logout') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn btn--ghost btn--sm" type="submit">Log out</button>
@@ -112,7 +123,7 @@
 
   {% if area == 'portal' %}
   <nav class="tabbar" aria-label="Quick">
-    {% for item in nav if item.tab %}
+    {% for item in nav | selectattr('tab') | sort(attribute='tab') %}
       <a href="{{ item.url }}" class="tabbar__item{% if item.active %} is-active{% endif %}{% if item.primary %} tabbar__item--primary{% endif %}">
         <svg viewBox="0 0 24 24" aria-hidden="true">{{ item.icon | safe }}</svg><span>{{ item.short or item.label }}</span>
       </a>

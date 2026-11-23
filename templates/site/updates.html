@@ -1,0 +1,44 @@
+{# templates/site/updates.html — HapiTech's own updates (posted from the dashboard, shareable). #}
+{% extends "site/base.html" %}
+{% block title %}{{ (post.title ~ ' | HapiTech') if post else 'Updates | HapiTech' }}{% endblock %}
+{% block meta %}
+  {% set desc = (post.body | truncate(200)) if post and post.body else 'News, recent work and updates from HapiTech.' %}
+  <meta name="description" content="{{ desc }}">
+  <link rel="canonical" href="{{ url_for('public.updates', pid=post.id if post else None, _external=True) }}">
+  <meta property="og:type" content="{{ 'article' if post else 'website' }}">
+  <meta property="og:title" content="{{ post.title if post else 'Updates from HapiTech' }}">
+  <meta property="og:description" content="{{ desc }}">
+  <meta property="og:url" content="{{ url_for('public.updates', pid=post.id if post else None, _external=True) }}">
+  {% if post and post.photos %}<meta property="og:image" content="{{ url_for('reviews_public.media_file', path=post.photos[0].file_path, _external=True) }}">
+  <meta name="twitter:card" content="summary_large_image">{% else %}<meta property="og:image" content="{{ url_for('static', filename='media/work/rolands.webp', _external=True) }}">{% endif %}
+{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="wrap">
+  {% if post %}
+    <p class="upd__back"><a href="{{ url_for('public.updates') }}">← All updates</a></p>
+    <article class="upd upd--full">
+      <p class="kicker">{{ post.published_at | ukdate('%-d %B %Y') }}{% if post.town %} · {{ post.town }}{% endif %}</p>
+      <h1>{{ post.title }}</h1>
+      {% for m in post.photos %}<img class="upd__img" src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="{{ post.title }}" loading="lazy">{% endfor %}
+      {% if post.body %}<p class="upd__body">{{ post.body }}</p>{% endif %}
+      <p style="margin-top:28px"><a class="btn" href="/#contact">Get in touch</a></p>
+    </article>
+  {% else %}
+    <header class="section__head"><p class="kicker">Updates</p><h2>What we've been up to.</h2></header>
+    {% if rows %}
+    <div class="upd-grid">
+      {% for p in rows %}
+      <a class="upd news-card" href="{{ url_for('public.updates', pid=p.id) }}">
+        {% if p.photos %}<img class="upd__thumb" src="{{ url_for('reviews_public.media_file', path=p.photos[0].file_path) }}" alt="" loading="lazy">{% endif %}
+        <div class="news-card__meta"><time>{{ p.published_at | ukdate('%-d %b %Y') }}</time></div>
+        <h3>{{ p.title }}</h3>
+        {% if p.body %}<p>{{ p.body | truncate(160) }}</p>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}<p class="section__lede">Nothing posted yet. Check back soon.</p>{% endif %}
+  {% endif %}
+  </div>
+</section>
+{% endblock %}

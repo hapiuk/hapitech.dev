@@ -694,3 +694,21 @@ a.cred{cursor:pointer}
 .lab-frame{width:100%;aspect-ratio:16/10;border:1px solid var(--line);border-radius:14px;background:#000;margin-top:14px}
 .muted{color:var(--ink-3)}
 .small{font-size:.86rem}
+
+/* ---------- updates + reviews (from the dashboard) ---------- */
+.upd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.upd{display:block;color:inherit;text-decoration:none}
+.upd__thumb{width:calc(100% + 2px);margin:-1px -1px 14px;aspect-ratio:16/10;object-fit:cover;border-radius:14px 14px 0 0;display:block}
+.upd--full{max-width:760px}
+.upd--full h1{font-size:clamp(1.8rem,4vw,2.6rem);margin:6px 0 18px}
+.upd__img{width:100%;border-radius:16px;margin:10px 0;display:block}
+.upd__body{white-space:pre-line;font-size:1.08rem;line-height:1.7;margin-top:14px}
+.upd__back{margin-bottom:18px}
+.rev-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.rev{margin:0;padding:22px;border-radius:18px;background:var(--card);border:1px solid var(--line)}
+.rev__stars{color:#f5b301;letter-spacing:2px}
+.rev__stars span{color:var(--line)}
+.rev blockquote{margin:12px 0 14px;font-size:1rem;line-height:1.6}
+.rev figcaption{font-size:.9rem;color:var(--ink-3)}
+.rev__ok{color:var(--acc);font-weight:600;margin-left:4px}
+@media (max-width:900px){.upd-grid,.rev-grid{grid-template-columns:1fr}}

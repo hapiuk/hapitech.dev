@@ -396,6 +396,51 @@
     </div>
   </section>
 
+  {% if updates %}
+  <!-- UPDATES (posted from the dashboard) -->
+  <section id="updates" class="section">
+    <div class="wrap">
+      <header class="section__head section__head--split reveal">
+        <div><p class="kicker">Updates</p><h2>What we've been up to.</h2></div>
+        <p class="section__lede">Recent work and news from HapiTech.</p>
+      </header>
+      <div class="upd-grid">
+        {% for p in updates %}
+        <a class="upd news-card reveal" href="{{ url_for('public.updates', pid=p.id) }}">
+          {% if p.photos %}<img class="upd__thumb" src="{{ url_for('reviews_public.media_file', path=p.photos[0].file_path) }}" alt="" loading="lazy">{% endif %}
+          <div class="news-card__meta"><time>{{ p.published_at | ukdate('%-d %b %Y') }}</time></div>
+          <h3>{{ p.title }}</h3>
+          {% if p.body %}<p>{{ p.body | truncate(140) }}</p>{% endif %}
+        </a>
+        {% endfor %}
+      </div>
+      <div class="news-foot"><span></span><a href="{{ url_for('public.updates') }}" class="btn btn--ghost btn--sm">All updates →</a></div>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if reviews %}
+  <!-- REVIEWS (collected through the same review system the clients use) -->
+  <section id="reviews" class="section section--tint">
+    <div class="wrap">
+      <header class="section__head section__head--split reveal">
+        <div><p class="kicker">Reviews</p><h2>What clients say.</h2></div>
+        <p class="section__lede">Real reviews from the businesses we work with.</p>
+      </header>
+      <div class="rev-grid">
+        {% for r in reviews %}
+        <figure class="rev reveal">
+          <div class="rev__stars" aria-label="{{ r.rating }} out of 5 stars">{{ '★' * r.rating }}<span>{{ '★' * (5 - r.rating) }}</span></div>
+          {% if r.body %}<blockquote>{{ r.body }}</blockquote>{% endif %}
+          <figcaption><strong>{{ r.author_name }}</strong>{% if r.service %} · {{ r.service }}{% endif %}{% if r.verified %} <span class="rev__ok">✓ Client</span>{% endif %}</figcaption>
+        </figure>
+        {% endfor %}
+      </div>
+      <div class="news-foot"><span></span><a href="{{ url_for('reviews_public.write', slug='hapitech') }}" class="btn btn--ghost btn--sm">Worked with us? Leave a review →</a></div>
+    </div>
+  </section>
+  {% endif %}
+
   {% if news_items %}
   <!-- AI NEWS TEASER -->
   <section id="news" class="section">
