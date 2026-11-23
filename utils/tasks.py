@@ -70,6 +70,12 @@ def run_all(app, force=False) -> dict:
                 print(f"[TASK repeat {rem.id}] {exc}")
         db.session.commit()
 
+        # Friends plans set to auto-renew roll their end date on (every 3 months by default)
+        from models.core import AddOn
+        from utils.plans import roll_forward
+        out["friends_renewed"] = sum(1 for ad in AddOn.query.filter_by(status="friends").all() if roll_forward(ad))
+        db.session.commit()
+
         # fairness: open-form reviews nobody acted on go live after 14 days (unless marked spam)
         from models.reviews import Review
         from routes.reviews_public import PENDING_AUTO_PUBLISH_DAYS

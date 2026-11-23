@@ -39,23 +39,17 @@ def owner_email(account):
 
 
 def _vars(account):
-    """Placeholders: {name} {business} {plan_end} {charge_from} {price} {login_email}."""
-    import datetime as dt
-    from utils.plans import MONTHLY_PRICE, friends_end_default
-    ad = account.addon()
-    end = ad.trial_ends_at if ad and ad.status == "friends" and ad.trial_ends_at else friends_end_default()
-    return {"{business}": account.name, "{plan_end}": f"{end:%-d %B %Y}",
-            "{charge_from}": f"{end + dt.timedelta(days=1):%-d %B %Y}", "{price}": f"£{MONTHLY_PRICE}",
-            "{login_email}": owner_email(account) or ""}
+    """Placeholders: {name} {business} {login_email}."""
+    return {"{business}": account.name, "{login_email}": owner_email(account) or ""}
 
 
 def _plan_html(v):
     return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 18px 0;'
             f'background:#eef4ff;border:1px solid #cfdcfb;border-radius:14px;"><tr><td style="padding:16px 18px;font:15px/1.55 {FONT};color:#16181d;">'
-            f'<div style="font:700 12px/1 {FONT};letter-spacing:.08em;text-transform:uppercase;color:{BLUE};margin-bottom:8px;">🤝 Your Friends plan</div>'
-            f'<div style="font:700 18px/1.3 {FONT};margin-bottom:6px;">Everything included, free until {v["{plan_end}"]}</div>'
-            f'<div style="color:#4a4f59;">From {v["{charge_from}"]} it\'s <strong>{v["{price}"]} a month</strong>. No card needed now, and I\'ll remind you before then.</div>'
-            f'</td></tr></table>')
+            f'<div style="font:700 12px/1 {FONT};letter-spacing:.08em;text-transform:uppercase;color:{BLUE};margin-bottom:8px;">💛 You\'re on our Friends plan</div>'
+            f'<div style="font:700 18px/1.3 {FONT};margin-bottom:6px;">Everything in your dashboard is included</div>'
+            f'<div style="color:#4a4f59;">It sits on top of me looking after your website, as a thank-you for being one of my first customers. '
+            f'There\'s nothing to set up.</div></td></tr></table>')
 
 
 def _login_html(v):
@@ -123,8 +117,8 @@ def render(account, section) -> tuple[str, str]:
             v = v or _vars(account)
             if line == "[[plan]]":
                 html_parts.append(_plan_html(v))
-                text_parts.append(f"YOUR FRIENDS PLAN: everything included, free until {v['{plan_end}']}. "
-                                  f"From {v['{charge_from}']} it's {v['{price}']} a month.")
+                text_parts.append("YOU'RE ON OUR FRIENDS PLAN: everything in your dashboard is included, on top of "
+                                  "me looking after your website. There's nothing to set up.")
             else:
                 from utils.links import public_url
                 html_parts.append(_login_html(v))

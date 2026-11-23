@@ -1,5 +1,3 @@
 {% if addon and addon.status == 'trial' and addon.is_enabled %}
 <p class="trial"><span>🎁</span><span><strong>Free trial:</strong> {{ addon.trial_days_left }} day{{ '' if addon.trial_days_left == 1 else 's' }} left. Everything you collect stays on your website.</span></p>
-{% elif addon and addon.status == 'friends' and addon.is_enabled and addon.trial_days_left is not none and addon.trial_days_left <= 30 %}
-<p class="trial"><span>🤝</span><span><strong>Friends plan:</strong> free until {{ addon.trial_ends_at | ukdate('%-d %B') }}, then £{{ addon.plan.price }} a month. <a href="{{ url_for('portal.settings') }}#plan">Details</a></span></p>
 {% endif %}

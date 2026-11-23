@@ -151,8 +151,7 @@ def client(slug):
         traffic = summary(a)
     return render_template("admin/client.html", a=a, tab=tab, reviews=reviews, stats=stats,
                            job_types=JOB_TYPES, job_statuses=JOB_STATUSES, today=dt.date.today(), new_key=new_key,
-                           t=traffic, friends_end=__import__("utils.plans", fromlist=["x"]).friends_end_default(),
-                           price=__import__("utils.plans", fromlist=["x"]).MONTHLY_PRICE)
+                           t=traffic, friends_end=__import__("utils.plans", fromlist=["x"]).friends_end_default())
 
 
 @admin_bp.route("/clients/<slug>/notes", methods=["POST"])
@@ -313,18 +312,20 @@ def addon_set(slug):
         days = max(1, min(90, int(request.form.get("days") or 30)))
         ad.status, ad.trial_ends_at = "trial", dt.date.today() + dt.timedelta(days=days)
     elif status == "friends":
-        from utils.plans import friends_end_default
+        from utils.plans import RENEW_MONTHS, start_friends
         try:
-            ad.trial_ends_at = dt.date.fromisoformat(request.form.get("until") or "")
+            until = dt.date.fromisoformat(request.form.get("until") or "")
         except ValueError:
-            ad.trial_ends_at = friends_end_default()
-        ad.status = "friends"
+            until = None
+        months = request.form.get("renew_months")
+        start_friends(ad, until, int(months) if request.form.get("renew") and (months or "").isdigit() and int(months) > 0
+                      else (RENEW_MONTHS if request.form.get("renew") else None))
     elif status in ("active", "paused"):
         ad.status = status
     if ad.id is None:
         db.session.add(ad)
     db.session.commit()
-    flash(f"Dashboard plan: {ad.plan['name']}. {ad.plan['line']}", "ok")
+    flash(f"Dashboard plan: {ad.plan['name']}. {ad.plan['admin']}", "ok")
     return redirect(url_for("admin.client", slug=slug))
 
 
@@ -390,7 +391,7 @@ def change_request_set(rid):
 def updates():
     """Emails to clients: the dashboard invite (docs/client-invite.md) and what's-new notes (docs/client-updates.md)."""
     from utils import updates as upd
-    from utils.plans import friends_end_default
+    from utils.plans import start_friends
     invites, notes = upd.sections(upd.INVITE_FILE), upd.sections(upd.FILE)
     clients = Account.query.filter(Account.kind == "client", Account.status != "archived").order_by(Account.name).all()
     if request.method == "POST":
@@ -415,7 +416,7 @@ def updates():
             owner.is_active_flag = True
             ad = a.addon() or AddOn(account_id=a.id, kind="reviews_updates")
             if ad.status != "friends":
-                ad.status, ad.trial_ends_at = "friends", friends_end_default()
+                start_friends(ad)
             if ad.id is None:
                 db.session.add(ad)
             db.session.commit()
@@ -438,3 +439,29 @@ def updates():
     secs = invites if show == "invite" else notes
     previews = [[(a, upd.page(a, s)[1], upd.owner_email(a)) for a in clients] for s in secs]
     return render_template("admin/updates.html", secs=secs, clients=clients, previews=previews, sent=sent, show=show)
+
+
+@admin_bp.route("/updates/new", methods=["POST"])
+def invite_new():
+    """Add someone new as a client (login off until the invite is sent) so their invite can be previewed and sent."""
+    f = request.form
+    name, who = (f.get("business") or "").strip()[:160], (f.get("contact_name") or "").strip()[:120]
+    email = (f.get("email") or "").strip().lower()
+    if not name or "@" not in email:
+        flash("Add their business name and email.", "err")
+        return redirect(url_for("admin.updates", show="invite"))
+    if User.query.filter(db.func.lower(User.email) == email).first():
+        flash("That email already has a login.", "err")
+        return redirect(url_for("admin.updates", show="invite"))
+    base, n, slug = slugify(name), 2, slugify(name)
+    while Account.query.filter_by(slug=slug).first():
+        slug, n = f"{base}-{n}", n + 1
+    domain = (f.get("domain") or "").strip().lower().removeprefix("https://").removeprefix("http://").strip("/") or None
+    a = Account(kind="client", name=name, slug=slug, contact_name=who or None, contact_email=email, domain=domain)
+    db.session.add(a)
+    db.session.flush()
+    db.session.add(User(email=email, username=email, name=who or None, role="owner", account_id=a.id, is_active_flag=False))
+    db.session.add(Note(account_id=a.id, author_id=current_user.id, body="Added from Emails to clients, ready to invite"))
+    db.session.commit()
+    flash(f"{name} added. Check their invite below, then send it.", "ok")
+    return redirect(url_for("admin.updates", show="invite") + f"#c-{a.slug}")

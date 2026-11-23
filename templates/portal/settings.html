@@ -5,8 +5,8 @@
 <div class="page-top"><div><h1>Settings</h1></div></div>
 {% set ad = g.account.addon() %}{% if ad and ad.plan %}
 <section class="card plan-card" id="plan" style="margin-bottom:12px">
-  <div class="plan-card__icon" aria-hidden="true">{{ '🤝' if ad.status == 'friends' else ('🎁' if ad.status == 'trial' else '✅') }}</div>
-  <div><p class="plan-card__name">Your plan: {{ ad.plan.name }}</p><p class="small muted">{{ ad.plan.line }}{% if ad.status == 'friends' %} That covers storage, backups, updates and support.{% endif %}</p></div>
+  <div class="plan-card__icon" aria-hidden="true">{{ '💛' if ad.status == 'friends' else ('🎁' if ad.status == 'trial' else '✅') }}</div>
+  <div><p class="plan-card__name">You're on our {{ ad.plan.name }}{{ ' 🤝' if ad.status == 'friends' }}</p><p class="small muted">{{ ad.plan.line }}</p></div>
 </section>
 {% endif %}
 <div class="grid grid--2">

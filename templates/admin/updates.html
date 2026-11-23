@@ -9,19 +9,31 @@
 </nav>
 {% if show == 'invite' %}
 {% call howto('What happens when I send the invite?') %}
-  <p>Their owner login is switched on and they're put on the <b>Friends plan</b> (everything free until the date on their client page, then £25 a month), unless they're already on it. The wording lives in <span class="mono">docs/client-invite.md</span>.</p>
+  <p>Their owner login is switched on and they're put on the <b>Friends plan</b> (auto-renewing every 3 months; change it on their client page), unless they're already on it. The wording lives in <span class="mono">docs/client-invite.md</span>.</p>
 {% endcall %}
 {% else %}
 {% call howto('How do I add an update?') %}
   <p>Edit <span class="mono">docs/client-updates.md</span>: each <b>## heading</b> is one email, newest at the top. <b>{name}</b> becomes the client's first name, and lines starting <b>- (Roland)</b> or <b>- (Ray)</b> only go to that person. Deploy, then send from here.</p>
 {% endcall %}
 {% endif %}
+{% if show == 'invite' %}
+<details class="card fold" style="margin-bottom:12px" {% if not clients %}open{% endif %}>
+  <summary><strong>+ Invite someone new</strong> <span class="small muted">· they get the Friends plan when you send it</span></summary>
+  <form method="post" action="{{ url_for('admin.invite_new') }}" class="form-grid" style="margin-top:12px">
+    <label class="field"><span>Business name</span><input name="business" required placeholder="Smith Plumbing"></label>
+    <label class="field"><span>Their name</span><input name="contact_name" placeholder="Dave Smith"></label>
+    <label class="field"><span>Email <small>their login</small></span><input type="email" name="email" required></label>
+    <label class="field"><span>Website <small>optional</small></span><input name="domain" placeholder="smithplumbing.co.uk"></label>
+    <div class="form-actions full"><button class="btn btn--sm">Add and preview the invite</button></div>
+  </form>
+</details>
+{% endif %}
 {% for s in secs %}{% set si = loop.index0 %}
 <section class="card">
   <div class="card__head"><h2>{{ s.title }}</h2>{% if loop.first and show != 'invite' %}<span class="badge badge--acc">Latest</span>{% endif %}</div>
   <div class="grid grid--2">
     {% for a, html, to in previews[si] %}
-    <div class="mail-prev">
+    <div class="mail-prev" id="c-{{ a.slug }}">
       <div class="row row--between" style="margin-bottom:8px">
         <span><strong>{{ a.name }}</strong><br><span class="small muted">To: {{ to or 'no email!' }}</span></span>
         {% set when = sent.get((a.id, s.title)) %}

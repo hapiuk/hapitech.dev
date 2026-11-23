@@ -47,15 +47,19 @@
     <section class="card {% if ad and ad.is_enabled %}card--accent{% endif %}">
       <div class="card__head"><h3>Dashboard plan</h3>{% if ad %}<span class="badge {{ 'badge--ok' if ad.is_enabled else 'badge--warn' }}">{{ ad.plan.name }}</span>{% endif %}</div>
       <p class="small muted">Their dashboard: reviews, jobs, posts, website edits, visitors. All features on every plan.</p>
-      {% if ad %}<p class="small" style="margin-top:8px">{{ ad.plan.line }}{% if ad.status in ('trial','friends') %} {{ '' if ad.is_enabled else '(ended)' }}{% if ad.trial_days_left %} · {{ ad.trial_days_left }} days left{% endif %}{% endif %}</p>{% endif %}
-      <form method="post" action="{{ url_for('admin.addon_set', slug=a.slug) }}" class="row" style="margin-top:14px">
-        <input type="date" name="until" class="input-sm" value="{{ (ad.trial_ends_at if ad and ad.status == 'friends' else friends_end) }}" aria-label="Friends plan free until">
-        <button class="btn btn--sm" name="status" value="friends">{{ 'Update' if ad and ad.status == 'friends' else 'Start' }} Friends plan</button>
+      {% if ad %}<p class="small" style="margin-top:8px">{{ ad.plan.admin }}{% if not ad.is_enabled %} <span class="badge badge--warn">Ended</span>{% endif %}</p>{% endif %}
+      <form method="post" action="{{ url_for('admin.addon_set', slug=a.slug) }}" class="stack" style="margin-top:14px">
+        <div class="row">
+          <label class="small">Runs to <input type="date" name="until" class="input-sm" value="{{ ad.trial_ends_at if ad and ad.status == 'friends' and ad.trial_ends_at else friends_end }}"></label>
+          <label class="check small"><input type="checkbox" name="renew" value="1" {{ 'checked' if not ad or ad.status != 'friends' or ad.renew_months }}> <span>Auto-renew every</span></label>
+          <input type="number" name="renew_months" min="1" max="24" class="input-sm" style="width:64px" value="{{ ad.renew_months if ad and ad.renew_months else 3 }}"> <span class="small">months</span>
+        </div>
+        <div><button class="btn btn--sm" name="status" value="friends">{{ 'Save Friends plan' if ad and ad.status == 'friends' else 'Start Friends plan' }}</button></div>
       </form>
       <form method="post" action="{{ url_for('admin.addon_set', slug=a.slug) }}" class="row" style="margin-top:8px">
         <input type="hidden" name="days" value="30">
         <button class="btn btn--ghost btn--sm" name="status" value="trial">{{ 'Restart' if ad and ad.status == 'trial' else 'Start' }} 30-day trial</button>
-        <button class="btn btn--ghost btn--sm" name="status" value="active">Paid (£{{ price }}/mo)</button>
+        <button class="btn btn--ghost btn--sm" name="status" value="active">Full plan</button>
         {% if ad %}<button class="btn btn--ghost btn--sm" name="status" value="paused">Pause</button>{% endif %}
       </form>
     </section>

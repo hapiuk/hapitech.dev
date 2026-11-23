@@ -691,7 +691,7 @@ def test_dashboard_invite_friends_plan(app):
     from models import db
     from models.core import Account, User
     from utils import updates
-    from utils.plans import FRIENDS_DEFAULT_END
+    from utils.plans import friends_end_default
     with app.test_request_context("/"):
         a = Account.query.filter_by(slug="rolands").first()
         owner = User.query.filter_by(account_id=a.id, role="owner").first()
@@ -699,9 +699,9 @@ def test_dashboard_invite_friends_plan(app):
         db.session.commit()
         sec = updates.sections(updates.INVITE_FILE)[0]
         text, html = updates.page(a, sec)
-        end = max(FRIENDS_DEFAULT_END, dt.date.today())
-        assert f"free until {end:%-d %B %Y}" in text and "£25 a month" in text
-        assert "Your Friends plan" in html and "Open your dashboard" in html and owner.email in html
+        end = friends_end_default()
+        assert "friends plan" in text.lower() and "£" not in text and "£" not in html
+        assert "on our Friends plan" in html and "Open your dashboard" in html and owner.email in html
         assert "[[" not in text and "{" not in text
     ad = app.test_client()
     _login(ad, "admin@test")
@@ -718,10 +718,12 @@ def test_dashboard_invite_friends_plan(app):
         a = Account.query.filter_by(slug="rolands").first()
         assert User.query.filter_by(account_id=a.id, role="owner").first().is_active_flag
         assert a.addon().status == "friends" and a.addon().is_enabled and a.addon().trial_ends_at == end
+        assert a.addon().renew_months == 3
         assert "Friends plan" in a.addon().plan["name"]
     assert "Sent" in ad.get("/admin/updates").get_data(as_text=True)
     o = app.test_client(); _login(o, owner_email := "roland@test")
-    assert "Your plan: Friends plan" in o.get("/portal/settings").get_data(as_text=True)
+    settings = o.get("/portal/settings").get_data(as_text=True)
+    assert "on our Friends plan" in settings and "£" not in settings
 
 
 def test_open_form_reviews_wait_unless_customer(app, monkeypatch):
@@ -888,3 +890,57 @@ def test_website_editor_cards_save_in_place(app):
     _form(o, "/portal/website/save", {f"b{tid}": "x" * 61}, page="/portal/website")
     with app.app_context():
         assert db.session.get(ContentBlock, tid).data == "Wall Mounting & Shelves"   # too long: rejected
+
+
+
+def test_friends_plan_renews_and_can_be_switched(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account, AddOn
+    from utils.plans import roll_forward
+    from utils.tasks import run_all
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        ad = a.addon() or AddOn(account_id=a.id)
+        ad.status, ad.trial_ends_at, ad.renew_months = "friends", dt.date.today() - dt.timedelta(days=1), 3
+        db.session.add(ad); db.session.commit()
+        assert ad.is_enabled                                         # auto-renewing never lapses
+    assert run_all(app, force=True)["friends_renewed"] == 1
+    with app.app_context():
+        ad = Account.query.filter_by(slug="rolands").first().addon()
+        assert ad.trial_ends_at > dt.date.today()
+        ad.renew_months, ad.trial_ends_at = None, dt.date.today() - dt.timedelta(days=1)
+        db.session.commit()
+        assert not ad.is_enabled and not roll_forward(ad)           # renew off: it ends
+    adm = app.test_client(); _login(adm, "admin@test")
+    until = (dt.date.today() + dt.timedelta(days=40)).isoformat()
+    _form(adm, "/admin/clients/rolands/addon", {"status": "friends", "until": until, "renew_months": "6"}, page="/admin/clients/rolands")
+    with app.app_context():
+        ad = Account.query.filter_by(slug="rolands").first().addon()
+        assert ad.trial_ends_at.isoformat() == until and ad.renew_months is None    # box unticked
+    _form(adm, "/admin/clients/rolands/addon", {"status": "friends", "until": until, "renew": "1", "renew_months": "6"}, page="/admin/clients/rolands")
+    with app.app_context():
+        assert Account.query.filter_by(slug="rolands").first().addon().renew_months == 6
+    assert "Auto-renew every" in adm.get("/admin/clients/rolands").get_data(as_text=True)
+
+
+def test_invite_someone_new(app):
+    from models.core import Account, User
+    adm = app.test_client(); _login(adm, "admin@test")
+    r = _form(adm, "/admin/updates/new", {"business": "Smith Plumbing", "contact_name": "Dave Smith",
+                                          "email": "Dave@Smith.test", "domain": "https://smithplumbing.co.uk/"}, page="/admin/updates")
+    assert r.status_code == 302
+    with app.app_context():
+        a = Account.query.filter_by(slug="smith-plumbing").first()
+        u = User.query.filter_by(email="dave@smith.test").first()
+        assert a and a.domain == "smithplumbing.co.uk" and u.account_id == a.id and not u.is_active_flag
+    page = adm.get("/admin/updates").get_data(as_text=True)
+    assert 'id="c-smith-plumbing"' in page and "Hi Dave" in page
+    _form(adm, "/admin/updates", {"kind": "invite", "section": "0", "client": "smith-plumbing", "action": "send"}, page="/admin/updates")
+    with app.app_context():
+        assert User.query.filter_by(email="dave@smith.test").first().is_active_flag
+        assert Account.query.filter_by(slug="smith-plumbing").first().addon().status == "friends"
+    assert any("dave@smith.test" in m and "Your new HapiTech dashboard" in m for m in _outbox(app))
+    dup = _form(adm, "/admin/updates/new", {"business": "Other", "email": "dave@smith.test"}, page="/admin/updates")
+    with app.app_context():
+        assert not Account.query.filter_by(name="Other").first()

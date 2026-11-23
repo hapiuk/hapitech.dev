@@ -2,7 +2,7 @@
   The dashboard invite (one email per client). Sent from Admin → Emails to clients → Dashboard invite.
   Sending it also switches on their login and starts the Friends plan if they don't have a plan yet.
 
-  Placeholders: {name} {business} {plan_end} {charge_from} {price} {login_email}
+  Placeholders: {name} {business} {login_email}
   [[plan]]  = the highlighted Friends plan box     [[login]] = their login email + "Open your dashboard" button
   Lines starting "- (Roland)" or "- (Ray)" only go to that person.
   Writing rules: short sentences, everyday words, say what it does for them (not how it works).
@@ -12,7 +12,7 @@
 
 Hi {name},
 
-I've built something to make running {business} a bit easier: your own dashboard. It works on your phone like an app, and it's linked to your website, so anything you do in it shows on your site.
+I've built something to make running {business} a bit easier: your own dashboard. It's an extra on top of me looking after your website. It works on your phone like an app, and it's linked to your website, so anything you do in it shows on your site.
 
 **What you can do with it**
 
@@ -23,13 +23,11 @@ I've built something to make running {business} a bit easier: your own dashboard
 - **See your visitors:** how many people found your website, and whether they came from Google, Facebook and so on.
 - **Away mode:** off on holiday? Your website tells customers when you're back.
 
-**You're on our Friends plan**
-
-As one of my first customers, you get everything included, free:
+**A little extra, on the house**
 
 [[plan]]
 
-The monthly price covers keeping your website, photos, reviews and customer details safely stored and backed up, plus updates, new features and support whenever you need a hand.
+Use as much or as little of it as you like. Your website carries on just as it is either way, and I'll keep adding useful bits over time.
 
 **Getting started**
 

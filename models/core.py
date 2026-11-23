@@ -204,12 +204,15 @@ class AddOn(TimestampMixin, db.Model):
     kind = db.Column(db.String(30), nullable=False, default="reviews_updates")
     status = db.Column(db.String(20), nullable=False, default="trial")       # trial | friends | active | paused
     trial_ends_at = db.Column(db.Date)                                         # trial / friends plan end date
+    renew_months = db.Column(db.Integer)                                       # friends plan: auto-renew period (None = off)
     account = db.relationship("Account", back_populates="addons")
 
     @property
     def is_enabled(self):
         if self.status == "active":
             return True
+        if self.status == "friends" and self.renew_months:
+            return True                                    # auto-renewing: never lapses (the date rolls forward)
         if self.status in ("trial", "friends"):
             return self.trial_ends_at is None or self.trial_ends_at >= dt.date.today()
         return False
