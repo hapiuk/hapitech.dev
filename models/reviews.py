@@ -1,4 +1,5 @@
 # models/reviews.py — the HapiTech review system. hapitech.dev is the system of record;
+import datetime as dt
 # client sites read published reviews through the site API.
 import secrets
 
@@ -88,13 +89,35 @@ class ReviewRequest(db.Model):
     reminder_sent_at = db.Column(db.DateTime)
     account = db.relationship("Account")
 
+    LINK_DAYS = 30                                      # a review link works for this long after it's sent
+
+    @property
+    def expires_at(self):
+        return self.created_at + dt.timedelta(days=self.LINK_DAYS) if self.created_at else None
+
+    @property
+    def expired(self):
+        return not self.completed_at and self.expires_at is not None and dt.datetime.utcnow() > self.expires_at
+
+    @property
+    def days_left(self):
+        return max(0, (self.expires_at - dt.datetime.utcnow()).days) if self.expires_at else None
+
     @property
     def state(self):
         if self.completed_at:
             return "done"
+        if self.expired:
+            return "expired"
         if self.opened_at:
             return "opened"
         return "sent"
+
+    def renew(self):
+        """A fresh link: new address (the old one stops working), and another LINK_DAYS from now."""
+        self.token = secrets.token_urlsafe(18)
+        self.created_at = dt.datetime.utcnow()
+        self.opened_at = self.reminder_sent_at = None
 
 
 class ReviewSource(db.Model):

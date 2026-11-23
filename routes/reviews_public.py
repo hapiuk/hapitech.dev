@@ -32,6 +32,8 @@ def leave(token):
     if req.completed_at:
         review = Review.query.filter_by(request_id=req.id).first()
         return render_template("reviews/thanks.html", a=a, review=review, already=True)
+    if req.expired:
+        return render_template("reviews/expired.html", a=a), 410
     if req.opened_at is None:
         req.opened_at = dt.datetime.utcnow()
         db.session.commit()

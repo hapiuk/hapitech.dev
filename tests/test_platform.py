@@ -1538,3 +1538,29 @@ def test_last_seen_and_share_tip_pref(app):
         assert User.query.filter_by(email="roland@test").first().pref("share_tip_off") is True
     a = app.test_client(); _login(a, "admin@test")
     assert "Last seen" in a.get("/admin/clients").get_data(as_text=True)
+
+
+def test_review_link_expires_and_can_be_renewed(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account
+    from models.reviews import ReviewRequest
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        r = ReviewRequest(account_id=a.id, customer_name="Old Olly", created_at=dt.datetime.utcnow() - dt.timedelta(days=31))
+        db.session.add(r); db.session.commit()
+        rid, token = r.id, r.token
+        assert r.state == "expired"
+    pub = app.test_client().get(f"/r/{token}")
+    assert pub.status_code == 410 and "expired" in pub.get_data(as_text=True)
+    o = app.test_client(); _login(o, "roland@test")
+    page = o.get("/portal/requests").get_data(as_text=True)
+    assert "Link expired" in page and "Send a fresh link" in page
+    _form(o, f"/portal/ask/{rid}", {"action": "renew"}, page="/portal/requests")
+    with app.app_context():
+        r = db.session.get(ReviewRequest, rid)
+        assert r.state == "sent" and r.token != token and r.days_left >= 29
+    assert app.test_client().get(f"/r/{token}").status_code == 404               # old link gone
+    adm = app.test_client(); _login(adm, "admin@test")
+    page = adm.get("/admin/clients/rolands?tab=reviews").get_data(as_text=True)
+    assert "Review requests sent" in page and "Old Olly" in page

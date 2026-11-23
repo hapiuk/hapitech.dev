@@ -182,7 +182,9 @@ def client(slug):
     if tab == "traffic":
         from utils.traffic import summary
         traffic = summary(a)
-    return render_template("admin/client.html", a=a, tab=tab, reviews=reviews, stats=stats,
+    requests_sent = (ReviewRequest.query.filter_by(account_id=a.id).order_by(ReviewRequest.created_at.desc()).limit(50).all()
+                     if tab == "reviews" else [])
+    return render_template("admin/client.html", a=a, tab=tab, reviews=reviews, stats=stats, requests_sent=requests_sent,
                            job_types=JOB_TYPES, job_statuses=JOB_STATUSES, today=dt.date.today(), new_key=new_key,
                            t=traffic, value=value, extras=__import__("utils.extras", fromlist=["x"]).EXTRAS,
                            extra_status=__import__("utils.extras", fromlist=["x"]).status, friends_end=__import__("utils.plans", fromlist=["x"]).friends_end_default())
@@ -704,3 +706,18 @@ def extra_set(slug, key):
     db.session.commit()
     flash("Extra updated.", "ok")
     return redirect(url_for("admin.client", slug=slug))
+
+
+@admin_bp.route("/clients/<slug>/requests/<int:rid>", methods=["POST"])
+def request_renew(slug, rid):
+    """A fresh link for an expired (or lost) review request, so it can be sent again."""
+    a = _acct(slug)
+    r = ReviewRequest.query.filter_by(id=rid, account_id=a.id).first_or_404()
+    if r.completed_at:
+        flash("They've already left a review.", "ok")
+    else:
+        r.renew()
+        db.session.commit()
+        from utils.links import public_url
+        flash(f"Fresh link for {r.customer_name}: {public_url(url_for('reviews_public.leave', token=r.token))}  (works for {r.LINK_DAYS} days)", "ok")
+    return redirect(url_for("admin.client", slug=slug, tab="reviews") + "#requests")

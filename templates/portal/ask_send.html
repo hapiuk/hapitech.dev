@@ -1,6 +1,12 @@
 {% extends "app/base.html" %}
 {% block title %}Review QR code{% endblock %}
 {% block content %}
+{% if req.expired %}
+<section class="card card--accent row row--between" style="margin-bottom:12px">
+  <span><strong>⏳ This link has expired.</strong><br><span class="small muted">Links work for {{ req.LINK_DAYS }} days. Make a fresh one, then show or send it again.</span></span>
+  <form method="post"><button class="btn btn--sm" name="action" value="renew">Make a fresh link</button></form>
+</section>
+{% elif not req.completed_at %}<p class="small muted" style="margin-bottom:10px">This link works for {{ req.days_left }} more day{{ '' if req.days_left == 1 else 's' }}.</p>{% endif %}
 <div class="grid grid--2">
   <section class="card qr-card">
     <h1 class="qr-card__title">Ask {{ req.customer_name if req.customer_name != 'your customer' else 'them' }} to scan this</h1>

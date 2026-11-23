@@ -1,0 +1,11 @@
+{% extends "reviews/_base.html" %}
+{% block title %}This link has expired | {{ a.name }}{% endblock %}
+{% block meta %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<div class="rv__card rv__thanks">
+  <p class="rv__big">⏳</p>
+  <h1 class="rv__title">This review link has expired</h1>
+  <p class="rv__sub">Review links from {{ a.name }} work for {{ 30 }} days. You can still leave a review: {{ a.first_name }} will just check it before it goes up.</p>
+  <p style="margin-top:18px"><a class="btn" href="{{ url_for('reviews_public.write', slug=a.slug) }}">Leave a review</a></p>
+</div>
+{% endblock %}

@@ -158,8 +158,18 @@ def ask():
 @addon_required
 def ask_send(rid):
     req = scoped(ReviewRequest, id=rid).first_or_404()
+    if request.method == "POST" and request.form.get("action") == "renew":
+        if req.completed_at:
+            flash("They've already left a review.", "ok")
+        else:
+            req.renew()
+            db.session.commit()
+            flash(f"Fresh link made. It works for {ReviewRequest.LINK_DAYS} days. Send it the same way as before.", "ok")
+        return redirect(url_for("portal.ask_send", rid=rid))
     if request.method == "POST":           # "Email them the link" (the address is used once, never stored)
         to = (request.form.get("email") or "").strip()
+        if req.expired:
+            req.renew()                    # never email a link that no longer works
         if "@" not in to or len(to) > 255:
             flash("Enter the customer's email address.", "err")
         else:
@@ -184,7 +194,7 @@ def ask_send(rid):
 def requests_list():
     rows = scoped(ReviewRequest).order_by(ReviewRequest.created_at.desc()).limit(200).all()
     stale = dt.datetime.utcnow() - dt.timedelta(days=5)
-    return render_template("portal/requests.html", rows=rows, stale=stale)
+    return render_template("portal/requests.html", rows=rows, stale=stale, link_days=ReviewRequest.LINK_DAYS)
 
 
 # ---------------------------------------------------------------- reviews

@@ -1,0 +1,6 @@
+{# status of one review request: r #}
+{% if r.state == 'done' %}<span class="badge badge--ok">Reviewed ✓</span>
+{% elif r.state == 'expired' %}<span class="badge badge--warn">Link expired</span>
+{% elif r.state == 'opened' %}<span class="badge badge--acc">Opened</span><span class="small muted"> · {{ r.days_left }}d left</span>
+{% else %}<span class="badge">Sent</span><span class="small muted"> · {{ r.days_left }}d left</span>{% endif %}
+{% if r.reminder_sent_at and r.state != 'done' %}<span class="small muted"> · reminded</span>{% endif %}

@@ -211,6 +211,8 @@
     "Aaron builds it and shows you": "Ārons to izveido un parāda jums", "Go live": "Palaišana", "Then edit it all from here": "Tad visu rediģējiet šeit",
     "Pages, features, photos, ideas from other sites you like: add as many as you want. Offer an amount if you have a budget in mind, or leave it blank for a quote.": "Lapas, funkcijas, foto, idejas no citām vietnēm, kas jums patīk: pievienojiet, cik vēlaties. Piedāvājiet summu, ja jums ir budžets, vai atstājiet tukšu, lai saņemtu tāmi.",
     /* reply rate, shortcuts, platforms, extras */
+    "Link expired": "Saite beigusies", "Send a fresh link": "Sūtīt jaunu saiti", "Make a fresh link": "Izveidot jaunu saiti",
+    "⏳ This link has expired.": "⏳ Šī saite ir beigusies.", "Opened": "Atvērta", "Sent": "Nosūtīta", "Reviewed ✓": "Atsauksme saņemta ✓",
     "Your text is copied": "Jūsu teksts ir nokopēts", "Continue": "Turpināt", "📣 Sharing posts": "📣 Ierakstu kopīgošana",
     "Don't show this again": "Vairs nerādīt", "(you can turn it back on in Settings)": "(to var atkal ieslēgt Iestatījumos)",
     "More…": "Vairāk…", "Copy text": "Kopēt tekstu", "Add one by hand (admin)": "Pievienot manuāli (admins)",
@@ -261,6 +263,7 @@
     week: ["nedēļas", "nedēļām"], month: ["mēneša", "mēnešiem"], year: ["gada", "gadiem"] };
 
   var P = [
+    [/^· (\d+)d left$/, "· atlikušas $1 d."],
     [/^Show (\d+) more \((\d+) left\)$/, "Rādīt vēl $1 ($2 atlikušas)"], [/^(\d+) reviews?$/, "$1 atsauksmes"],
     [/^(\d+)% this month · (\d+) waiting$/, "$1% šomēnes · $2 gaida"], [/^this year · (\d+)% this month · (\d+) waiting$/, "šogad · $1% šomēnes · $2 gaida"],
     [/^this year · (\d+) waiting$/, "šogad · $1 gaida"],

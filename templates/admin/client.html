@@ -302,6 +302,20 @@
   </details>
   <p class="small muted" style="margin-top:10px">To collect new reviews: open the page, click your <b>HapiTech: collect reviews</b> bookmark (or paste the script in the console), then <b>Send to HapiTech</b>. <a href="{{ url_for('admin.reviews_import', client=a.slug) }}">Set up the bookmark / upload a file →</a></p>
 </section>
+<details class="card fold" id="requests" style="margin-bottom:14px" {% if requests_sent | selectattr('state', 'equalto', 'expired') | list %}open{% endif %}>
+  {% set exp = requests_sent | selectattr('state', 'equalto', 'expired') | list %}{% set done = requests_sent | selectattr('state', 'equalto', 'done') | list %}
+  <summary><strong>📨 Review requests sent ({{ requests_sent | length }})</strong> <span class="small muted">· {{ done | length }} reviewed{% if exp %} · <span style="color:var(--warn,#f59e0b)">{{ exp | length }} expired</span>{% endif %} · links work {{ 30 }} days</span></summary>
+  {% if requests_sent %}<div class="table-wrap" style="margin-top:10px"><table class="table">
+    <thead><tr><th>Customer</th><th>Sent</th><th>Status</th><th></th></tr></thead>
+    <tbody>{% for r in requests_sent %}<tr>
+      <td><strong>{{ r.customer_name if r.customer_name != 'your customer' else 'Customer' }}</strong>{% if r.job_ref %}<br><span class="small muted">{{ r.job_ref }}</span>{% endif %}</td>
+      <td class="small muted" title="{{ r.created_at | ukdate('%-d %b %Y, %H:%M') }}">{{ r.created_at | ago }} · {{ r.sent_via }}</td>
+      <td>{% include "app/_request_state.html" %}</td>
+      <td class="right">{% if r.state != 'done' %}<form method="post" action="{{ url_for('admin.request_renew', slug=a.slug, rid=r.id) }}" class="inline-form">
+        <button class="btn btn--{{ 'sm' if r.state == 'expired' else 'ghost btn--sm' }}" {% if r.state != 'expired' %}data-confirm="Make a fresh link? The one they have stops working."{% endif %}>Fresh link</button></form>{% endif %}</td>
+    </tr>{% endfor %}</tbody></table></div>
+  {% else %}<p class="small muted" style="margin-top:10px">No review requests sent yet.</p>{% endif %}
+</details>
 <div class="page-top" style="margin-bottom:14px">
   <p>{{ reviews|length }} review{{ '' if reviews|length == 1 else 's' }} · shown on {{ a.domain or 'their site' }} and <a href="{{ url_for('reviews_public.business', slug=a.slug) }}" target="_blank">their review page</a></p>
   <div class="row"><a class="btn btn--ghost btn--sm" href="{{ url_for('admin.reviews', status='all', client=a.slug) }}">🔍 Search these</a><a class="btn btn--sm" href="{{ url_for('admin.review_new', client=a.slug) }}">Add a review by hand</a></div>
