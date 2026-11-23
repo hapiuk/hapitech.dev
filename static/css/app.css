@@ -632,3 +632,14 @@ details.platforms[open] > summary::after{content:" ▴"}
 .share-tip__icon{font-size:2.4rem;margin:0}
 .share-tip .row{justify-content:center}
 .share-tip .check{justify-content:center;text-align:left}
+
+/* admin Tasks */
+.linkish{background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;font:inherit;color:inherit}
+.task-notes{gap:16px}
+.task-note{position:relative}
+.task-note__body{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:4px;line-height:1.55}
+.task-note__del{margin-top:2px;opacity:.55;font-size:.8rem}
+.task-note__del:hover,.task-note__del:focus-within{opacity:1}
+.task-note--claude{border-left-color:var(--acc)}
+.task-note--client{border-left-color:#d97706}
+.task-due{color:#d97706;font-weight:600}

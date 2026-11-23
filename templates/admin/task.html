@@ -1,0 +1,81 @@
+{% extends "app/base.html" %}
+{% block title %}{{ t.title if t else 'New task' }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ url_for('admin.tasks') }}">Tasks</a> / {{ t.title if t else 'New' }}</p>
+{% set cur = (t.account.slug if t and t.account else ('infra' if t else preset)) %}
+{% macro for_select(selected) -%}
+<select name="for">
+  <option value="infra" {{ 'selected' if selected in ('infra', '') }}>HapiTech infra</option>
+  {% for a in accounts %}<option value="{{ a.slug }}" {{ 'selected' if selected == a.slug }}>{{ a.name }}{{ ' (ours)' if a.kind == 'internal' }}</option>{% endfor %}
+</select>
+{%- endmacro %}
+{% if not t %}
+<div class="page-top"><h1>New task</h1></div>
+<form method="post" class="card stack" style="max-width:720px">
+  <label class="field"><span>Title</span><input name="title" maxlength="200" required autofocus placeholder="e.g. Ask Roland to add me as Manager on Google"></label>
+  <div class="grid grid--3">
+    <label class="field"><span>For</span>{{ for_select(cur) }}</label>
+    <label class="field"><span>Status</span><select name="status">{% for k, l in statuses %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></label>
+    <label class="field"><span>Remind me on <small>optional</small></span><input type="date" name="remind_on" min="{{ today.isoformat() }}"></label>
+  </div>
+  <label class="field"><span>First note <small>instructions, links, what "done" means</small></span><textarea name="note" rows="6"></textarea></label>
+  <label class="field"><span>Note from</span><select name="author">{% for k, l in authors %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></label>
+  <div><button class="btn" type="submit">Add task</button></div>
+</form>
+{% else %}
+<div class="page-top"><div><h1>{{ t.title }}</h1>
+  <p><span class="badge {{ '' if t.account else 'badge--acc' }}">{{ t.tag }}</span>
+    {% if t.account %} · <a href="{{ url_for('admin.client', slug=t.account.slug) }}">Client page</a>{% endif %}
+    {% if t.change_request %} · <a href="{{ url_for('admin.change_requests') }}">Change request</a> ({{ t.change_request.status }}){% endif %}
+    · added {{ t.created_at | ago }}{% if t.done_at %} · done {{ t.done_at | ago }}{% endif %}</p></div>
+  <div class="page-top__actions">
+    {% for k, l in statuses if k != t.status %}<form method="post" style="display:inline"><input type="hidden" name="action" value="status"><input type="hidden" name="status" value="{{ k }}"><button class="btn {{ '' if k == 'done' else 'btn--ghost' }} btn--sm" type="submit">{{ 'Mark done ✓' if k == 'done' else l }}</button></form>{% endfor %}
+  </div>
+</div>
+<div class="grid grid--side">
+  <section class="card" id="notes">
+    <div class="card__head"><h2>Notes</h2><span class="small muted">instructions and additions from you, Claude or the client</span></div>
+    {% if t.notes %}
+    <ul class="timeline task-notes">
+      {% for n in t.notes %}<li class="task-note task-note--{{ n.author_kind }}">
+        <p class="small"><strong>{{ n.author_label }}</strong> <span class="muted">· {{ n.created_at | ukdate('%-d %b %Y, %H:%M') }}</span></p>
+        <div class="task-note__body">{{ n.body }}</div>
+        <form method="post" class="task-note__del"><input type="hidden" name="action" value="delete_note"><input type="hidden" name="nid" value="{{ n.id }}"><button class="linkish small muted" type="submit" data-confirm="Delete this note?">Delete</button></form>
+      </li>{% endfor %}
+    </ul>
+    {% else %}<p class="muted small">No notes yet.</p>{% endif %}
+    <hr class="hr">
+    <form method="post" class="stack">
+      <input type="hidden" name="action" value="note">
+      <label class="field"><span>Add a note</span><textarea name="note" rows="4" required></textarea></label>
+      <div class="row" style="gap:8px;align-items:center"><label class="small muted" for="noteFrom">From</label>
+        <select id="noteFrom" name="author">{% for k, l in authors %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select>
+        <button class="btn btn--sm" type="submit">Add note</button></div>
+    </form>
+  </section>
+  <div>
+    <section class="card {% if t.due %}card--accent{% endif %}">
+      <div class="card__head"><h3>Reminder</h3></div>
+      {% if t.remind_on %}<p>{{ '⏰ Due now: ' if t.due else 'I\'ll remind you on ' }}<strong>{{ t.remind_on | ukdate('%a %-d %b %Y') }}</strong>{% if t.reminded_at %} <span class="small muted">(emailed)</span>{% endif %}</p>
+      {% else %}<p class="small muted">No reminder set.</p>{% endif %}
+      <form method="post" class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px"><input type="hidden" name="action" value="snooze">
+        {% for k, l in [('1d','Tomorrow'),('1w','In a week'),('2w','In 2 weeks'),('1m','In a month')] %}<button class="btn btn--ghost btn--sm" name="by" value="{{ k }}" type="submit">{{ l }}</button>{% endfor %}
+      </form>
+      {% if t.remind_on %}<form method="post" style="margin-top:6px"><input type="hidden" name="action" value="clear_reminder"><button class="linkish small muted" type="submit">Clear reminder</button></form>{% endif %}
+    </section>
+    <section class="card">
+      <div class="card__head"><h3>Details</h3></div>
+      <form method="post" class="stack"><input type="hidden" name="action" value="save">
+        <label class="field"><span>Title</span><input name="title" value="{{ t.title }}" maxlength="200" required></label>
+        <label class="field"><span>For</span>{{ for_select(cur) }}</label>
+        <label class="field"><span>Status</span><select name="status">{% for k, l in statuses %}<option value="{{ k }}" {{ 'selected' if t.status == k }}>{{ l }}</option>{% endfor %}</select></label>
+        <label class="field"><span>Remind me on</span><input type="date" name="remind_on" value="{{ t.remind_on.isoformat() if t.remind_on else '' }}"></label>
+        <div><button class="btn btn--sm" type="submit">Save</button></div>
+      </form>
+      <hr class="hr">
+      <form method="post"><input type="hidden" name="action" value="delete"><button class="linkish small muted" type="submit" data-confirm="Delete this task and its notes?">Delete task</button></form>
+    </section>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

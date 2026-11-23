@@ -29,6 +29,16 @@
   {{ stat('Review requests', stats.requests, 'sent from their dashboard') }}
 </div>
 <div class="grid grid--side" style="margin-top:16px">
+  <div>
+  <section class="card">
+    <div class="card__head"><h2>Tasks</h2><a class="small" href="{{ url_for('admin.task_new', **{'for': a.slug}) }}">+ New task</a></div>
+    {% if open_tasks %}<ul class="list">{% for t in open_tasks %}
+      <li><a href="{{ url_for('admin.task', tid=t.id) }}">{{ t.title }}</a>
+        <span class="small">{% if t.remind_on %}<span class="{{ 'task-due' if t.due else 'muted' }}">⏰ {{ t.remind_on | ukdate('%-d %b') }}</span> {% endif %}<span class="badge badge--{{ 'warn' if t.status == 'waiting' else 'acc' }}">{{ t.status_label }}</span></span></li>
+    {% endfor %}</ul>
+    <p class="small" style="margin-top:8px"><a href="{{ url_for('admin.tasks', **{'for': a.slug}) }}">All tasks for {{ a.name }} →</a></p>
+    {% else %}<p class="muted small">No open tasks.</p>{% endif %}
+  </section>
   <section class="card">
     <div class="card__head"><h2>Notes</h2></div>
     <form method="post" action="{{ url_for('admin.note_add', slug=a.slug) }}" class="stack">
@@ -42,6 +52,7 @@
     </ul>
     {% else %}<p class="muted small">No notes yet.</p>{% endif %}
   </section>
+  </div>
   <div>
     {% set ad = a.addon() %}
     <section class="card {% if ad and ad.is_enabled %}card--accent{% endif %}">

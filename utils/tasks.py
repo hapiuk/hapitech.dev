@@ -70,6 +70,14 @@ def run_all(app, force=False) -> dict:
                 print(f"[TASK repeat {rem.id}] {exc}")
         db.session.commit()
 
+        # Aaron's task reminders: one email listing every task whose remind-on date has come (from 8am)
+        if now.hour >= 8:
+            try:
+                out["task_reminders"] = send_task_reminders(now)
+            except Exception as exc:
+                out["errors"] += 1
+                print(f"[TASK task-reminders] {exc}")
+
         # Friends plans set to auto-renew roll their end date on (every 3 months by default)
         from models.core import AddOn
         from utils.plans import roll_forward
@@ -114,3 +122,30 @@ def maybe_run(app):
         except Exception as exc:
             print(f"[TASKS] {exc}")
     threading.Thread(target=work, daemon=True).start()
+
+
+def send_task_reminders(now=None) -> int:
+    """Email Aaron about tasks whose reminder date has arrived (once per date). Returns how many."""
+    from flask import url_for
+
+    from models import db
+    from models.tasks import Task
+    from routes.reviews_public import ADMIN_EMAIL
+    from utils import email_html
+    from utils.links import public_url
+    now = now or dt.datetime.utcnow()
+    due = (Task.query.filter(Task.status != "done", Task.remind_on.isnot(None), Task.remind_on <= now.date(),
+                             Task.reminded_at.is_(None)).order_by(Task.remind_on).all())
+    if not due:
+        return 0
+    lines = [f"• {t.title} ({t.tag}){' — ' + t.notes[-1].body.splitlines()[0][:140] if t.notes else ''}" for t in due]
+    one = len(due) == 1
+    email_html.send(ADMIN_EMAIL, f"Reminder: {due[0].title}" if one else f"{len(due)} task reminders",
+                    heading="Task reminder" if one else f"{len(due)} tasks to follow up",
+                    lines=["You asked to be reminded about:"] + lines,
+                    button={"label": "Open the task" if one else "Open Tasks",
+                            "url": public_url(url_for("admin.task", tid=due[0].id) if one else url_for("admin.tasks", show="due"))})
+    for t in due:
+        t.reminded_at = now
+    db.session.commit()
+    return len(due)

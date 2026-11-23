@@ -36,6 +36,7 @@ def admin_nav(counts=None):
     c = counts or {}
     return [
         _item("Overview", "admin.home", "home", url="/admin", prefix=None),
+        _item("Tasks", "admin.tasks", "check", prefix="/admin/tasks", badge=c.get("tasks")),
         _item("Clients", "admin.clients", "users", prefix="/admin/clients"),
         _item("Clients' jobs", "admin.work", "briefcase", prefix="/admin/work"),
         _item("Reviews", "admin.reviews", "star", prefix="/admin/reviews", badge=c.get("reported")),

@@ -64,7 +64,16 @@ def home():
     latest_run = BenchRun.query.order_by(BenchRun.created_at.desc()).first()
     clients = Account.query.filter(Account.kind == "client", Account.status != "archived").order_by(Account.name).all()
     changes = ChangeRequest.query.filter(ChangeRequest.status != "done").order_by(ChangeRequest.created_at.desc()).limit(5).all()
-    return render_template("admin/home.html", paid_month=paid_month, mrr=mrr, overdue=overdue, due_soon=due_soon,
+    from models.tasks import Task
+    open_q = Task.query.filter(Task.status != "done")
+    tasks_top = (open_q.filter(Task.status != "waiting")
+                 .order_by(Task.remind_on.asc().nullslast(), db.case((Task.status == "doing", 0), else_=1),
+                           Task.updated_at.desc()).limit(6).all())
+    due_first = [t for t in open_q.filter(Task.status == "waiting").all() if t.due]   # waiting ones only when due
+    tasks_top = (due_first + tasks_top)[:6]
+    return render_template("admin/home.html", tasks_top=tasks_top, tasks_open=open_q.count(),
+                           tasks_due=any(t.due for t in tasks_top),
+                           paid_month=paid_month, mrr=mrr, overdue=overdue, due_soon=due_soon,
                            unpaid_jobs=unpaid_jobs, active_jobs=active_jobs, new_reviews=new_reviews,
                            open_requests=open_requests, latest_run=latest_run, clients=clients, changes=changes,
                            today=today, greeting=("Morning" if dt.datetime.now().hour < 12 else
@@ -186,7 +195,10 @@ def client(slug):
         traffic = summary(a)
     requests_sent = (ReviewRequest.query.filter_by(account_id=a.id).order_by(ReviewRequest.created_at.desc()).limit(50).all()
                      if tab == "reviews" else [])
+    from models.tasks import open_for
+    open_tasks = open_for(a.id) if tab == "overview" else []
     return render_template("admin/client.html", a=a, tab=tab, reviews=reviews, stats=stats, requests_sent=requests_sent,
+                           open_tasks=open_tasks,
                            job_types=JOB_TYPES, job_statuses=JOB_STATUSES, today=dt.date.today(), new_key=new_key,
                            t=traffic, value=value, extras=__import__("utils.extras", fromlist=["x"]).EXTRAS,
                            extra_status=__import__("utils.extras", fromlist=["x"]).status, friends_end=__import__("utils.plans", fromlist=["x"]).friends_end_default())
@@ -442,7 +454,9 @@ def work():
 def change_requests():
     rows = ChangeRequest.query.order_by(db.case((ChangeRequest.status == "done", 1), else_=0),
                                         ChangeRequest.created_at.desc()).all()
-    return render_template("admin/change_requests.html", rows=rows)
+    from models.tasks import Task
+    tasks = {t.change_request_id: t for t in Task.query.filter(Task.change_request_id.isnot(None)).all()}
+    return render_template("admin/change_requests.html", rows=rows, tasks=tasks)
 
 
 @admin_bp.route("/requests/<int:rid>", methods=["POST"])
@@ -450,6 +464,12 @@ def change_request_set(rid):
     r = db.session.get(ChangeRequest, rid) or abort(404)
     if request.form.get("status") in ("new", "doing", "done"):
         r.status = request.form["status"]
+        if r.status == "doing":                 # accepted: it becomes a task (once), with their words as a note
+            from models.tasks import from_change_request
+            t, made = from_change_request(r, current_user.id)
+            db.session.commit()
+            if made:
+                flash(f"Added to Tasks: {t.title}", "ok")
         db.session.commit()
     return redirect(url_for("admin.change_requests"))
 

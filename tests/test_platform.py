@@ -1677,3 +1677,74 @@ def test_hapitech_own_review_emails_admin_once_and_is_listed_on_report(app):
     assert 'data-lightbox="r' in page and 'target="_blank" rel="noopener"><img' not in page
     site = pub.get("/").get_data(as_text=True)                        # hapitech.dev home shows the photo too
     assert 'class="rev__pics"' in site and "js/lightbox.js" in site
+
+
+# ---------------------------------------------------------------- admin Tasks
+
+def test_tasks_create_note_remind_and_privacy(app):
+    import datetime as dt
+    from models.tasks import Task
+    adm = app.test_client(); _login(adm, "admin@test")
+    r = _form(adm, "/admin/tasks/new", {"title": "Ask Roland for Google access", "for": "rolands", "status": "waiting",
+                                         "remind_on": "", "note": "Do it after he logs in.", "author": "claude"},
+              page="/admin/tasks/new")
+    assert r.status_code == 302
+    with app.app_context():
+        t = Task.query.one()
+        tid, assert_tag = t.id, t.tag
+        assert assert_tag == "Roland's Handyman" and t.status == "waiting" and t.notes[0].author_kind == "claude"
+    _form(adm, f"/admin/tasks/{tid}", {"action": "note", "note": "He said yes", "author": "client"}, page=f"/admin/tasks/{tid}")
+    _form(adm, f"/admin/tasks/{tid}", {"action": "snooze", "by": "1w"}, page=f"/admin/tasks/{tid}")
+    page = adm.get(f"/admin/tasks/{tid}").get_data(as_text=True)
+    assert "He said yes" in page and "Claude" in page and "Client" in page
+    with app.app_context():
+        assert Task.query.get(tid).remind_on == dt.date.today() + dt.timedelta(days=7)
+    infra = _form(adm, "/admin/tasks/new", {"title": "Renew SSL", "for": "infra"}, page="/admin/tasks/new")
+    assert infra.status_code == 302
+    assert "HapiTech infra" in adm.get("/admin/tasks?for=infra").get_data(as_text=True)
+    assert "Ask Roland" in adm.get("/admin/clients/rolands").get_data(as_text=True)          # on the client page
+    home = adm.get("/admin/").get_data(as_text=True)
+    assert "Renew SSL" in home and "Ask Roland" not in home       # overview: to-dos; waiting ones only once due
+    owner = app.test_client(); _login(owner, "roland@test")
+    assert owner.get("/admin/tasks").status_code == 403                                     # clients never see tasks
+
+
+def test_task_reminder_email_and_badge(app):
+    import datetime as dt
+    from models import db
+    from models.tasks import Task, TaskNote
+    from utils.tasks import send_task_reminders
+    with app.app_context():
+        t = Task(title="Follow up: has Roland logged in?", remind_on=dt.date.today())
+        t.notes.append(TaskNote(author_kind="claude", body="Check users.last_login_at"))
+        db.session.add(t); db.session.commit()
+    adm = app.test_client(); _login(adm, "admin@test")
+    assert re.search(r'Tasks</span>\s*<em class="side__badge">1<', adm.get("/admin/").get_data(as_text=True)) or \
+        "side__badge" in adm.get("/admin/tasks").get_data(as_text=True)
+    with app.test_request_context("/", base_url="https://hapitech.test"):
+        assert send_task_reminders() == 1
+        assert send_task_reminders() == 0                                                   # once per date
+    assert any("Reminder: Follow up: has Roland logged in?" in m for m in _outbox(app))
+
+
+def test_change_request_accepted_becomes_task_and_closes_when_done(app):
+    from models import db
+    from models.core import Account, ChangeRequest
+    from models.tasks import Task
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        cr = ChangeRequest(account_id=a.id, body="Please change my phone number\nto the new one")
+        db.session.add(cr); db.session.commit()
+        crid = cr.id
+    adm = app.test_client(); _login(adm, "admin@test")
+    _form(adm, f"/admin/requests/{crid}", {"status": "doing"}, page="/admin/requests")
+    _form(adm, f"/admin/requests/{crid}", {"status": "doing"}, page="/admin/requests")      # no duplicate task
+    with app.app_context():
+        ts = Task.query.filter_by(change_request_id=crid).all()
+        assert len(ts) == 1 and ts[0].title == "Change: Please change my phone number"
+        assert ts[0].notes[0].author_kind == "client" and "new one" in ts[0].notes[0].body
+        tid = ts[0].id
+    assert f"/admin/tasks/{tid}" in adm.get("/admin/requests").get_data(as_text=True)
+    _form(adm, f"/admin/tasks/{tid}", {"action": "status", "status": "done"}, page=f"/admin/tasks/{tid}")
+    with app.app_context():
+        assert db.session.get(ChangeRequest, crid).status == "done"

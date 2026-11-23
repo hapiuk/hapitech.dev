@@ -1,0 +1,32 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import empty with context %}
+{% block title %}Tasks{% endblock %}
+{% block content %}
+<div class="page-top"><div><h1>Tasks</h1><p>Your own to-do tickets, for a client or for HapiTech itself. Clients never see these.</p></div>
+  <a class="btn btn--sm" href="{{ url_for('admin.task_new', **({'for': tag} if tag else {})) }}">New task</a></div>
+<nav class="subnav">{% for k, label in shows %}<a href="{{ url_for('admin.tasks', show=k, **({'for': tag} if tag else {})) }}" {% if show == k %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+<form method="get" class="row" style="margin:0 0 12px;gap:8px;align-items:center">
+  <input type="hidden" name="show" value="{{ show }}">
+  <label class="small muted" for="taskFor">Show</label>
+  <select id="taskFor" name="for" data-autosubmit>
+    <option value="">Everything</option>
+    <option value="infra" {{ 'selected' if tag == 'infra' }}>HapiTech infra</option>
+    {% for a in accounts if a.kind == 'client' %}<option value="{{ a.slug }}" {{ 'selected' if tag == a.slug }}>{{ a.name }}</option>{% endfor %}
+  </select>
+</form>
+<section class="card card--flush">
+  {% for t in rows %}
+  <a class="job-row" href="{{ url_for('admin.task', tid=t.id) }}">
+    <strong>{{ t.title }}</strong>
+    <span class="badge badge--{{ {'todo':'acc','doing':'acc','waiting':'warn','done':'ok'}[t.status] }}">{{ t.status_label }}</span>
+    <span class="job-row__meta">
+      <span class="badge {{ '' if t.account else 'badge--acc' }}">{{ t.tag }}</span>
+      {% if t.remind_on and t.status != 'done' %}<span class="{{ 'task-due' if t.due else '' }}">⏰ {{ 'Due ' if t.due else 'Remind ' }}{{ t.remind_on | ukdate('%a %-d %b') }}</span>{% endif %}
+      {% if t.change_request_id %}<span>From a change request</span>{% endif %}
+      {% if t.notes %}<span>💬 {{ t.notes|length }}</span>{% endif %}
+      <span>{{ t.updated_at | ago }}</span>
+    </span>
+  </a>
+  {% else %}<div style="padding:22px">{{ empty('Nothing here', 'Add a task, or accept a change request (set it to Doing) to turn it into one.') }}</div>{% endfor %}
+</section>
+{% endblock %}

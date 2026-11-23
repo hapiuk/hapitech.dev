@@ -22,6 +22,14 @@
 
 <div class="grid grid--side" style="margin-top:16px">
   <div>
+    <section class="card {% if tasks_due %}card--accent{% endif %}">
+      <div class="card__head"><h2>Tasks</h2><a href="{{ url_for('admin.tasks') }}">All tasks ({{ tasks_open }} open)</a></div>
+      {% if tasks_top %}<ul class="list">{% for t in tasks_top %}
+        <li><span><a href="{{ url_for('admin.task', tid=t.id) }}"><strong>{{ t.title }}</strong></a> <span class="small muted">· {{ t.tag }}</span></span>
+          <span class="small">{% if t.remind_on %}<span class="{{ 'task-due' if t.due else 'muted' }}">⏰ {{ 'Due' if t.due else '' }} {{ t.remind_on | ukdate('%-d %b') }}</span>{% else %}<span class="muted">{{ t.status_label }}</span>{% endif %}</span></li>
+      {% endfor %}</ul>
+      {% else %}{{ empty('No open tasks', 'Add one from Tasks, or accept a change request.') }}{% endif %}
+    </section>
     <section class="card">
       <div class="card__head"><h2>Needs attention</h2></div>
       {% if not overdue and not unpaid_jobs and not due_soon and not changes %}

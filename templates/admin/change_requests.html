@@ -2,16 +2,18 @@
 {% from "app/_macros.html" import status_badge, empty with context %}
 {% block title %}Change requests{% endblock %}
 {% block content %}
-<div class="page-top"><div><h1>Change requests</h1><p>What clients have asked for from their dashboard.</p></div></div>
+<div class="page-top"><div><h1>Change requests</h1><p>What clients have asked for from their dashboard. Set one to <b>Doing</b> to accept it: it becomes a task, and finishing the task marks it done.</p></div></div>
 {% if rows %}
 <section class="card card--flush"><div class="table-wrap"><table class="table">
-  <thead><tr><th>Client</th><th>Request</th><th>From</th><th>When</th><th>Status</th></tr></thead>
+  <thead><tr><th>Client</th><th>Request</th><th>From</th><th>When</th><th>Status</th><th>Task</th></tr></thead>
   <tbody>{% for r in rows %}
     <tr><td><a class="rowlink" href="{{ url_for('admin.client', slug=r.account.slug) }}">{{ r.account.name }}</a></td>
       <td style="white-space:pre-wrap;max-width:460px">{{ r.body }}</td>
       <td class="small">{{ r.author.name if r.author else '' }}</td><td class="small muted">{{ r.created_at | ago }}</td>
       <td><form method="post" action="{{ url_for('admin.change_request_set', rid=r.id) }}">
-        <select name="status" data-autosubmit>{% for s in ['new','doing','done'] %}<option value="{{ s }}" {{ 'selected' if r.status == s }}>{{ s|capitalize }}</option>{% endfor %}</select></form></td></tr>
+        <select name="status" data-autosubmit>{% for s in ['new','doing','done'] %}<option value="{{ s }}" {{ 'selected' if r.status == s }}>{{ s|capitalize }}</option>{% endfor %}</select></form></td>
+      <td>{% set t = tasks.get(r.id) %}{% if t %}<a class="small" href="{{ url_for('admin.task', tid=t.id) }}">{{ t.status_label }} →</a>
+        {% elif r.status != 'done' %}<form method="post" action="{{ url_for('admin.change_request_task', rid=r.id) }}"><button class="btn btn--ghost btn--sm" type="submit">Make a task</button></form>{% endif %}</td></tr>
   {% endfor %}</tbody></table></div></section>
 {% else %}{{ empty('Nothing yet', 'Requests from the "Help & changes" page in a client dashboard show up here.') }}{% endif %}
 {% endblock %}

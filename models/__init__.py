@@ -5,9 +5,10 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-from . import core, content, reviews, bench, work  # noqa: E402,F401
+from . import core, content, reviews, bench, work, tasks  # noqa: E402,F401
 from .core import Account, User, Job, Subscription, Payment, Note, AddOn, ChangeRequest, LoginAttempt, SystemState  # noqa: E402,F401
 from .content import Post, Media, ContentBlock, ContentBlockVersion, SiteVisit, PhotoLike  # noqa: E402,F401
 from .reviews import Review, ReviewReply, ReviewRequest, ReviewSource  # noqa: E402,F401
 from .bench import BenchModel, BenchPrompt, BenchRun, BenchResult  # noqa: E402,F401
 from .work import Lead, Quote, Invoice, RepeatReminder  # noqa: E402,F401
+from .tasks import Task, TaskNote  # noqa: E402,F401

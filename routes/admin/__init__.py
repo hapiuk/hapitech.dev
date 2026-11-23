@@ -22,7 +22,9 @@ def _shell():
               "requests": ChangeRequest.query.filter_by(status="new").count() or None}
     from models.work import Lead
     counts["issues"] = Lead.query.filter_by(source="issue", status="new", archived_at=None).count() or None
+    from models.tasks import due_count
+    counts["tasks"] = due_count() or None
     return {"area": "admin", "nav": admin_nav(counts)}
 
 
-from . import clients, reviews, lab, settings  # noqa: E402,F401
+from . import clients, reviews, lab, settings, tasks  # noqa: E402,F401
