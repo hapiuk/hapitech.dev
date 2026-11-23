@@ -117,8 +117,9 @@ def send_invite(user: User, inviter: str = "Aaron at HapiTech"):
 def logout():
     # Clear the session FIRST, then let Flask-Login mark the "keep me logged in" cookie for removal.
     # (Doing it the other way round wipes that marker and the cookie logs you straight back in.)
+    to = safe_next(request.form.get("next") or request.args.get("next")) or "/"
     session.clear()
     logout_user()
-    resp = make_response(jsonify({"ok": True, "redirect": "/"}) if request.is_json else redirect("/"))
+    resp = make_response(jsonify({"ok": True, "redirect": to}) if request.is_json else redirect(to))
     resp.delete_cookie(current_app.config.get("REMEMBER_COOKIE_NAME", "remember_token"))
     return resp

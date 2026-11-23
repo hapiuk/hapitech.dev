@@ -508,3 +508,25 @@ html.lv-pending body{visibility:hidden}
 .support__big{font-size:2.6rem;line-height:1;margin-bottom:6px}
 button.support__way{width:100%;font:inherit;text-align:left;cursor:pointer}
 .support__go{width:100%;justify-content:center;margin-top:4px}
+
+/* ---------- admin Money tab ---------- */
+.money-stats{margin-bottom:12px}
+.money-ok{color:var(--ok,#22c55e)}
+.money-add{padding:12px 14px}
+.money-add__row{display:flex;flex-wrap:wrap;gap:8px}
+.money-add__item > summary{list-style:none;cursor:pointer}
+.money-add__item > summary::-webkit-details-marker{display:none}
+.money-add__item[open]{flex-basis:100%;order:-1}
+.money-add__item[open] > summary{margin-bottom:12px}
+.money-scroll{max-height:420px;overflow-y:auto}
+.money-scroll thead th{position:sticky;top:0;background:var(--card);z-index:1}
+.money-costs{list-style:none;margin:0;padding:0}
+.money-costs > li{border-bottom:1px solid var(--line)}
+.money-costs > li:last-child{border-bottom:0}
+.money-costs__row{display:grid;grid-template-columns:1fr 130px 80px 90px 40px;gap:12px;align-items:center;padding:11px 0;cursor:pointer;list-style:none}
+.money-costs__row::-webkit-details-marker{display:none}
+.money-costs__row strong{display:block}
+.money-costs__row small{display:block;font-size:.76rem}
+.money-costs__form{padding:4px 0 14px}
+.money-costs__note{margin:-6px 0 12px}
+@media (max-width:700px){.money-costs__row{grid-template-columns:1fr auto;}.money-costs__row > span:nth-child(3),.money-costs__row > span:nth-child(5){display:none}}

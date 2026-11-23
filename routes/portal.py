@@ -54,6 +54,31 @@ def brand_accent(account):
     return c.lower() if re.fullmatch(r"#[0-9a-fA-F]{6}", c) else None
 
 
+@portal_bp.after_request
+def _remember_app(resp):
+    """Remember which client's dashboard this device uses, so the installed app's login shows their logo."""
+    acc = getattr(g, "account", None)
+    if acc is not None and getattr(acc, "slug", None) and request.cookies.get("ht_app") != acc.slug:
+        resp.set_cookie("ht_app", acc.slug, max_age=60 * 60 * 24 * 365, samesite="Lax", secure=request.is_secure, httponly=True)
+    return resp
+
+
+@portal_bp.route("/login")
+def login():
+    """The installed app's own login page (inside /portal/, so the app never jumps out to the browser).
+    Branded for the client whose app this is; after the code, straight back to their dashboard."""
+    from models.core import Account
+    from utils.security import safe_next
+    slug = request.args.get("app") or request.cookies.get("ht_app")
+    acc = Account.query.filter(Account.slug == slug, Account.kind.in_(["client", "internal"])).first() if slug else None
+    nxt = safe_next(request.args.get("next"))
+    if not (nxt or "").startswith("/portal"):
+        nxt = f"/portal/?app={acc.slug}" if acc else "/portal/"
+    if current_user.is_authenticated:
+        return redirect(nxt if (current_user.is_admin or current_user.account_id) else "/")
+    return render_template("auth/app_login.html", acc=acc, next=nxt, brand=brand_accent(acc) if acc else None)
+
+
 def addon_required(fn):
     """Reviews & Updates features: show the add-on page if it isn't switched on."""
     from functools import wraps

@@ -87,6 +87,7 @@
         {% else %}<a class="btn btn--ghost btn--sm" href="/" title="View hapitech.dev">Website</a>{% endif %}
         <form method="post" action="{{ url_for('auth.logout') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% if area == 'portal' %}<input type="hidden" name="next" value="/portal/login?app={{ g.account.slug }}">{% endif %}
           <button class="btn btn--ghost btn--sm" type="submit">Log out</button>
         </form>
       </div>

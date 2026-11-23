@@ -94,8 +94,12 @@ def record_login(email: str, success: bool, kind: str = "password") -> None:
 # ---------------------------------------------------------------- guards
 
 def _deny():
-    if request.path.startswith(("/admin/api/", "/portal/api/")):
+    if request.path.startswith(("/admin/api/", "/portal/api/")) or (request.is_json and request.method != "GET"):
         return jsonify({"ok": False, "message": "Please log in again."}), 401
+    if request.path.startswith("/portal"):
+        app_slug = request.args.get("app") or request.cookies.get("ht_app") or ""
+        nxt = request.full_path.rstrip("?") if request.method == "GET" else "/portal/"
+        return redirect(url_for("portal.login", app=app_slug or None, next=nxt))
     return redirect(url_for("auth.login", next=request.full_path.rstrip("?") if request.method == "GET" else None))
 
 
@@ -119,7 +123,7 @@ def owner_required(fn):
             return _deny()
         from models.core import Account
         if current_user.is_admin:
-            slug = request.args.get("as") or session.get("portal_as")
+            slug = request.args.get("as") or request.args.get("app") or session.get("portal_as")
             acct = Account.query.filter_by(slug=slug).first() if slug else None
             if not acct:
                 return redirect(url_for("admin.clients"))

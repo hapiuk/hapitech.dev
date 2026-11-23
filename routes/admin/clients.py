@@ -50,8 +50,14 @@ def home():
     mrr = sum(s.monthly_gbp for s in subs)
     overdue = [s for s in subs if s.next_due and s.next_due < today]
     due_soon = [s for s in subs if s.next_due and today <= s.next_due <= today + dt.timedelta(days=14)]
-    unpaid_jobs = [j for j in Job.query.filter(Job.status == "done").all()
-                   if float(j.price_gbp or 0) > 0 and not j.is_paid]
+    # unpaid work, per client: finished work vs every payment that isn't for a subscription
+    # (one payment often covers several stages of the same order, so jobs aren't checked one by one)
+    unpaid_jobs = []
+    for acc in Account.query.filter(Account.kind == "client").all():
+        work = sum(float(j.price_gbp or 0) for j in acc.jobs if j.status == "done")
+        paid = sum(float(p.amount_gbp or 0) for p in acc.payments if not p.subscription_id)
+        if work - paid > 0.005:
+            unpaid_jobs.append({"account": acc, "owed": round(work - paid, 2)})
     active_jobs = Job.query.filter(Job.status.in_(["booked", "in_progress"])).order_by(Job.due_date).all()
     new_reviews = Review.query.filter(Review.reviewed_at >= dt.datetime.combine(month_start, dt.time())).count()
     open_requests = ReviewRequest.query.filter(ReviewRequest.completed_at.is_(None)).count()

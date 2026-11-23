@@ -27,7 +27,7 @@ def _brand(slug):
         short = short.rsplit(" ", 1)[0]
     return {"slug": a.slug, "name": a.name, "short": short[:14],
             "logo": a.logo_path or HAPITECH["logo"], "colour": a.brand_colour or "#0c0e12",
-            "start": "/portal/", "scope": "/portal/"}
+            "start": f"/portal/?app={a.slug}", "scope": "/portal/"}
 
 
 def _icon_path(b, size, maskable=False):
@@ -64,7 +64,7 @@ def icon(slug, size, variant=None):
 def manifest(slug):
     b = _brand(slug)
     data = {
-        "name": b["name"], "short_name": b["short"], "id": b["start"] + ("?app=" + b["slug"]),
+        "name": b["name"], "short_name": b["short"], "id": "/portal/?app=" + b["slug"] if b["slug"] != "_hapitech" else "/admin/?app=_hapitech",
         "start_url": b["start"], "scope": b["scope"], "display": "standalone",
         "background_color": "#0c0e12", "theme_color": b["colour"],
         "icons": [

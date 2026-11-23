@@ -376,7 +376,7 @@ def test_app_manifest_is_client_branded(app):
     m = c.get("/app/rolands/manifest.webmanifest")
     assert m.status_code == 200 and m.headers["Content-Type"].startswith("application/manifest+json")
     data = json.loads(m.get_data(as_text=True))
-    assert data["name"] == "Roland's Handyman" and data["start_url"] == "/portal/" and "HapiTech" not in data["name"]
+    assert data["name"] == "Roland's Handyman" and data["start_url"] == "/portal/?app=rolands" and "HapiTech" not in data["name"]
     assert c.get("/app/_hapitech/manifest.webmanifest").json["name"] == "HapiTech Admin"
     icon = c.get("/app/rolands/icon-192.png")
     assert icon.status_code == 200 and icon.data[:8] == b"\x89PNG\r\n\x1a\n"
@@ -1140,7 +1140,7 @@ def test_my_plan_value_running_costs_and_support_button(app):
         db.session.commit()
     assert "data-support-open" not in o.get("/portal/plan").get_data(as_text=True)  # Friends plan only
     money = adm.get("/admin/clients/rolands?tab=money").get_data(as_text=True)
-    assert "Running costs" in money and "costs you £40.00" in money
+    assert "Running costs" in money and "£40.00" in money and "History" in money and "+ Record a payment" in money
     _form(adm, "/admin/clients/rolands/costs", {"title": "Domain renewal", "kind": "domain", "value_gbp": "12",
                                                 "interval": "yearly", "covered": "1"}, page="/admin/clients/rolands")
     with app.app_context():
@@ -1155,3 +1155,37 @@ def test_language_switch_on_client_dashboard_only(app):
     assert 'data-lang="lv"' not in adm.get("/admin/").get_data(as_text=True)
     js = app.test_client().get("/static/js/i18n-lv.js").get_data(as_text=True)
     assert '"My plan": "Mans plāns"' in js and '"Saved on this plan": "Ietaupīts ar šo plānu"' in js
+
+
+def test_installed_app_opens_client_dashboard_and_logs_in_inside_the_app(app):
+    import json as _json
+    c = app.test_client()
+    m = _json.loads(c.get("/app/rolands/manifest.webmanifest").get_data(as_text=True))
+    assert m["start_url"] == "/portal/?app=rolands" and m["scope"] == "/portal/"
+    r = c.get("/portal/?app=rolands")                                   # logged out: the app's own login
+    assert r.status_code == 302 and "/portal/login?app=rolands" in r.headers["Location"]
+    page = c.get(r.headers["Location"]).get_data(as_text=True)
+    assert "Log in" in page and "Roland" in page and "/app/rolands/icon-192.png" in page and 'data-next="/portal/' in page
+    tok = re.search(r'name="csrf-token" content="([^"]+)"', page).group(1)
+    code = c.post("/auth/code/request", json={"email": "roland@test"}, headers={"X-CSRF-Token": tok}).json["dev_code"]
+    v = c.post("/auth/code/verify?next=/portal/?app=rolands", json={"code": code, "remember": True}, headers={"X-CSRF-Token": tok})
+    assert v.json["ok"] and v.json["redirect"].startswith("/portal/")
+    home = c.get("/portal/?app=rolands")
+    assert home.status_code == 200 and "ht_app=rolands" in (home.headers.get("Set-Cookie") or "") or "ht_app" in c.get_cookie("ht_app").key
+    out = c.post("/logout", data={"csrf_token": _csrf(c, "/portal/"), "next": "/portal/login?app=rolands"})
+    assert out.headers["Location"].endswith("/portal/login?app=rolands")
+    assert "/portal/login" in c.get("/portal/").headers["Location"]           # remembers whose app it is
+
+
+def test_needs_attention_counts_payments_across_order_stages(app):
+    from models import db
+    from models.core import Account, Job, Payment
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        j1 = Job(account_id=a.id, title="Website creation", status="done", price_gbp=300)
+        j2 = Job(account_id=a.id, title="Server setup", status="done", price_gbp=200)
+        db.session.add_all([j1, j2]); db.session.flush()
+        db.session.add(Payment(account_id=a.id, job_id=j1.id, amount_gbp=500))
+        db.session.commit()
+    adm = app.test_client(); _login(adm, "admin@test")
+    assert "unpaid</span>" not in adm.get("/admin/").get_data(as_text=True)

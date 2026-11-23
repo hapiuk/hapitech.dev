@@ -1,0 +1,51 @@
+{# templates/auth/app_login.html — the installed dashboard app's login (inside /portal/), in the client's branding. #}
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="theme-color" content="#0c0e12">
+  <title>Log in | {{ acc.name if acc else 'HapiTech' }}</title>
+  {% if acc %}<link rel="manifest" href="/app/{{ acc.slug }}/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/app/{{ acc.slug }}/icon-180.png">{% endif %}
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <script>
+    (function () { var t = null; try { t = localStorage.getItem("theme"); } catch (e) {}
+      document.documentElement.setAttribute("data-theme", t === "light" ? "light" : "dark"); document.documentElement.classList.add("js"); })();
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+  {% if brand %}<style>:root{--acc:{{ brand }};--acc-ink:{{ brand }};--acc-soft:color-mix(in srgb,{{ brand }} 16%,transparent);--acc-glow:color-mix(in srgb,{{ brand }} 45%,transparent)}</style>{% endif %}
+  <style>
+    body{min-height:100dvh;display:grid;place-items:center;padding:24px 16px;background:var(--bg)}
+    .app-login{width:min(420px,100%);padding:28px 24px;border-radius:22px;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--acc)}
+    .app-login__brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+    .app-login__brand img{width:52px;height:52px;border-radius:14px;background:#fff;object-fit:contain}
+    .app-login__brand strong{display:block;font-size:1.15rem}
+    .app-login__brand small{color:var(--ink-3)}
+    .app-login h1{font-size:1.4rem;margin-bottom:4px}
+    .app-login .modal__sub{margin-bottom:16px}
+    .app-login__foot{margin-top:18px;text-align:center;font-size:.8rem;color:var(--ink-3)}
+  </style>
+</head>
+<body class="site">
+  <main class="app-login">
+    <div class="app-login__brand">
+      <img src="/app/{{ acc.slug if acc else '_hapitech' }}/icon-192.png" alt="">
+      <div><strong>{{ acc.name if acc else 'HapiTech' }}</strong><small>Dashboard</small></div>
+    </div>
+    <h1>Log in</h1>
+    <p class="modal__sub">Enter your email and we'll send you a 6-digit code. No password needed.</p>
+    {% include "auth/_form.html" %}
+    <noscript><p class="login__msg is-err">Logging in needs JavaScript switched on.</p></noscript>
+    <p class="app-login__foot">Powered by HapiTech</p>
+  </main>
+  <script>
+    /* the app is usually on the owner's own phone: keep them logged in unless they untick it */
+    document.addEventListener("DOMContentLoaded", function () { var r = document.querySelector('input[name="remember"]'); if (r) r.checked = true; });
+  </script>
+  <script src="{{ url_for('static', filename='js/site.js') }}" defer></script>
+</body>
+</html>

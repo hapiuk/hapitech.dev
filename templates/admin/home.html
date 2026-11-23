@@ -33,7 +33,7 @@
           <a class="btn btn--ghost btn--sm" href="{{ url_for('admin.client', slug=s.account.slug, tab='money') }}">Record payment</a></li>
         {% endfor %}
         {% for j in unpaid_jobs %}
-        <li><span><strong>{{ j.account.name }}</strong> · {{ j.title }} <span class="badge badge--warn">Done, {{ (j.price_gbp - j.paid_gbp) | gbp }} unpaid</span></span>
+        <li><span><strong>{{ j.account.name }}</strong> · finished work <span class="badge badge--warn">{{ j.owed | gbp(true) }} unpaid</span></span>
           <a class="btn btn--ghost btn--sm" href="{{ url_for('admin.client', slug=j.account.slug, tab='money') }}">Record payment</a></li>
         {% endfor %}
         {% for s in due_soon %}
