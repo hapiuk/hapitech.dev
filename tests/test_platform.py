@@ -1470,3 +1470,10 @@ def test_review_search_filters(app):
     assert 'data-open-dlg="shortcutDialog"' in jobs
     rv = j.get("/portal/reviews").get_data(as_text=True)
     assert "Trustpilot" in rv and "Bark" not in rv and "Somewhere else?" in rv and "small monthly cost" in rv
+
+
+def test_google_new_badge_is_not_part_of_review():
+    from utils.review_import import google_text
+    item = {"date": "2 weeks ago", "text": "", "raw": "Lamia\n2 weeks ago\nNEW\nRolands did an amazing job\nLike\nShare"}
+    out = google_text(item)
+    assert (out[0] if isinstance(out, tuple) else out).startswith("Rolands did an amazing job")

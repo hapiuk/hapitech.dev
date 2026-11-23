@@ -234,6 +234,8 @@ def google_text(item):
                     continue
                 if l in ("More", "See more", "Read more") or AGO_RE.match(l):
                     continue
+                if l == "NEW" and not body:
+                    continue                    # Google's "NEW" badge on recent reviews, not the customer's words
                 body.append(raw[i].rstrip())
             if body:
                 text = "\n".join(body).strip()
