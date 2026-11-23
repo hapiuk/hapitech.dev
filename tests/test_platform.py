@@ -769,3 +769,57 @@ def test_owner_adds_review_and_google_link_opens_reviews_page(app):
     data = app.test_client().get("/api/v1/sites/rolands/reviews", headers=_site_key(app, "rolands")).json
     jo = next(x for x in data["reviews"] if x["name"] == "Jo Bloggs")
     assert jo["source_url"] == "https://www.google.com/search?q=Rolands+Reviews"
+
+
+def test_post_photos_go_into_gallery_and_leave_with_the_post(app):
+    import json as _json
+    from models import db
+    from models.core import Account
+    from models.content import ContentBlock, Post
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        orig = _json.dumps(["static:img/gallery/a.jpg"])
+        db.session.add(ContentBlock(account_id=a.id, key="photos.gallery", type="images", label="Gallery photos",
+                                    group="Photos", value=orig, default_value=orig))
+        db.session.commit()
+    o = app.test_client()
+    _login(o, "roland@test")
+    r = _form(o, "/portal/posts/new", {"title": "Shed in Codsall", "action": "publish", "to_gallery": "1",
+                                       "photos": (_png(), "shed.png")}, page="/portal/posts/new",
+              content_type="multipart/form-data")
+    assert r.status_code == 302
+    with app.app_context():
+        p = Post.query.filter_by(title="Shed in Codsall").first()
+        g_ = ContentBlock.query.filter_by(key="photos.gallery").first()
+        assert g_.data[0] == p.photo_id_list[0] and g_.data[1] == "static:img/gallery/a.jpg"   # newest first
+        pid = p.id
+    _form(o, f"/portal/posts/{pid}", {"action": "delete"}, page=f"/portal/posts/{pid}")
+    with app.app_context():
+        g_ = ContentBlock.query.filter_by(key="photos.gallery").first()
+        assert g_.data == ["static:img/gallery/a.jpg"]
+        assert all("static:img/gallery/a.jpg" in v.value and v.value.count(",") == 0 for v in g_.versions)
+
+
+def test_review_age_and_admin_sets_date(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account
+    from models.reviews import Review
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        r = Review(account_id=a.id, source="google", author_name="Dated", rating=5, body="ok", status="published")
+        db.session.add(r); db.session.commit(); rid = r.id
+        f = app.jinja_env.filters["age"]
+        today = dt.date.today()
+        assert [f(today), f(today - dt.timedelta(days=1)), f(today - dt.timedelta(days=5)),
+                f(today - dt.timedelta(days=22)), f(today - dt.timedelta(days=95)), f(today - dt.timedelta(days=800))] == \
+               ["today", "yesterday", "5 days ago", "3 weeks ago", "3 months ago", "2 years ago"]
+    ad = app.test_client()
+    _login(ad, "admin@test")
+    assert "no date" in ad.get("/admin/reviews?status=all").get_data(as_text=True)
+    when = (dt.date.today() - dt.timedelta(days=14)).isoformat()
+    _form(ad, f"/admin/reviews/{rid}", {"action": "date", "reviewed_at": when}, page="/admin/reviews")
+    with app.app_context():
+        assert db.session.get(Review, rid).reviewed_at.date().isoformat() == when
+    o = app.test_client(); _login(o, "roland@test")
+    assert "2 weeks ago" in o.get("/portal/reviews").get_data(as_text=True)

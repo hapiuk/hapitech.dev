@@ -32,6 +32,7 @@
     {% for m in ph %}<figure><img src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt=""><label><input type="checkbox" name="keep_photo" value="{{ m.id }}" checked> keep</label></figure>{% endfor %}
   </div></div>{% endif %}
   <label class="field"><span>Add photos <small>up to 6 per post</small></span><input type="file" name="photos" accept="image/*" multiple></label>
+  <label class="check"><input type="checkbox" name="to_gallery" value="1" checked> <span>Also add the photos to my website gallery</span></label>
   <div class="form-actions">
     <button class="btn" name="action" value="publish">{{ 'Save' if p.status == 'published' else 'Publish' }}</button>
     {% if p.status != 'published' %}<button class="btn btn--ghost" name="action" value="draft">Save draft</button>

@@ -31,7 +31,7 @@ We've been busy behind the scenes on your website, and we've built you something
 - **No fake reviews:** if someone we can't match to one of your jobs leaves a review on your website, it waits for your OK first. Please approve every genuine review, good or bad. If you don't get to it, it goes live by itself after 14 days.
 - **Jobs:** website enquiries appear here. You can send a quote, book a date (your customer gets a reminder the day before), and send the invoice when you're done.
 - **Calendar:** your booked jobs can show in your phone's own calendar.
-- **Posts:** share photos of finished jobs. Mentioning the town helps local people find you on Google. Each post gets its own page on your website, and one tap shares it to Facebook, Instagram or WhatsApp.
+- **Posts:** share photos of finished jobs. Mentioning the town helps local people find you on Google. Each post gets its own page on your website, its photos go into your gallery too, and one tap shares it to Facebook, Instagram or WhatsApp.
 - **Visitors:** see how many people visit your website each day, and how they found you (Google, Facebook and so on).
 - **My website:** change your service descriptions and photos yourself, any time. There's a button for it on your Home screen.
 - **Away mode:** going on holiday? Turn it on and your website shows when you're back.

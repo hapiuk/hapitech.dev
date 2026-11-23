@@ -6,6 +6,7 @@
   <div><h1>Reviews</h1><p>Every client's reviews. Reported ones wait here for your decision and stay visible until you act.</p></div>
   <a class="btn btn--sm" href="{{ url_for('admin.review_new') }}">Add a review by hand</a>
 </div>
+{% if undated %}<p class="small muted" style="margin-bottom:12px">📅 {{ undated }} review{{ 's' if undated != 1 }} here {{ 'have' if undated != 1 else 'has' }} no date. Copy it from Google if you like (“3 months ago” is fine, roughly), or wait: the Google import will fill them in once API access is approved.</p>{% endif %}
 <form class="row" style="margin-bottom:16px">
   <nav class="subnav" style="margin:0;border:0">
     {% for s, label in [('pending','Waiting for OK'),('reported','Reported'),('published','Published'),('removed','Removed'),('all','All')] %}
@@ -19,6 +20,8 @@
 </form>
 {% macro admin_actions(r) %}
   <form method="post" action="{{ url_for('admin.review_set', rid=r.id) }}" class="review__actions">
+    <input type="date" name="reviewed_at" value="{{ r.reviewed_at.date() if r.reviewed_at else '' }}" max="{{ today }}" aria-label="Date written" class="input-sm" title="When the customer wrote it. Copy from Google if needed.">
+    <button class="btn btn--ghost btn--sm" name="action" value="date">{{ 'Change date' if r.reviewed_at else 'Set date' }}</button>
     <input type="hidden" name="back" value="{{ request.full_path }}">
     {% if r.status != 'published' %}<button class="btn btn--ghost btn--sm" name="action" value="publish">{{ 'Keep it (dismiss report)' if r.status == 'reported' else ('Approve' if r.status == 'pending' else 'Show it') }}</button>{% endif %}
     {% if r.status != 'removed' %}<button class="btn btn--danger btn--sm" name="action" value="remove" data-confirm="Hide this review from the public? Only for fake, abusive or off-topic reviews.">Remove</button>{% endif %}

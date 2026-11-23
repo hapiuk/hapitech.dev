@@ -12,7 +12,7 @@ import json
 from flask import url_for
 
 from models import db
-from models.content import ContentBlock, Media, PhotoLike
+from models.content import ContentBlock, ContentBlockVersion, Media, PhotoLike
 from utils.links import public_url
 
 HERO_MODES = {"all": "Random from all my photos", "liked": "Random from my most-liked photos",
@@ -100,3 +100,48 @@ def hero_pool(account):
         top = sorted(((c, p) for p, c in likes_map(account).items() if p in known), reverse=True)[:TOP_LIKED]
         return [p for _, p in top] or None
     return None
+
+
+# ---------------------------------------------------------------- post photos -> website gallery
+
+GALLERY_KEYS = ("photos.gallery", "photos.photos")      # Roland: photos.gallery, Ray: photos.photos
+
+
+def gallery_block(account):
+    for key in GALLERY_KEYS:
+        b = ContentBlock.query.filter_by(account_id=account.id, key=key, type="images").first()
+        if b:
+            return b
+    return None
+
+
+def add_to_gallery(account, media_ids, user_id=None) -> int:
+    """Put a post's photos at the front of the site's gallery (newest work first). Returns how many were added."""
+    b = gallery_block(account)
+    if not b or not media_ids:
+        return 0
+    current = b.data if isinstance(b.data, list) else []
+    new = [i for i in media_ids if i not in current]
+    if not new:
+        return 0
+    db.session.add(ContentBlockVersion(block_id=b.id, value=b.value, saved_by=user_id))
+    b.value, b.updated_by = json.dumps(new + current), user_id
+    return len(new)
+
+
+def remove_from_gallery(account, media_ids, user_id=None):
+    """Called before a post's photos are deleted, so the gallery never points at a missing file."""
+    b = gallery_block(account)
+    if not b or not media_ids:
+        return
+    current = b.data if isinstance(b.data, list) else []
+    kept = [x for x in current if x not in set(media_ids)]
+    if kept != current:
+        b.value, b.updated_by = json.dumps(kept), user_id
+        for v in b.versions:            # undo history must not bring a deleted photo back either
+            try:
+                old = json.loads(v.value)
+            except ValueError:
+                continue
+            if isinstance(old, list):
+                v.value = json.dumps([x for x in old if x not in set(media_ids)])

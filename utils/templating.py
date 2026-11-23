@@ -50,6 +50,22 @@ def init_templating(app):
                 return f"{n} {unit}{'s' if n != 1 else ''} ago"
         return ""
 
+    @app.template_filter("age")
+    def age(v):
+        """How old a review is, by the day: today, yesterday, 5 days ago, 3 weeks ago, 4 months ago, 2 years ago."""
+        if not v:
+            return ""
+        d = (dt.date.today() - (v.date() if isinstance(v, dt.datetime) else v)).days
+        if d <= 0:
+            return "today"
+        if d == 1:
+            return "yesterday"
+        for size, unit in ((365, "year"), (30, "month"), (7, "week"), (1, "day")):
+            if d >= size:
+                n = d // size
+                return f"{n} {unit}{'s' if n != 1 else ''} ago"
+        return ""
+
     @app.template_filter("stars")
     def stars(n):
         n = max(0, min(5, int(n or 0)))

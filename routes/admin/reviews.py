@@ -25,14 +25,22 @@ def reviews():
     counts = dict(db.session.query(Review.status, db.func.count()).group_by(Review.status).all())
     clients = Account.query.filter_by(kind="client").order_by(Account.name).all()
     return render_template("admin/reviews.html", rows=rows, status=status, counts=counts, clients=clients,
-                           client=acct, sources=REVIEW_SOURCES)
+                           client=acct, sources=REVIEW_SOURCES, today=dt.date.today(),
+                           undated=sum(1 for r in rows if not r.reviewed_at))
 
 
 @admin_bp.route("/reviews/<int:rid>", methods=["POST"])
 def review_set(rid):
     r = db.session.get(Review, rid) or abort(404)
     action = request.form.get("action")
-    if action == "publish":
+    if action == "date":
+        try:
+            v = request.form.get("reviewed_at")
+            r.reviewed_at = dt.datetime.fromisoformat(v) if v else None
+            flash("Date saved." if v else "Date cleared.", "ok")
+        except ValueError:
+            flash("That date didn't look right.", "err")
+    elif action == "publish":
         r.status, r.report_reason = "published", None
         flash("Review is showing again.", "ok")
     elif action == "remove":

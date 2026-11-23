@@ -251,6 +251,8 @@ def post_edit(pid=None):
     if request.method == "POST":
         f = request.form
         if f.get("action") == "delete" and pid:
+            from utils.photos import remove_from_gallery
+            remove_from_gallery(g.account, [m.id for m in p.photos], current_user.id)
             for m in p.photos:
                 delete_file(m.file_path)
                 db.session.delete(m)
@@ -268,6 +270,8 @@ def post_edit(pid=None):
             return render_template("portal/post_form.html", p=p)
         keep = [int(i) for i in f.getlist("keep_photo") if i.isdigit()]
         photo_ids = [i for i in p.photo_id_list if i in keep]
+        from utils.photos import add_to_gallery, remove_from_gallery
+        remove_from_gallery(g.account, [m.id for m in p.photos if m.id not in keep], current_user.id)
         for m in p.photos:                         # photos the user unticked
             if m.id not in keep:
                 delete_file(m.file_path)
@@ -297,7 +301,12 @@ def post_edit(pid=None):
             p.status = "draft"
         if not pid:
             db.session.add(p)
+        added = 0
+        if p.status == "published" and f.get("to_gallery"):
+            added = add_to_gallery(g.account, photo_ids, current_user.id)
         db.session.commit()
+        if added:
+            flash(f"{added} photo{'s' if added != 1 else ''} added to your website gallery too.", "ok")
         for e in errors:
             flash(e, "err")
         if p.status == "published":
