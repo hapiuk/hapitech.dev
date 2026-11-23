@@ -22,7 +22,7 @@ from models import db
 
 
 def register_cli(app):
-    for cmd in (deploy, create_admin, setup_clients, import_site_reviews, import_bench, seed_dev, tick):
+    for cmd in (deploy, create_admin, setup_clients, import_site_reviews, import_google_reviews, import_bench, seed_dev, tick):
         app.cli.add_command(cmd)
 
 
@@ -287,3 +287,25 @@ def tick():
     """Run background jobs now (reminders, retention). They also run automatically every few minutes."""
     from utils.tasks import run_all
     click.echo(run_all(current_app._get_current_object(), force=True))
+
+
+
+@click.command("import-google-reviews")
+@click.argument("slug")
+@click.argument("copy_file", type=click.Path(exists=True, dir_okay=False))
+@click.option("--date", "copied_on", required=True, help="Day the list was copied (YYYY-MM-DD); '3 months ago' counts back from it.")
+@click.option("--dry-run", is_flag=True)
+def import_google_reviews(slug, copy_file, copied_on, dry_run):
+    """Add / update a client's Google reviews (and their replies) from a copied list. Safe to run again."""
+    import datetime as dt
+
+    from models.core import Account
+    from utils.review_import import import_google
+    a = Account.query.filter_by(slug=slug).first()
+    if not a:
+        raise click.ClickException(f"No account {slug}")
+    res = import_google(a, open(copy_file, encoding="utf-8").read(), dt.date.fromisoformat(copied_on), dry_run=dry_run)
+    click.echo(f"{a.name}: {res['parsed']} reviews in the copy · {len(res['added'])} added · {len(res['updated'])} updated"
+               + (" (dry run, nothing saved)" if dry_run else ""))
+    if res["not_five"]:
+        click.echo("Not 5 stars: " + ", ".join(f"{n} ({s}★)" for n, s in res["not_five"]))

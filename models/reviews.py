@@ -29,6 +29,8 @@ class Review(TimestampMixin, db.Model):
     report_reason = db.Column(db.Text)
     request_id = db.Column(db.Integer, db.ForeignKey("review_requests.id"))
     sort_hint = db.Column(db.Integer, nullable=False, default=0)        # keeps imported order stable
+    photo_count = db.Column(db.Integer, nullable=False, default=0)      # photos on the original (e.g. Google)
+    price_tag = db.Column(db.String(30))                                 # Google's "Great price" / "Overpriced" etc.
     account = db.relationship("Account")
     replies = db.relationship("ReviewReply", lazy=True, cascade="all, delete-orphan",
                               order_by="ReviewReply.created_at")
@@ -36,6 +38,15 @@ class Review(TimestampMixin, db.Model):
     @property
     def source_label(self):
         return REVIEW_SOURCES.get(self.source, self.source.title())
+
+    @property
+    def external(self):
+        """Copied from another site (Google, Facebook…): the text and the owner's reply live there, so they're read-only."""
+        return self.source in ("google", "facebook", "checkatrade")
+
+    @property
+    def truncated(self):
+        return (self.body or "").rstrip().endswith("…")
 
     @property
     def link(self):

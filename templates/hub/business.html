@@ -1,0 +1,63 @@
+{% extends "hub/_base.html" %}
+{% from "hub/_stars.html" import stars %}
+{% block title %}{{ a.name }} reviews{% if avg %} · {{ '%.1f' % avg }}★ from {{ rows|length }}{% endif %} | HapiTech Reviews{% endblock %}
+{% block meta %}<meta name="description" content="{{ rows|length }} reviews of {{ a.name }}{% if a.town %}, {{ a.town }}{% endif %}. Every review kept, with the business's replies.">{% endblock %}
+{% block content %}
+<div class="hb-wrap">
+  <section class="hb-bizhead">
+    <img src="/app/{{ a.slug }}/icon-192.png" alt="">
+    <div><h1>{{ a.name }}</h1><p class="hb-muted" style="margin:4px 0 0">{{ a.trade or '' }}{% if a.town %} · {{ a.town }}{% endif %}{% if a.domain %} · <a href="https://{{ a.domain }}" rel="noopener">{{ a.domain }}</a>{% endif %}</p></div>
+    <div class="hb-row"><a class="hb-btn" href="{{ url_for('reviews_public.write', slug=a.slug) }}">Leave a review</a></div>
+  </section>
+  <div class="hb-layout">
+    <div>
+      {% if rows %}
+      <div class="hb-filters" role="group" aria-label="Filter reviews">
+        <button class="hb-chip" type="button" data-filter="all" aria-pressed="true">All {{ rows|length }}</button>
+        {% for n in [5,4,3,2,1] if dist[n] %}<button class="hb-chip" type="button" data-filter="r{{ n }}" aria-pressed="false">{{ n }}★ ({{ dist[n] }})</button>{% endfor %}
+        {% if replied %}<button class="hb-chip" type="button" data-filter="replied" aria-pressed="false">With a reply</button>{% endif %}
+      </div>
+      <div data-reviews>
+      {% for r in rows %}
+        <article class="hb-review" id="review-{{ r.id }}" data-r="r{{ r.rating }}" data-replied="{{ 'yes' if r.reply else 'no' }}">
+          <div class="hb-review__top">
+            <div class="hb-review__who"><span class="hb-avatar" aria-hidden="true">{{ r.author_name[:1] | upper }}</span>
+              <div><strong>{{ r.author_name }}</strong><div class="hb-review__meta">{% if r.reviewed_at %}{{ r.reviewed_at | age }} · {% endif %}{% if r.link and r.external %}<a href="{{ r.link }}" target="_blank" rel="noopener">via {{ r.source_label }} ↗</a>{% else %}left on HapiTech Reviews{% endif %}{% if r.verified %} · ✓ Verified customer{% endif %}</div></div></div>
+            {{ stars(r.rating) }}
+          </div>
+          {% if r.body %}<p class="hb-review__body">{{ r.body }}</p>{% else %}<p class="hb-review__body hb-muted">Left a star rating without words.</p>{% endif %}
+          {% if r.price_tag or r.photo_count or (r.truncated and r.link) %}<div class="hb-review__extra">
+            {% if r.price_tag %}<span class="hb-tag">{{ r.price_tag }}</span>{% endif %}
+            {% if r.photo_count and r.link %}<a href="{{ r.link }}" target="_blank" rel="noopener">📷 {{ r.photo_count }} photo{{ '' if r.photo_count == 1 else 's' }} on {{ r.source_label }}</a>{% endif %}
+            {% if r.truncated and r.link %}<a href="{{ r.link }}" target="_blank" rel="noopener">Read it all on {{ r.source_label }} ↗</a>{% endif %}
+          </div>{% endif %}
+          {% if r.reply %}<div class="hb-reply"><b>Reply from {{ a.name }}</b>{{ r.reply.body }}</div>{% endif %}
+          <div class="hb-review__foot"><button class="hb-link" type="button" data-report="{{ hub_url('hub.report', rid=r.id) }}">Report</button></div>
+        </article>
+      {% endfor %}
+      </div>
+      <div class="hb-more" hidden><button class="hb-btn hb-btn--ghost" type="button" data-more>Show more reviews</button></div>
+      {% else %}
+      <div class="hb-card"><h2 style="font-size:1.2rem">No reviews yet</h2><p class="hb-muted">Used {{ a.name }}? Be the first to leave a review.</p><a class="hb-btn" href="{{ url_for('reviews_public.write', slug=a.slug) }}">Leave a review</a></div>
+      {% endif %}
+    </div>
+    <aside class="hb-side">
+      {% if avg %}<div class="hb-card">
+        <div class="hb-score"><span class="hb-score__n">{{ '%.1f' % avg }}</span><div>{{ stars(avg | round | int) }}<div class="hb-muted" style="font-size:.88rem">{{ rows|length }} reviews</div></div></div>
+        <div class="hb-dist">{% for n in [5,4,3,2,1] %}<button class="hb-dist__row" type="button" data-filter="r{{ n }}" {% if not dist[n] %}disabled{% endif %}><span>{{ n }}★</span><span class="hb-dist__bar"><span style="width:{{ (dist[n] / rows|length * 100) | round(1) }}%"></span></span><span>{{ dist[n] }}</span></button>{% endfor %}</div>
+      </div>{% endif %}
+      <div class="hb-card">
+        <h2 style="font-size:1.05rem;margin-bottom:6px">Used {{ a.name }}?</h2>
+        <p class="hb-muted" style="margin:0 0 12px;font-size:.92rem">Leave an honest review. It helps others choose and helps {{ a.first_name }} too.</p>
+        <a class="hb-btn" href="{{ url_for('reviews_public.write', slug=a.slug) }}">Leave a review</a>
+        {% if a.google_reviews_url %}<p style="margin:12px 0 0;font-size:.88rem"><a href="{{ a.google_reviews_url }}" target="_blank" rel="noopener">See {{ a.name }} on Google ↗</a></p>{% endif %}
+      </div>
+      <div class="hb-card"><b>About these reviews</b>
+        <ul>{% for label, n in sources.items() %}<li>{{ n }} from {{ 'HapiTech Reviews' if label in ('HapiTech', 'their website') else label }}</li>{% endfor %}
+          <li>Nothing genuine is ever deleted</li><li>Dates of copied reviews are approximate</li></ul>
+        <p style="margin:10px 0 0;font-size:.88rem"><a href="{{ hub_url('hub.policy') }}">Our review policy</a></p></div>
+      <aside class="hb-ad" style="margin-top:14px"><div><small>Advertisement</small>Your local business here.</div><a href="mailto:aaron@hapitech.dev?subject=Advertising%20on%20HapiTech%20Reviews">Ask →</a></aside>
+    </aside>
+  </div>
+</div>
+{% endblock %}

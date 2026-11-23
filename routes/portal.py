@@ -234,6 +234,9 @@ def reviews():
 def review_action(rid):
     r = scoped(Review, id=rid).first_or_404()
     action = request.form.get("action")
+    if action in ("reply", "delete-reply") and r.external:
+        flash(f"This review is on {r.source_label}, so reply to it there. Replies from {r.source_label} show here automatically.", "err")
+        return redirect(url_for("portal.reviews", show=request.args.get("show", "all")) + f"#r{r.id}")
     if action == "reply":
         body = (request.form.get("body") or "").strip()
         if not body:

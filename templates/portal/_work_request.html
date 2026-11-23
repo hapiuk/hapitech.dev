@@ -1,6 +1,6 @@
 {# templates/portal/_work_request.html — ask HapiTech for extra work; expects `work` (their requests) and `back`. #}
 {% from "app/_macros.html" import howto with context %}
-<section class="card work" id="work">
+<section class="{{ 'work' if dialog else 'card work' }}" id="work">
   <div class="card__head"><h2>{{ title or 'Need something doing?' }}</h2>{% if work %}<span class="small muted">{{ work | length }} request{{ '' if work | length == 1 else 's' }}</span>{% endif %}</div>
   <p class="small muted">{{ intro or "Changes, new features, a rework, anything extra for your website. Offer an amount if you like, or leave it blank and Aaron will send you a quote." }}</p>
   {% if work %}
@@ -12,7 +12,7 @@
     {% endfor %}
   </ul>
   {% endif %}
-  <details class="work__ask" {% if not work %}open{% endif %}>
+  <details class="work__ask" {% if not work or dialog %}open{% endif %}>
     <summary class="btn btn--sm">+ Ask for something</summary>
     <form method="post" action="{{ url_for('portal.work_request') }}" class="form-grid" style="margin-top:12px">
       <input type="hidden" name="back" value="{{ back }}">

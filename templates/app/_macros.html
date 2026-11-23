@@ -34,7 +34,11 @@
       </div>
     </div>
   </div>
-  {% if r.body %}<p class="review__body">{{ r.body }}</p>{% endif %}
+  {% if r.body %}<p class="review__body">{{ r.body }}</p>{% elif r.external %}<p class="small muted">Left a star rating without words.</p>{% endif %}
+  {% if r.price_tag or r.photo_count or (r.truncated and r.link) %}<p class="review__extra small">
+    {% if r.price_tag %}<span class="badge">{{ r.price_tag }}</span>{% endif %}
+    {% if r.photo_count and r.link %}<a href="{{ r.link }}" target="_blank" rel="noopener">📷 {{ r.photo_count }} photo{{ '' if r.photo_count == 1 else 's' }} on {{ r.source_label }}</a>{% endif %}
+    {% if r.truncated and r.link %}<a href="{{ r.link }}" target="_blank" rel="noopener">Read it all on {{ r.source_label }} ↗</a>{% endif %}</p>{% endif %}
   {% set photos = r.photos | fromjson %}
   {% if photos %}
   <div class="review__photos">
@@ -44,7 +48,7 @@
   </div>
   {% endif %}
   {% if r.status == 'reported' and r.report_reason %}<p class="small muted" style="margin-top:8px">Reported: “{{ r.report_reason }}”</p>{% endif %}
-  {% if r.reply %}<div class="review__reply"><strong>Reply from {{ r.account.name }}</strong>{{ r.reply.body }}</div>{% endif %}
+  {% if r.reply %}<div class="review__reply"><strong>Reply from {{ r.account.name }}{% if r.external %} <small class="muted">· on {{ r.source_label }}</small>{% endif %}</strong>{{ r.reply.body }}</div>{% endif %}
   {% if actions %}{{ actions(r) }}{% endif %}
 </article>
 {%- endmacro %}

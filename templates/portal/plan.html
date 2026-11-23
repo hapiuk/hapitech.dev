@@ -79,8 +79,15 @@
   <p class="small muted">Hosting, maintenance, security, email and more{% if v.since %} since {{ v.since | ukdate('%B %Y') }}{% endif %}, covered by HapiTech.</p>
 </section>
 {% endif %}
+<div class="support-row">
+  <button type="button" class="btn btn--ghost btn--sm" data-work-open>🛠 Request work{% if work %} ({{ work | length }}){% endif %}</button>
+  {% if support %}<button type="button" class="btn btn--ghost btn--sm" data-support-open>☕ Support HapiTech</button>{% endif %}
+</div>
+<dialog class="report work-dlg" id="workDialog" aria-label="Request work">
+  {% with back='plan', dialog=True %}{% include "portal/_work_request.html" %}{% endwith %}
+  <div class="row" style="margin-top:10px"><button type="button" class="btn btn--ghost btn--sm" data-work-close>Close</button></div>
+</dialog>
 {% if support %}
-<div class="support-row"><button type="button" class="btn btn--ghost btn--sm" data-support-open>☕ Support HapiTech</button></div>
 <dialog class="report support-dlg" id="supportDialog" aria-labelledby="supportTitle">
   <div data-support-pick>
     <h2 id="supportTitle">☕ Support HapiTech</h2>
@@ -115,6 +122,5 @@
   </div>
 </dialog>
 {% endif %}
-{% with back='plan' %}<div style="margin-top:12px">{% include "portal/_work_request.html" %}</div>{% endwith %}
 <p class="small muted" style="margin-top:14px">Questions about anything here? <a href="{{ url_for('portal.help') }}">Message Aaron</a>.</p>
 {% endblock %}

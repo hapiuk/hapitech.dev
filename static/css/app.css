@@ -556,3 +556,7 @@ button.support__way{width:100%;font:inherit;text-align:left;cursor:pointer}
 .txn__date{width:50px;height:56px;align-content:center;gap:1px;padding:0}
 .txn__date small{font-size:.62rem;letter-spacing:.04em;line-height:1}
 .txn__date strong{font-size:1.1rem;line-height:1.05}
+.review__extra{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-top:6px}
+.support-row{gap:8px;flex-wrap:wrap}
+.work-dlg{width:min(560px,calc(100vw - 24px))}
+.work-dlg .work .card__head h2{font-size:1.1rem}

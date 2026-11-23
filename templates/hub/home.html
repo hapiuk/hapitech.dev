@@ -1,0 +1,59 @@
+{% extends "hub/_base.html" %}
+{% from "hub/_stars.html" import stars %}
+{% block content %}
+<section class="hb-hero">
+  <div class="hb-wrap">
+    <h1>Honest reviews of local businesses.</h1>
+    <p>Real reviews from real customers, good and bad. We never delete a genuine review, and you can see every reply from the business.</p>
+    <div class="hb-row"><a class="hb-btn" href="#businesses">Find a business</a><a class="hb-btn hb-btn--ghost" href="{{ hub_url('hub.policy') }}">How we keep it fair</a></div>
+    {% if total %}<div class="hb-stats" style="margin-top:28px">
+      <div><b>{{ total }}</b><span>reviews</span></div>
+      <div><b>{{ biz | length }}</b><span>business{{ '' if biz|length == 1 else 'es' }}</span></div>
+      <div><b>{{ '%.1f' % avg }} ★</b><span>average rating</span></div>
+    </div>{% endif %}
+  </div>
+</section>
+
+<section class="hb-section" id="businesses">
+  <div class="hb-wrap">
+    <div class="hb-section__head"><h2>Featured businesses</h2>
+      {% if biz | length > 3 %}<input class="hb-search" type="search" placeholder="Search by name, trade or town" data-biz-search aria-label="Search businesses">{% endif %}</div>
+    <div class="hb-grid">
+      {% for b in biz %}
+      <a class="hb-biz" href="{{ hub_url('hub.business', slug=b.a.slug) }}" data-biz="{{ b.a.name }} {{ b.a.trade or '' }} {{ b.a.town or '' }}">
+        <div class="hb-biz__top"><img class="hb-biz__logo" src="/app/{{ b.a.slug }}/icon-192.png" alt="" loading="lazy">
+          <div><div class="hb-biz__name">{{ b.a.name }}</div><div class="hb-biz__trade">{{ b.a.trade or '' }}{% if b.a.town %} · {{ b.a.town }}{% endif %}</div></div></div>
+        <div class="hb-biz__score"><b>{{ '%.1f' % b.avg }}</b>{{ stars(b.avg | round | int) }}<span class="hb-muted">{{ b.count }} reviews</span></div>
+        {% if b.latest.body %}<p class="hb-biz__quote">“{{ b.latest.body }}” <span class="hb-muted">— {{ b.latest.author_name }}</span></p>{% endif %}
+        <div><span class="hb-badge">✓ Replies to {{ b.replied }} of {{ b.count }} reviews</span></div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="hb-section">
+  <div class="hb-wrap">
+    <div class="hb-section__head"><h2>How we keep reviews honest</h2></div>
+    <div class="hb-promise">
+      <div><b>Nothing genuine is deleted</b><p>Good or bad, every real review stays up. Businesses can't edit or remove them.</p></div>
+      <div><b>Where it came from</b><p>Each review shows its source: left here, or copied from Google or Facebook with a link to the original.</p></div>
+      <div><b>Both sides</b><p>Businesses can reply publicly, so you see how they handle feedback.</p></div>
+      <div><b>Anyone can report</b><p>Spot something fake? Report it. A person at HapiTech checks every report.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="hb-section">
+  <div class="hb-wrap">
+    <div class="hb-offer">
+      <div><h2>Run a local business?</h2>
+        <ul><li>Collect reviews in seconds with a QR code or a link</li><li>Show them on your own website automatically</li>
+          <li>Reply to every review from your phone</li><li>Plus a simple dashboard for jobs, quotes and posts</li></ul></div>
+      <div style="align-self:center"><p style="margin:0 0 14px;color:#cfd3da">Built and looked after by HapiTech, the people behind this site.</p>
+        <a class="hb-btn" href="https://hapitech.dev/#contact">Get your business listed</a></div>
+    </div>
+    <aside class="hb-ad" style="margin-top:16px"><div><small>Advertisement</small>Reach local homeowners here. A small, tasteful spot for local businesses.</div><a href="mailto:aaron@hapitech.dev?subject=Advertising%20on%20HapiTech%20Reviews">Ask about this space →</a></aside>
+  </div>
+</section>
+{% endblock %}

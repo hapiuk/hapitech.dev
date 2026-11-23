@@ -342,3 +342,13 @@ document.querySelectorAll("[data-check-all]").forEach(function (all) {
     });
   });
 })();
+
+/* My plan: "Request work" opens the request box (and re-opens after sending, so they see it listed) */
+(function () {
+  var dlg = document.getElementById("workDialog"), open = document.querySelector("[data-work-open]");
+  if (!dlg || !open) return;
+  function show() { if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", ""); }
+  open.addEventListener("click", show);
+  dlg.querySelector("[data-work-close]").addEventListener("click", function () { dlg.close(); });
+  if (location.hash === "#work") show();
+})();

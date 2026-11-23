@@ -183,10 +183,6 @@ def write(slug):
 
 @reviews_public_bp.route("/reviews/<slug>")
 def business(slug):
-    a = Account.query.filter(Account.slug == slug, Account.kind.in_(["client", "internal"])).first()
-    if not a or a.status == "archived":
-        abort(404)
-    q = Review.query.filter(Review.account_id == a.id, Review.status.in_(["published", "reported"]))
-    rows = q.order_by(Review.reviewed_at.desc().nullslast(), Review.sort_hint).all()
-    avg = sum(r.rating for r in rows) / len(rows) if rows else None
-    return render_template("reviews/business.html", a=a, rows=rows, avg=avg)
+    """Every review for a business: the hapitech.report page (same page at both addresses)."""
+    from routes.hub import business as hub_business
+    return hub_business(slug)

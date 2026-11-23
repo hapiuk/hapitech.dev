@@ -80,9 +80,12 @@ def create_app(test_config: dict | None = None):
     from routes.lab import lab_bp
     from routes.pwa import pwa_bp
     from routes.customer import customer_bp
+    from routes.hub import HubHost, hub_bp, hub_url
 
-    for bp in (pwa_bp, customer_bp, public_bp, auth_bp, news_bp, admin_bp, portal_bp, reviews_public_bp, site_api_bp, lab_bp):
+    for bp in (pwa_bp, customer_bp, public_bp, auth_bp, news_bp, admin_bp, portal_bp, reviews_public_bp, site_api_bp, lab_bp, hub_bp):
         app.register_blueprint(bp)
+    app.jinja_env.globals["hub_url"] = hub_url
+    app.wsgi_app = HubHost(app.wsgi_app)          # hapitech.report -> /r/... (the reviews site)
 
     from cli import register_cli
     register_cli(app)

@@ -1195,7 +1195,7 @@ def test_work_request_with_and_without_offer(app):
     from models.work import Lead
     o = app.test_client(); _login(o, "roland@test")
     page = o.get("/portal/plan").get_data(as_text=True)
-    assert "Need something doing?" in page
+    assert "Need something doing?" in page and "data-work-open" in page
     n = len(_outbox(app))
     _form(o, "/portal/requests/work", {"kind": "feature", "what": "Add a kitchen fitting page", "offer": "£150"}, page="/portal/plan")
     _form(o, "/portal/requests/work", {"kind": "change", "what": "New phone number on the site", "offer": ""}, page="/portal/plan")
@@ -1244,3 +1244,79 @@ def test_site_enquiry_becomes_a_client_with_a_project_page(app):
     adm.get("/admin/clients/smith-plumbing/portal")
     site = adm.get("/portal/website").get_data(as_text=True)
     assert "Your new website is on its way" in site and "Your website project" in site
+
+
+SAMPLE_GOOGLE = """Lamia Rouibah
+4 reviews
+2 weeks agoNew
+Reasonable price
+Rolands did an amazing job fixing my wardrobe. … More
+Mohammad Zaheer
+8 reviews·2 photos
+7 months ago
+First time I used Roland.
+Photo 1 in review by Mohammad Zaheer
+Photo 2 in review by Mohammad Zaheer
+Rolands Handyman (owner)
+7 months ago
+“Really appreciate it!
+Thanks”
+Gertrude Murekeyisoni
+10 months ago
+Rolands Handyman (owner)
+10 months ago
+Thank you.
+"""
+
+
+def test_google_copy_import_and_reviews_site(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account
+    from models.reviews import Review
+    from utils.review_import import import_google, parse
+    rows = parse(SAMPLE_GOOGLE, dt.date(2026, 11, 23))
+    assert [r["name"] for r in rows] == ["Lamia Rouibah", "Mohammad Zaheer", "Gertrude Murekeyisoni"]
+    assert rows[0]["date"] == dt.date(2026, 11, 9) and rows[0]["price"] == "Reasonable price" and rows[0]["body"].endswith("…")
+    assert rows[1]["photos"] == 2 and rows[1]["reply"] == "Really appreciate it!\nThanks" and rows[1]["date"] == dt.date(2026, 4, 23)
+    assert rows[2]["body"] == "" and rows[2]["reply"] == "Thank you."
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        a.google_reviews_url = "https://www.google.com/search?q=Rolands"
+        db.session.commit()
+        res = import_google(a, SAMPLE_GOOGLE, dt.date(2026, 11, 23))
+        assert len(res["added"]) == 3
+        assert len(import_google(a, SAMPLE_GOOGLE, dt.date(2026, 11, 23))["added"]) == 0      # safe to re-run
+        mz = Review.query.filter_by(author_name="Mohammad Zaheer").first()
+        assert mz.reply.body.startswith("Really") and mz.photo_count == 2 and mz.external and mz.rating == 5
+        mzid = mz.id
+    # client can't edit a Google reply
+    o = app.test_client(); _login(o, "roland@test")
+    page = o.get("/portal/reviews").get_data(as_text=True)
+    assert "Your reply is on Google" in page and "📷 2 photos on Google" in page
+    _form(o, f"/portal/reviews/{mzid}", {"action": "reply", "body": "changed"}, page="/portal/reviews")
+    with app.app_context():
+        assert Review.query.get(mzid).reply.body.startswith("Really")
+    # the public reviews site
+    pub = app.test_client()
+    home = pub.get("/rv/").get_data(as_text=True)
+    assert "Honest reviews of local businesses" in home and "Roland" in home
+    biz = pub.get("/rv/rolands").get_data(as_text=True)
+    assert "Mohammad Zaheer" in biz and "Reply from" in biz and "Read it all on Google" in biz and "Leave a review" in biz
+    assert pub.get("/reviews/rolands").get_data(as_text=True) == biz                       # same page at the old address
+    assert "nothing genuine" in pub.get("/rv/policy").get_data(as_text=True).lower() or "don't delete genuine" in pub.get("/rv/policy").get_data(as_text=True)
+    # hapitech.report serves it at the root
+    rep = pub.get("/rolands", base_url="https://hapitech.report")
+    assert rep.status_code == 200 and "Mohammad Zaheer" in rep.get_data(as_text=True)
+    assert 'href="/policy"' in pub.get("/", base_url="https://hapitech.report").get_data(as_text=True)
+    # report a review -> stays up, Aaron's jobs + email
+    n = len(_outbox(app))
+    tok = _csrf(pub, "/rv/rolands")
+    r = pub.post(f"/rv/report/{mzid}", json={"reason": "Wrong business", "details": "Not Roland", "email": ""}, headers={"X-CSRF-Token": tok})
+    assert r.json["ok"]
+    with app.app_context():
+        from models.work import Lead
+        assert Review.query.get(mzid).status == "reported"
+        assert Lead.query.filter_by(source="report").first().account.slug == "hapitech"
+    assert len(_outbox(app)) == n + 1
+    assert "Mohammad Zaheer" in pub.get("/rv/rolands").get_data(as_text=True)                # still visible

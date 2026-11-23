@@ -22,6 +22,9 @@
 <nav class="subnav">{% for s, label in [('all','All'),('unreplied','Needs a reply')] %}<a href="{{ url_for('portal.reviews', show=s) }}" {% if show == s %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
 {% macro owner_actions(r) %}
   <div class="review__acts">
+  {% if r.external %}
+  {% if r.link %}<a class="small" href="{{ r.link }}" target="_blank" rel="noopener">{{ 'Your reply is on' if r.reply else 'Reply on' }} {{ r.source_label }} ↗</a>{% endif %}
+  {% else %}
   <details class="fold">
     <summary class="small">{{ 'Edit your reply' if r.reply else 'Reply' }}</summary>
     <form method="post" action="{{ url_for('portal.review_action', rid=r.id, show=show) }}" class="stack">
@@ -30,6 +33,7 @@
         {% if r.reply %}<button class="btn btn--ghost btn--sm" name="action" value="delete-reply" data-confirm="Remove your reply?">Remove reply</button>{% endif %}</div>
     </form>
   </details>
+  {% endif %}
   {% if r.status != 'reported' %}
   <details class="fold"><summary class="small muted">Report this review</summary>
     <form method="post" action="{{ url_for('portal.review_action', rid=r.id, show=show) }}" class="stack">

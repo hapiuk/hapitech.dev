@@ -191,7 +191,8 @@
     "Support HapiTech": "Atbalstīt HapiTech", "Other": "Cita summa", "Amount": "Summa",
     "🔒 Card or PayPal accepted, handled securely by PayPal.": "🔒 Pieņem karti vai PayPal, droši apstrādā PayPal.",
     "Hosting, maintenance, security, email and more": "Mitināšana, uzturēšana, drošība, e-pasts un vairāk",
-    "☕ Support HapiTech": "☕ Atbalstīt HapiTech", "How much would you like to give?": "Cik vēlaties ziedot?", "← Back": "← Atpakaļ", "Not now": "Ne tagad", "Thank you!": "Paldies!", "Close": "Aizvērt",
+    "☕ Support HapiTech": "☕ Atbalstīt HapiTech", "Your reply is on Google ↗": "Jūsu atbilde ir Google ↗", "Reply on Google ↗": "Atbildēt Google ↗",
+    "Left a star rating without words.": "Atstāja tikai zvaigznes bez teksta.", "How much would you like to give?": "Cik vēlaties ziedot?", "← Back": "← Atpakaļ", "Not now": "Ne tagad", "Thank you!": "Paldies!", "Close": "Aizvērt",
     "Card or PayPal": "Karte vai PayPal", "Card, Apple Pay or Google Pay": "Karte, Apple Pay vai Google Pay",
     "Totally optional, and your plan stays the same either way. If you'd like to chip in towards the running costs, thank you!": "Pilnīgi brīvprātīgi, un jūsu plāns jebkurā gadījumā paliek tāds pats. Ja vēlaties piedalīties uzturēšanas izmaksās, paldies!",
     "That really helps keep everything running. Aaron's been told, so expect a thank-you from him too.": "Tas tiešām palīdz visu uzturēt. Ārons ir informēts, tāpēc gaidiet paldies arī no viņa.",
@@ -241,6 +242,8 @@
     week: ["nedēļas", "nedēļām"], month: ["mēneša", "mēnešiem"], year: ["gada", "gadiem"] };
 
   var P = [
+    [/^🛠 Request work(.*)$/, "🛠 Pieprasīt darbu$1"], [/^📷 (\d+) photos? on Google$/, "📷 $1 foto Google"],
+    [/^Read it all on Google ↗$/, "Lasīt visu Google ↗"], [/^· on Google$/, "· Google"],
     [/^Your offer \(£\)$/, "Jūsu piedāvājums (£)"], [/^All of (\d{4})$/, "Viss $1. gads"],
     [/^(\d+) requests?$/, "$1 pieprasījumi"], [/^(.+) · you offered (£[\d,.]+)$/, function (m, a, p) { return tr(a) + " · jūs piedāvājāt " + p; }],
     [/^Sent to Aaron\. (.+)$/, function (m, a) { return "Nosūtīts Āronam. " + (a.indexOf("quote") > -1 ? "Viņš atbildēs ar tāmi." : "Viņš to ar jums apstiprinās."); }],

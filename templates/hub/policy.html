@@ -1,0 +1,23 @@
+{% extends "hub/_base.html" %}
+{% block title %}Review policy | HapiTech Reviews{% endblock %}
+{% block content %}
+<div class="hb-wrap"><article class="hb-prose">
+  <h1>How reviews work here</h1>
+  <p>HapiTech Reviews shows reviews of the local businesses HapiTech works with. We want them to be useful, which means honest, so here's exactly how it works.</p>
+  <h2>Where reviews come from</h2>
+  <ul>
+    <li><b>Left here:</b> customers can review a business directly. If we can match the reviewer to one of the business's jobs, it's marked "Verified customer".</li>
+    <li><b>Copied from Google or Facebook:</b> we show the review and the business's reply exactly as they appear there, with a link to the original. Dates are approximate, because those sites only show "3 months ago" and so on. Star ratings are added by hand from the original.</li>
+  </ul>
+  <h2>We don't delete genuine reviews</h2>
+  <p>Good or bad, a real review from a real customer stays up. Businesses can reply in public, but they can't edit, hide or remove reviews, and they can't pay to do so.</p>
+  <h2>What we do remove</h2>
+  <p>Only reviews that, after we've checked, turn out to be fake, for the wrong business, abusive or hateful, or that share someone's personal details. Reviews copied from Google or Facebook follow those sites' own rules too.</p>
+  <h2>Reporting a review</h2>
+  <p>Every review has a <b>Report</b> link. Reports go straight to a person at HapiTech, not to the business. The review stays up while we look into it. If you leave your email, we'll tell you what we decided.</p>
+  <h2>New reviews left here</h2>
+  <p>To keep out spam, a review left by someone we can't match to the business's customers may wait for a quick check first. If nobody looks at it within 14 days, it goes live anyway.</p>
+  <h2>Questions</h2>
+  <p>Email <a href="mailto:aaron@hapitech.dev">aaron@hapitech.dev</a>. See also our <a href="{{ hub_url('hub.terms') }}">terms</a> and <a href="{{ hub_url('hub.privacy') }}">privacy policy</a>.</p>
+</article></div>
+{% endblock %}
