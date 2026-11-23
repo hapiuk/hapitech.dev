@@ -506,3 +506,5 @@ html.lv-pending body{visibility:hidden}
 .support__way--revolut strong{color:var(--ink)}
 .support__thanks{text-align:center;padding:10px 0}
 .support__big{font-size:2.6rem;line-height:1;margin-bottom:6px}
+button.support__way{width:100%;font:inherit;text-align:left;cursor:pointer}
+.support__go{width:100%;justify-content:center;margin-top:4px}

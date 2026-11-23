@@ -291,35 +291,46 @@ document.querySelectorAll("[data-check-all]").forEach(function (all) {
   document.querySelector("[data-txn-clear]").addEventListener("click", function () { month.value = ""; search.value = ""; apply(); });
 })();
 
-/* Support HapiTech: small button -> box with payment options -> thank-you (and Aaron is told) */
+/* Support HapiTech: small button -> choose PayPal / Revolut -> (PayPal only) choose amount -> thank-you.
+   Revolut asks for the amount itself, so nobody enters it twice. Aaron is told which option was picked. */
 (function () {
   var dlg = document.getElementById("supportDialog"), open = document.querySelector("[data-support-open]");
   if (!dlg || !open) return;
-  var amount = "5", pick = dlg.querySelector("[data-support-pick]"), thanks = dlg.querySelector("[data-support-thanks]");
-  function links() {
-    dlg.querySelectorAll("[data-support-way]").forEach(function (a) {
-      var p = a.getAttribute("data-amount-param");
-      a.href = a.getAttribute("data-base") + (p && amount ? p.replace("{n}", amount) : "");
-    });
-  }
+  var pick = dlg.querySelector("[data-support-pick]"), thanks = dlg.querySelector("[data-support-thanks]");
+  var panes = dlg.querySelectorAll("[data-support-amount-for]");
+  function show(el) { pick.hidden = true; thanks.hidden = true; panes.forEach(function (p) { p.hidden = true; }); el.hidden = false; }
   open.addEventListener("click", function () {
-    pick.hidden = false; thanks.hidden = true;
+    show(pick);
     if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
   });
   dlg.querySelectorAll("[data-support-close]").forEach(function (b) { b.addEventListener("click", function () { dlg.close(); }); });
-  dlg.querySelectorAll("[data-amount]").forEach(function (c) {
-    c.addEventListener("click", function () {
-      dlg.querySelectorAll("[data-amount]").forEach(function (x) { x.classList.toggle("is-on", x === c); });
-      amount = c.getAttribute("data-amount"); links();
+  dlg.querySelectorAll("[data-support-back]").forEach(function (b) { b.addEventListener("click", function () { show(pick); }); });
+  dlg.querySelectorAll("[data-support-step]").forEach(function (b) {
+    b.addEventListener("click", function () { show(dlg.querySelector('[data-support-amount-for="' + b.getAttribute("data-support-step") + '"]')); });
+  });
+  panes.forEach(function (pane) {
+    var go = pane.querySelector("[data-support-way]"), note = pane.querySelector("[data-other-note]");
+    function set(n) {
+      var p = go.getAttribute("data-amount-param");
+      go.href = go.getAttribute("data-base") + (n && p ? p.replace("{n}", n) : "");
+      go.setAttribute("data-amount", n || "");
+      note.hidden = !!n;
+    }
+    pane.querySelectorAll("[data-amount]").forEach(function (c) {
+      if (c === go) return;
+      c.addEventListener("click", function () {
+        pane.querySelectorAll(".support__chip").forEach(function (x) { x.classList.toggle("is-on", x === c); });
+        set(c.getAttribute("data-amount"));
+      });
     });
+    set("5");
   });
   dlg.querySelectorAll("[data-support-way]").forEach(function (a) {
     a.addEventListener("click", function () {
       var token = (document.querySelector('meta[name="csrf-token"]') || {}).content;
       fetch("/portal/support", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-Token": token },
-        body: JSON.stringify({ method: a.getAttribute("data-support-way"), amount: amount }) }).catch(function () {});
-      setTimeout(function () { pick.hidden = true; thanks.hidden = false; }, 300);   // the payment page opens in a new tab
+        body: JSON.stringify({ method: a.getAttribute("data-support-way"), amount: a.getAttribute("data-amount") || "" }) }).catch(function () {});
+      setTimeout(function () { show(thanks); }, 300);    // the payment page opens in a new tab
     });
   });
-  links();
 })();

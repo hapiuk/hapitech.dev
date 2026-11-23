@@ -76,17 +76,28 @@
   <div data-support-pick>
     <h2 id="supportTitle">☕ Support HapiTech</h2>
     <p class="small muted">Totally optional, and your plan stays the same either way. If you'd like to chip in towards the running costs, thank you!</p>
+    <div class="support__ways">
+      {% for o in support %}{% if o.amount_param %}
+      <button type="button" class="support__way support__way--{{ o.key }}" data-support-step="{{ o.key }}"><strong>{{ o.label }}</strong><small>{{ o.sub }}</small></button>
+      {% else %}
+      <a class="support__way support__way--{{ o.key }}" href="{{ o.url }}" target="_blank" rel="noopener" data-support-way="{{ o.key }}"><strong>{{ o.label }}</strong><small>{{ o.sub }}</small></a>
+      {% endif %}{% endfor %}
+    </div>
+    <div class="row" style="margin-top:12px"><button type="button" class="btn btn--ghost btn--sm" data-support-close>Not now</button></div>
+  </div>
+  {% for o in support if o.amount_param %}
+  <div data-support-amount-for="{{ o.key }}" hidden>
+    <h2>{{ o.label }}</h2>
+    <p class="small muted">How much would you like to give?</p>
     <div class="support__amounts" role="group" aria-label="Amount">
       {% for n in [3, 5, 10, 20] %}<button type="button" class="support__chip {{ 'is-on' if n == 5 }}" data-amount="{{ n }}">£{{ n }}</button>{% endfor %}
       <button type="button" class="support__chip" data-amount="">Other</button>
     </div>
-    <div class="support__ways">
-      {% for o in support %}<a class="support__way support__way--{{ o.key }}" href="{{ o.url }}" target="_blank" rel="noopener"
-         data-support-way="{{ o.key }}" data-base="{{ o.url }}" data-amount-param="{{ o.amount_param }}">
-        <strong>{{ o.label }}</strong><small>{{ o.sub }}</small></a>{% endfor %}
-    </div>
-    <div class="row" style="margin-top:12px"><button type="button" class="btn btn--ghost btn--sm" data-support-close>Not now</button></div>
+    <p class="small muted" data-other-note hidden>You'll type the amount on {{ o.label }}.</p>
+    <a class="btn btn--sm support__go" href="{{ o.url }}" target="_blank" rel="noopener" data-support-way="{{ o.key }}" data-base="{{ o.url }}" data-amount-param="{{ o.amount_param }}">Continue to {{ o.label }}</a>
+    <div class="row" style="margin-top:10px"><button type="button" class="btn btn--ghost btn--sm" data-support-back>← Back</button></div>
   </div>
+  {% endfor %}
   <div data-support-thanks hidden class="support__thanks">
     <p class="support__big" aria-hidden="true">😎</p>
     <h2>Thank you!</h2>

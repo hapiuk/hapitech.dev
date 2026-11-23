@@ -191,7 +191,7 @@
     "Support HapiTech": "Atbalstīt HapiTech", "Other": "Cita summa", "Amount": "Summa",
     "🔒 Card or PayPal accepted, handled securely by PayPal.": "🔒 Pieņem karti vai PayPal, droši apstrādā PayPal.",
     "Hosting, maintenance, security, email and more": "Mitināšana, uzturēšana, drošība, e-pasts un vairāk",
-    "☕ Support HapiTech": "☕ Atbalstīt HapiTech", "Not now": "Ne tagad", "Thank you!": "Paldies!", "Close": "Aizvērt",
+    "☕ Support HapiTech": "☕ Atbalstīt HapiTech", "How much would you like to give?": "Cik vēlaties ziedot?", "← Back": "← Atpakaļ", "Not now": "Ne tagad", "Thank you!": "Paldies!", "Close": "Aizvērt",
     "Card or PayPal": "Karte vai PayPal", "Card, Apple Pay or Google Pay": "Karte, Apple Pay vai Google Pay",
     "Totally optional, and your plan stays the same either way. If you'd like to chip in towards the running costs, thank you!": "Pilnīgi brīvprātīgi, un jūsu plāns jebkurā gadījumā paliek tāds pats. Ja vēlaties piedalīties uzturēšanas izmaksās, paldies!",
     "That really helps keep everything running. Aaron's been told, so expect a thank-you from him too.": "Tas tiešām palīdz visu uzturēt. Ārons ir informēts, tāpēc gaidiet paldies arī no viņa.",
@@ -227,6 +227,7 @@
     week: ["nedēļas", "nedēļām"], month: ["mēneša", "mēnešiem"], year: ["gada", "gadiem"] };
 
   var P = [
+    [/^Continue to (.+)$/, "Turpināt uz $1"], [/^You'll type the amount on (.+)\.$/, "Summu ievadīsiet $1."],
     [/^Receipt · download PDF$/, "Kvīts · lejupielādēt PDF"], [/^View · download PDF$/, "Skatīt · lejupielādēt PDF"],
     [/^(.+) \+ (\d+) more$/, function (m, a, n) { return tr(a) + " + vēl " + n; }],
     [/^(.+) & (.+)$/, function (m, a, b) { var x = tr(a), y = tr(b); return (x === a && y === b) ? null : x + " un " + y; }],
