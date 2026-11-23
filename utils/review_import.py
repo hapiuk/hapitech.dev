@@ -228,7 +228,7 @@ def import_file(account, data, photos=True, dry_run=False):
     page_names = [account.name, data.get("business") or "", data.get("page") or ""]
     added, updated, skipped, photo_n = [], [], [], 0
     for pos, it in enumerate(data.get("reviews") or []):
-        name = (it.get("author") or "").strip()
+        name = re.sub(r"^(ok)?(Facebook)+", "", (it.get("author") or "").strip())
         if not name or len(name) > 120:
             skipped.append(name[:40] or "(no name)")
             continue
