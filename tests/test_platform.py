@@ -1164,9 +1164,16 @@ def test_my_plan_value_running_costs_and_support_button(app):
 
 
 def test_language_switch_on_client_dashboard_only(app):
+    from models import db
+    from models.core import Account
     o = app.test_client(); _login(o, "roland@test")
+    assert 'data-lang="lv"' not in o.get("/portal/").get_data(as_text=True)        # English only unless switched on
+    with app.app_context():
+        Account.query.filter_by(slug="rolands").first().languages = "lv"; db.session.commit()
     page = o.get("/portal/").get_data(as_text=True)
     assert 'data-lang="lv"' in page and "i18n-lv.js" in page and "lv-pending" in page
+    ray = app.test_client(); _login(ray, "ray@test")
+    assert 'data-lang="lv"' not in ray.get("/portal/").get_data(as_text=True)
     adm = app.test_client(); _login(adm, "admin@test")
     assert 'data-lang="lv"' not in adm.get("/admin/").get_data(as_text=True)
     js = app.test_client().get("/static/js/i18n-lv.js").get_data(as_text=True)

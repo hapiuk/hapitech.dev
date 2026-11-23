@@ -48,6 +48,11 @@ class Account(TimestampMixin, db.Model):
     reviews_synced_at = db.Column(db.DateTime)
     shortcuts = db.Column(db.Text)                                           # JSON [[label, url], …] on their Jobs page
     features = db.Column(db.Text)                                            # JSON ["reviews", …]; blank = everything
+    languages = db.Column(db.String(40))                                     # extra dashboard languages, e.g. "lv"
+
+    @property
+    def offers_lv(self):
+        return "lv" in (self.languages or "").split(",")
 
     @property
     def feature_set(self):

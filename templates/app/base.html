@@ -17,7 +17,7 @@
       document.documentElement.setAttribute("data-accent", c === "hapitech" ? "hapitech" : "brand");
       {% endif %}
       document.documentElement.classList.add("js");
-      {% if area == 'portal' %}
+      {% if area == 'portal' and g.account.offers_lv %}
       var l = null; try { l = localStorage.getItem("lang"); } catch (e) {}
       if (l === "lv") document.documentElement.classList.add("lv-pending");
       {% endif %}
@@ -102,11 +102,11 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
       <p class="topbar__title">{{ self.title() }}</p>
-      {% if area == 'portal' %}<div class="lang" role="group" aria-label="Language" data-no-translate><button type="button" data-lang="en">EN</button><button type="button" data-lang="lv">LV</button></div>{% endif %}
+      {% if area == 'portal' and g.account.offers_lv %}<div class="lang" role="group" aria-label="Language" data-no-translate><button type="button" data-lang="en">EN</button><button type="button" data-lang="lv">LV</button></div>{% endif %}
     </header>
 
     <main id="main" class="content">
-      {% if area == 'portal' %}<div class="lang-row"><div class="lang" role="group" aria-label="Language" data-no-translate><button type="button" data-lang="en">EN</button><button type="button" data-lang="lv">LV</button></div></div>{% endif %}
+      {% if area == 'portal' and g.account.offers_lv %}<div class="lang-row"><div class="lang" role="group" aria-label="Language" data-no-translate><button type="button" data-lang="en">EN</button><button type="button" data-lang="lv">LV</button></div></div>{% endif %}
       <div class="install" id="installBanner" hidden data-sw="/{{ area }}/sw.js" data-scope="/{{ area }}/">
         <img src="/app/{{ app_slug }}/icon-192.png" alt="" width="44" height="44" class="install__icon">
         <div class="install__text">
@@ -153,7 +153,7 @@
   </nav>
   {% endif %}
 
-  {% if area == 'portal' %}<script src="{{ url_for('static', filename='js/i18n-lv.js') }}"></script>{% endif %}
+  {% if area == 'portal' and g.account.offers_lv %}<script src="{{ url_for('static', filename='js/i18n-lv.js') }}"></script>{% endif %}
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>

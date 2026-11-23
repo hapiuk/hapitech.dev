@@ -112,6 +112,8 @@ def _fill_account(a: Account, form):
             a.balance_gbp = _money(form.get("balance_gbp")) or None
         except Exception:
             pass
+    if "languages_sent" in form:
+        a.languages = "lv" if form.get("lang_lv") else None
     if "features_sent" in form:
         import json as _json
         from utils.features import ALL
