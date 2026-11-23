@@ -22,6 +22,8 @@ I've built something to make running {business} a bit easier: your own dashboard
 - **Edit your website yourself:** change your services, wording and photos whenever you like.
 - **See your visitors:** how many people found your website, and whether they came from Google, Facebook and so on.
 - **Away mode:** off on holiday? Your website tells customers when you're back.
+- **Finances:** see your plan and anything owed at a glance (nothing, for now!).
+- **Made for you:** it's in your own colours, and you can switch to light mode in Settings if you prefer.
 
 **A little extra, on the house**
 

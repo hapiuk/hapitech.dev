@@ -18,6 +18,7 @@ I've been working on your website behind the scenes. It looks the same as before
 - New reviews now appear on your website automatically.
 - The **"Leave a Review"** button goes to your own review page, so reviews land straight on your site. Customers are then offered a quick way to post the same review on Google too.
 - Each Google review now has a **"via Google"** link that opens your Google reviews, so people can see they're real.
+- Reviews can show how recent they are, like "3 weeks ago".
 - Spam protection: if someone we can't match to one of your jobs leaves a review, you get to check it before it goes live.
 - (Ray) Your reviews now show the "via Google" link too, like the rest of your site.
 
@@ -31,6 +32,10 @@ I've been working on your website behind the scenes. It looks the same as before
 **New: a "recent work" page**
 
 - When you post photos of a finished job, it gets its own page on your website, and the photos go into your gallery too. Posts that mention the town help local people find you on Google.
+
+**Less junk mail**
+
+- Your contact form now quietly blocks spam bots (like those casino and crypto messages), so you should get far fewer junk enquiries. Real customers won't notice any difference.
 
 **Behind the scenes**
 
