@@ -1,7 +1,6 @@
 {% extends "app/base.html" %}
 {% from "app/_macros.html" import empty, review_card with context %}
-{% block title %}Reviews{% include "admin/_review_settings.html" %}
-{% endblock %}
+{% block title %}Reviews{% endblock %}
 {% block content %}
 <div class="page-top">
   <div><h1>Reviews</h1><p>Every client's reviews. Reported ones wait here for your decision and stay visible until you act.</p></div>
@@ -43,4 +42,5 @@
     <div class="row"><button type="button" class="btn btn--ghost btn--sm" data-close-dlg>Close</button></div>
   </form>
 </dialog>
+{% include "admin/_review_settings.html" %}
 {% endblock %}

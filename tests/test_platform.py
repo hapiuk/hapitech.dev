@@ -1464,6 +1464,9 @@ def test_review_search_filters(app):
     a = app.test_client(); _login(a, "admin@test")
     page = a.get("/admin/reviews?status=all&q=zed").get_data(as_text=True)
     assert "Zed Finder" in page and "Yan Other" not in page and 'data-open-dlg="rvSettings"' in page and "Remove from public view" in page
+    import re as _re
+    assert "dialog" not in _re.search(r"<title>(.*?)</title>", page, _re.S).group(1)            # pop-up in the page, not the title
+    assert page.index('id="rvSettings"') > page.index("</head>")
     assert 'class="btn btn--danger btn--sm" name="action" value="remove"' not in page     # no big red button any more
     j = app.test_client(); _login(j, "roland@test")
     jobs = j.get("/portal/jobs").get_data(as_text=True)
