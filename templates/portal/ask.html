@@ -9,5 +9,5 @@
   <button class="btn btn--lg btn--block" type="submit">Show the QR code</button>
   <p class="small muted">Next screen: they scan the code with their phone camera, or you email them the link.</p>
 </form>
-<p class="small muted" style="margin-top:14px"><a href="{{ url_for('portal.requests_list') }}">See requests you've sent →</a></p>
+<p class="small muted" style="margin-top:14px"><a href="{{ url_for('portal.reviews', show='sent') }}">See requests you've sent →</a></p>
 {% endblock %}

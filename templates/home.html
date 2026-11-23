@@ -19,13 +19,13 @@
   <section class="hero">
     <div class="wrap hero__grid">
       <div class="hero__copy">
-        <p class="eyebrow">Websites · AI · IT support for small businesses</p>
-        <h1 class="hero__title">Practical tech for <span class="acc">small&nbsp;businesses</span>.</h1>
-        <p class="hero__lede">
+        <p class="eyebrow">{% if ed('hero.text1') %}{{ ed('hero.text1') | richtext }}{% else %}Websites · AI · IT support for small businesses{% endif %}</p>
+        <h1 class="hero__title">{% if ed('hero.heading1') %}{{ ed('hero.heading1') | richtext }}{% else %}Practical tech for <span class="acc">small&nbsp;businesses</span>.{% endif %}</h1>
+        <p class="hero__lede">{% if ed('hero.text2') %}{{ ed('hero.text2') | richtext }}{% else %}
           Sixteen years in IT, now put to work for small and local businesses: websites that bring
           in enquiries, AI that runs privately on your own hardware, and the everyday IT that keeps it
           all going. One person, plain English, no hard sell.
-        </p>
+        {% endif %}</p>
         <div class="hero__actions">
           <a href="#contact" class="btn">Get in touch</a>
           <a href="#services" class="btn btn--ghost">What we do <span aria-hidden="true">↓</span></a>
@@ -53,7 +53,7 @@
   <!-- LIVE STRIP -->
   <section class="strip" aria-label="Sites we look after">
     <div class="wrap strip__row">
-      <p class="strip__label">Live &amp; looked after by HapiTech</p>
+      <p class="strip__label">{% if ed('strip.text1') %}{{ ed('strip.text1') | richtext }}{% else %}Live &amp; looked after by HapiTech{% endif %}</p>
       <ul class="strip__list">
         <li><a href="https://rolandshandyman.co.uk" target="_blank" rel="noopener"><span class="dot"></span>rolandshandyman.co.uk</a></li>
         <li><a href="https://rayghandymanservice.co.uk" target="_blank" rel="noopener"><span class="dot"></span>rayghandymanservice.co.uk</a></li>
@@ -67,9 +67,9 @@
       <header class="section__head section__head--split reveal">
         <div>
           <p class="kicker">Services</p>
-          <h2>What we can help with.</h2>
+          <h2>{% if ed('services.heading1') %}{{ ed('services.heading1') | richtext }}{% else %}What we can help with.{% endif %}</h2>
         </div>
-        <p class="section__lede">Small businesses rarely need an agency, a software subscription and an IT contractor. Often one person who knows all three will do.</p>
+        <p class="section__lede">{% if ed('services.text1') %}{{ ed('services.text1') | richtext }}{% else %}Small businesses rarely need an agency, a software subscription and an IT contractor. Often one person who knows all three will do.{% endif %}</p>
       </header>
 
       <ul class="pillars">
@@ -77,48 +77,48 @@
           <span class="feature__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/></svg>
           </span>
-          <h3>Websites</h3>
-          <p>Custom sites for trades and local businesses that show your work and send quote requests straight to your inbox. Designed, built and hosted.</p>
+          <h3>{% if ed('services.title1') %}{{ ed('services.title1') | richtext }}{% else %}Websites{% endif %}</h3>
+          <p>{% if ed('services.text2') %}{{ ed('services.text2') | richtext }}{% else %}Custom sites for trades and local businesses that show your work and send quote requests straight to your inbox. Designed, built and hosted.{% endif %}</p>
           <a class="pillar__link" href="#work">See our work →</a>
         </li>
         <li class="pillar reveal">
           <span class="feature__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/></svg>
           </span>
-          <h3>Local AI setups</h3>
-          <p>An AI assistant running on a computer in your office, so your documents and customer details never leave the building. No per-seat subscriptions.</p>
+          <h3>{% if ed('services.title2') %}{{ ed('services.title2') | richtext }}{% else %}Local AI setups{% endif %}</h3>
+          <p>{% if ed('services.text3') %}{{ ed('services.text3') | richtext }}{% else %}An AI assistant running on a computer in your office, so your documents and customer details never leave the building. No per-seat subscriptions.{% endif %}</p>
           <a class="pillar__link" href="#ai">How it works →</a>
         </li>
         <li class="pillar reveal">
           <span class="feature__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 6h10M6 8l5 8.2M18 8l-5 8.2"/></svg>
           </span>
-          <h3>AI workflows</h3>
-          <p>Hand repetitive admin, like sorting enquiries, drafting replies and pulling details from documents, to an AI workflow that checks with you before anything important goes out.</p>
+          <h3>{% if ed('services.title3') %}{{ ed('services.title3') | richtext }}{% else %}AI workflows{% endif %}</h3>
+          <p>{% if ed('services.text4') %}{{ ed('services.text4') | richtext }}{% else %}Hand repetitive admin, like sorting enquiries, drafting replies and pulling details from documents, to an AI workflow that checks with you before anything important goes out.{% endif %}</p>
           <a class="pillar__link" href="#ai">Examples →</a>
         </li>
         <li class="pillar reveal">
           <span class="feature__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4z"/><path d="M7 9v5c0 1.7 2.2 3 5 3s5-1.3 5-3V9"/><path d="M21 7v6"/></svg>
           </span>
-          <h3>AI introductions</h3>
-          <p>A plain-English session for you and your team: what AI is good at, where it isn't, and the handful of uses that would actually save your business time.</p>
+          <h3>{% if ed('services.title4') %}{{ ed('services.title4') | richtext }}{% else %}AI introductions{% endif %}</h3>
+          <p>{% if ed('services.text5') %}{{ ed('services.text5') | richtext }}{% else %}A plain-English session for you and your team: what AI is good at, where it isn't, and the handful of uses that would actually save your business time.{% endif %}</p>
           <a class="pillar__link" href="#ai">What's covered →</a>
         </li>
         <li class="pillar reveal">
           <span class="feature__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
           </span>
-          <h3>IT support &amp; hardware</h3>
-          <p>Computers, Windows, networks and Wi-Fi, printers, new kit set up properly. Backed by 16 years in IT and hardware work done with electrical safety training.</p>
+          <h3>{% if ed('services.title5') %}{{ ed('services.title5') | richtext }}{% else %}IT support &amp; hardware{% endif %}</h3>
+          <p>{% if ed('services.text6') %}{{ ed('services.text6') | richtext }}{% else %}Computers, Windows, networks and Wi-Fi, printers, new kit set up properly. Backed by 16 years in IT and hardware work done with electrical safety training.{% endif %}</p>
           <span class="pillar__tag">Small offices &amp; sole traders</span>
         </li>
         <li class="pillar reveal">
           <span class="feature__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5L16 12l-4-4z"/></svg>
           </span>
-          <h3>Looking after it</h3>
-          <p>Hosting, domains and business email, backups and updates, and changes when you need them. You message the same person who set it up.</p>
+          <h3>{% if ed('services.title6') %}{{ ed('services.title6') | richtext }}{% else %}Looking after it{% endif %}</h3>
+          <p>{% if ed('services.text7') %}{{ ed('services.text7') | richtext }}{% else %}Hosting, domains and business email, backups and updates, and changes when you need them. You message the same person who set it up.{% endif %}</p>
           <span class="pillar__tag">Ongoing</span>
         </li>
       </ul>
@@ -130,15 +130,15 @@
     <div class="wrap">
       <header class="section__head reveal">
         <p class="kicker">AI for small businesses</p>
-        <h2>AI that fits the way you already work.</h2>
-        <p class="section__lede">No hype and no 50-page strategy. We start with the jobs that eat your week and only bring in AI where it clearly helps.</p>
+        <h2>{% if ed('ai.heading1') %}{{ ed('ai.heading1') | richtext }}{% else %}AI that fits the way you already work.{% endif %}</h2>
+        <p class="section__lede">{% if ed('ai.text1') %}{{ ed('ai.text1') | richtext }}{% else %}No hype and no 50-page strategy. We start with the jobs that eat your week and only bring in AI where it clearly helps.{% endif %}</p>
       </header>
 
       <div class="ai-grid">
         <article class="ai-card reveal">
           <p class="ai-card__label">Private</p>
-          <h3>Local AI setups</h3>
-          <p>Open AI models running on your own computer or a small server in the office. Your data stays with you, it keeps working if the internet drops, and there's no monthly fee per user.</p>
+          <h3>{% if ed('ai.title1') %}{{ ed('ai.title1') | richtext }}{% else %}Local AI setups{% endif %}</h3>
+          <p>{% if ed('ai.text2') %}{{ ed('ai.text2') | richtext }}{% else %}Open AI models running on your own computer or a small server in the office. Your data stays with you, it keeps working if the internet drops, and there's no monthly fee per user.{% endif %}</p>
           <ul>
             <li>Ask questions of your own price lists, manuals and policies</li>
             <li>Draft quotes, emails and job write-ups from rough notes</li>
@@ -148,8 +148,8 @@
         </article>
         <article class="ai-card reveal">
           <p class="ai-card__label">Automation</p>
-          <h3>Agentic workflows</h3>
-          <p>An agentic workflow is AI that can carry out several steps on its own, like reading, deciding, drafting and filing, with you approving anything that matters.</p>
+          <h3>{% if ed('ai.title2') %}{{ ed('ai.title2') | richtext }}{% else %}Agentic workflows{% endif %}</h3>
+          <p>{% if ed('ai.text3') %}{{ ed('ai.text3') | richtext }}{% else %}An agentic workflow is AI that can carry out several steps on its own, like reading, deciding, drafting and filing, with you approving anything that matters.{% endif %}</p>
           <ul>
             <li>Sort website enquiries and draft a reply for you to check</li>
             <li>Pull details out of invoices or forms into a spreadsheet</li>
@@ -159,8 +159,8 @@
         </article>
         <article class="ai-card reveal">
           <p class="ai-card__label">Getting started</p>
-          <h3>AI introductions</h3>
-          <p>A relaxed session at your place or online, for owners and staff who keep hearing about AI and want to know if it's worth their time.</p>
+          <h3>{% if ed('ai.title3') %}{{ ed('ai.title3') | richtext }}{% else %}AI introductions{% endif %}</h3>
+          <p>{% if ed('ai.text4') %}{{ ed('ai.text4') | richtext }}{% else %}A relaxed session at your place or online, for owners and staff who keep hearing about AI and want to know if it's worth their time.{% endif %}</p>
           <ul>
             <li>What tools like ChatGPT, Claude and Gemini can and can't do</li>
             <li>Live examples using your own day-to-day tasks</li>
@@ -182,8 +182,8 @@
     <div class="wrap">
       <header class="section__head reveal">
         <p class="kicker">Our work</p>
-        <h2>Real sites, for real local businesses.</h2>
-        <p class="section__lede">Both designed from scratch around how the business actually works, then hosted and maintained by us.</p>
+        <h2>{% if ed('work.heading1') %}{{ ed('work.heading1') | richtext }}{% else %}Real sites, for real local businesses.{% endif %}</h2>
+        <p class="section__lede">{% if ed('work.text1') %}{{ ed('work.text1') | richtext }}{% else %}Both designed from scratch around how the business actually works, then hosted and maintained by us.{% endif %}</p>
       </header>
 
       <article class="case reveal">
@@ -193,9 +193,9 @@
         </a>
         <div class="case__body">
           <img class="case__logo" src="{{ url_for('static', filename='media/clients/rolandshandyman.png') }}" alt="" width="48" height="48" loading="lazy">
-          <h3>Roland's Handyman</h3>
-          <p class="case__sector">Handyman &amp; property maintenance</p>
-          <p>A site that walks customers through each service (furniture assembly, wall mounting, minor plumbing and electrical) and turns interest into a quote request.</p>
+          <h3>{% if ed('work.title1') %}{{ ed('work.title1') | richtext }}{% else %}Roland's Handyman{% endif %}</h3>
+          <p class="case__sector">{% if ed('work.text2') %}{{ ed('work.text2') | richtext }}{% else %}Handyman &amp; property maintenance{% endif %}</p>
+          <p>{% if ed('work.text3') %}{{ ed('work.text3') | richtext }}{% else %}A site that walks customers through each service (furniture assembly, wall mounting, minor plumbing and electrical) and turns interest into a quote request.{% endif %}</p>
           <ul class="case__list">
             <li>Quote form that checks the customer's postcode and estimates any travel charge</li>
             <li>Before-and-after and project galleries</li>
@@ -214,9 +214,9 @@
         </a>
         <div class="case__body">
           <img class="case__logo" src="{{ url_for('static', filename='media/clients/rayg.png') }}" alt="" width="48" height="48" loading="lazy">
-          <h3>Ray G Handyman Services</h3>
-          <p class="case__sector">Home improvement &amp; renovation</p>
-          <p>A bold, full-screen site for a renovation business covering bathrooms, kitchens, carpentry, loft conversions, extensions and paving, built to show off finished jobs.</p>
+          <h3>{% if ed('work.title2') %}{{ ed('work.title2') | richtext }}{% else %}Ray G Handyman Services{% endif %}</h3>
+          <p class="case__sector">{% if ed('work.text4') %}{{ ed('work.text4') | richtext }}{% else %}Home improvement &amp; renovation{% endif %}</p>
+          <p>{% if ed('work.text5') %}{{ ed('work.text5') | richtext }}{% else %}A bold, full-screen site for a renovation business covering bathrooms, kitchens, carpentry, loft conversions, extensions and paving, built to show off finished jobs.{% endif %}</p>
           <ul class="case__list">
             <li>Full-screen photo hero with a clear "Request a free quote" call to action</li>
             <li>Project gallery plus before-and-after comparisons</li>
@@ -229,8 +229,8 @@
       </article>
 
       <div class="sub-head reveal">
-        <h3>What every website includes</h3>
-        <p>The same building blocks behind the sites above, shaped around your trade and your area.</p>
+        <h3>{% if ed('work.title3') %}{{ ed('work.title3') | richtext }}{% else %}What every website includes{% endif %}</h3>
+        <p>{% if ed('work.text6') %}{{ ed('work.text6') | richtext }}{% else %}The same building blocks behind the sites above, shaped around your trade and your area.{% endif %}</p>
       </div>
 
       <ul class="features">
@@ -238,57 +238,57 @@
           <span class="feature__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/></svg>
           </span>
-          <h3>Custom design</h3>
-          <p>Built for your business from a blank page, with your logo and colours and your photos front and centre. No page builders.</p>
+          <h3>{% if ed('work.title4') %}{{ ed('work.title4') | richtext }}{% else %}Custom design{% endif %}</h3>
+          <p>{% if ed('work.text7') %}{{ ed('work.text7') | richtext }}{% else %}Built for your business from a blank page, with your logo and colours and your photos front and centre. No page builders.{% endif %}</p>
         </li>
         <li class="feature reveal">
           <span class="feature__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M4 4h16v12H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg>
           </span>
-          <h3>Quote &amp; enquiry forms</h3>
-          <p>Forms that ask the questions you need answered and send a tidy, branded email straight to your inbox.</p>
+          <h3>{% if ed('work.title5') %}{{ ed('work.title5') | richtext }}{% else %}Quote &amp; enquiry forms{% endif %}</h3>
+          <p>{% if ed('work.text8') %}{{ ed('work.text8') | richtext }}{% else %}Forms that ask the questions you need answered and send a tidy, branded email straight to your inbox.{% endif %}</p>
         </li>
         <li class="feature reveal">
           <span class="feature__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
           </span>
-          <h3>Service area &amp; travel costs</h3>
-          <p>Customers enter a postcode and see whether they're in your area, and what any extra travel would cost, before they ask.</p>
+          <h3>{% if ed('work.title6') %}{{ ed('work.title6') | richtext }}{% else %}Service area &amp; travel costs{% endif %}</h3>
+          <p>{% if ed('work.text9') %}{{ ed('work.text9') | richtext }}{% else %}Customers enter a postcode and see whether they're in your area, and what any extra travel would cost, before they ask.{% endif %}</p>
         </li>
         <li class="feature reveal">
           <span class="feature__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 5v14"/><path d="m6 15 2.5-3 2 2.5M14 15l2-2.5 2.5 2.5"/></svg>
           </span>
-          <h3>Galleries &amp; before/after</h3>
-          <p>Your finished jobs are your best advert. We lay them out so they load fast and look sharp on a phone.</p>
+          <h3>{% if ed('work.title7') %}{{ ed('work.title7') | richtext }}{% else %}Galleries &amp; before/after{% endif %}</h3>
+          <p>{% if ed('work.text10') %}{{ ed('work.text10') | richtext }}{% else %}Your finished jobs are your best advert. We lay them out so they load fast and look sharp on a phone.{% endif %}</p>
         </li>
         <li class="feature reveal">
           <span class="feature__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>
           </span>
-          <h3>Reviews</h3>
-          <p>Show what past customers have said, right next to the button that gets new ones in touch.</p>
+          <h3>{% if ed('work.title8') %}{{ ed('work.title8') | richtext }}{% else %}Reviews{% endif %}</h3>
+          <p>{% if ed('work.text11') %}{{ ed('work.text11') | richtext }}{% else %}Show what past customers have said, right next to the button that gets new ones in touch.{% endif %}</p>
         </li>
         <li class="feature reveal">
           <span class="feature__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>
           </span>
-          <h3>Made for phones</h3>
-          <p>Most customers find you on their phone. Tap-to-call, WhatsApp and social buttons are always within reach.</p>
+          <h3>{% if ed('work.title9') %}{{ ed('work.title9') | richtext }}{% else %}Made for phones{% endif %}</h3>
+          <p>{% if ed('work.text12') %}{{ ed('work.text12') | richtext }}{% else %}Most customers find you on their phone. Tap-to-call, WhatsApp and social buttons are always within reach.{% endif %}</p>
         </li>
         <li class="feature reveal">
           <span class="feature__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="6" rx="1.5"/><rect x="4" y="14" width="16" height="6" rx="1.5"/><path d="M8 7h.01M8 17h.01"/></svg>
           </span>
-          <h3>Hosting, domain &amp; email</h3>
-          <p>We host it on servers we manage, with SSL, backups and updates, and can set up your domain and a business email address.</p>
+          <h3>{% if ed('work.title10') %}{{ ed('work.title10') | richtext }}{% else %}Hosting, domain &amp; email{% endif %}</h3>
+          <p>{% if ed('work.text13') %}{{ ed('work.text13') | richtext }}{% else %}We host it on servers we manage, with SSL, backups and updates, and can set up your domain and a business email address.{% endif %}</p>
         </li>
         <li class="feature reveal">
           <span class="feature__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5L16 12l-4-4z"/></svg>
           </span>
-          <h3>Ongoing changes</h3>
-          <p>New service, new photos, new prices? Send a message and it gets done. No logins to learn, no plugins to update.</p>
+          <h3>{% if ed('work.title11') %}{{ ed('work.title11') | richtext }}{% else %}Ongoing changes{% endif %}</h3>
+          <p>{% if ed('work.text14') %}{{ ed('work.text14') | richtext }}{% else %}New service, new photos, new prices? Send a message and it gets done. No logins to learn, no plugins to update.{% endif %}</p>
         </li>
       </ul>
     </div>
@@ -299,29 +299,29 @@
     <div class="wrap">
       <header class="section__head reveal">
         <p class="kicker">How it works</p>
-        <h2>From a quick chat to something that works and keeps working.</h2>
+        <h2>{% if ed('process.heading1') %}{{ ed('process.heading1') | richtext }}{% else %}From a quick chat to something that works and keeps working.{% endif %}</h2>
       </header>
 
       <ol class="steps">
         <li class="step reveal">
           <p class="step__n">1</p>
-          <h3>Chat</h3>
-          <p>Tell us about your business and what's slowing you down. No jargon needed, and no obligation.</p>
+          <h3>{% if ed('process.title1') %}{{ ed('process.title1') | richtext }}{% else %}Chat{% endif %}</h3>
+          <p>{% if ed('process.text1') %}{{ ed('process.text1') | richtext }}{% else %}Tell us about your business and what's slowing you down. No jargon needed, and no obligation.{% endif %}</p>
         </li>
         <li class="step reveal">
           <p class="step__n">2</p>
-          <h3>Plan</h3>
-          <p>You get a clear suggestion of what's worth doing, what it costs and what isn't worth doing yet.</p>
+          <h3>{% if ed('process.title2') %}{{ ed('process.title2') | richtext }}{% else %}Plan{% endif %}</h3>
+          <p>{% if ed('process.text2') %}{{ ed('process.text2') | richtext }}{% else %}You get a clear suggestion of what's worth doing, what it costs and what isn't worth doing yet.{% endif %}</p>
         </li>
         <li class="step reveal">
           <p class="step__n">3</p>
-          <h3>Build &amp; check</h3>
-          <p>We set it up and test it properly, whether that's a website, an AI setup or new hardware, before you rely on it.</p>
+          <h3>{% if ed('process.title3') %}{{ ed('process.title3') | richtext }}{% else %}Build &amp; check{% endif %}</h3>
+          <p>{% if ed('process.text3') %}{{ ed('process.text3') | richtext }}{% else %}We set it up and test it properly, whether that's a website, an AI setup or new hardware, before you rely on it.{% endif %}</p>
         </li>
         <li class="step reveal">
           <p class="step__n">4</p>
-          <h3>Hand over &amp; look after</h3>
-          <p>We show you how to use it, then keep it secure and up to date. You always know who to call.</p>
+          <h3>{% if ed('process.title4') %}{{ ed('process.title4') | richtext }}{% else %}Hand over &amp; look after{% endif %}</h3>
+          <p>{% if ed('process.text4') %}{{ ed('process.text4') | richtext }}{% else %}We show you how to use it, then keep it secure and up to date. You always know who to call.{% endif %}</p>
         </li>
       </ol>
     </div>
@@ -332,19 +332,19 @@
     <div class="wrap about">
       <header class="reveal">
         <p class="kicker">About</p>
-        <h2>You deal with the person who does the work.</h2>
+        <h2>{% if ed('about.heading1') %}{{ ed('about.heading1') | richtext }}{% else %}You deal with the person who does the work.{% endif %}</h2>
       </header>
       <div class="about__body reveal">
-        <p>
+        <p>{% if ed('about.text1') %}{{ ed('about.text1') | richtext }}{% else %}
           HapiTech is run by Aaron, who has spent 16 years in IT: systems administration at Rebellion,
           IT and telecoms for NATO sites in Afghanistan with Thales, and senior customer engineering
           for Rolls-Royce with Computacenter.
-        </p>
-        <p>
+        {% endif %}</p>
+        <p>{% if ed('about.text2') %}{{ ed('about.text2') | richtext }}{% else %}
           These days that experience goes into small businesses: websites that run on properly managed
           servers, AI set up carefully and privately, and IT that's done right the first time. When you
           want something changed, you message the same person who built it.
-        </p>
+        {% endif %}</p>
         <ul class="about__facts">
           <li><strong>16</strong><span>years in IT</span></li>
           <li><strong>1</strong><span>point of contact, start to finish</span></li>
@@ -401,8 +401,8 @@
   <section id="updates" class="section">
     <div class="wrap">
       <header class="section__head section__head--split reveal">
-        <div><p class="kicker">Updates</p><h2>What we've been up to.</h2></div>
-        <p class="section__lede">Recent work and news from HapiTech.</p>
+        <div><p class="kicker">Updates</p><h2>{% if ed('updates.heading1') %}{{ ed('updates.heading1') | richtext }}{% else %}What we've been up to.{% endif %}</h2></div>
+        <p class="section__lede">{% if ed('updates.text1') %}{{ ed('updates.text1') | richtext }}{% else %}Recent work and news from HapiTech.{% endif %}</p>
       </header>
       <div class="upd-grid">
         {% for p in updates %}
@@ -424,8 +424,8 @@
   <section id="reviews" class="section section--tint">
     <div class="wrap">
       <header class="section__head section__head--split reveal">
-        <div><p class="kicker">Reviews</p><h2>What clients say.</h2></div>
-        <p class="section__lede">Real reviews from the businesses we work with.</p>
+        <div><p class="kicker">Reviews</p><h2>{% if ed('reviews.heading1') %}{{ ed('reviews.heading1') | richtext }}{% else %}What clients say.{% endif %}</h2></div>
+        <p class="section__lede">{% if ed('reviews.text1') %}{{ ed('reviews.text1') | richtext }}{% else %}Real reviews from the businesses we work with.{% endif %}</p>
       </header>
       <div class="rev-grid">
         {% for r in reviews %}
@@ -448,9 +448,9 @@
       <header class="section__head section__head--split reveal">
         <div>
           <p class="kicker">AI news</p>
-          <h2>What's new in AI.</h2>
+          <h2>{% if ed('news.heading1') %}{{ ed('news.heading1') | richtext }}{% else %}What's new in AI.{% endif %}</h2>
         </div>
-        <p class="section__lede">The latest from frontier AI labs and the local and open-model world, gathered from the publishers' own feeds.</p>
+        <p class="section__lede">{% if ed('news.text1') %}{{ ed('news.text1') | richtext }}{% else %}The latest from frontier AI labs and the local and open-model world, gathered from the publishers' own feeds.{% endif %}</p>
       </header>
       <div class="news-grid">
         {% for item in news_items %}
@@ -466,7 +466,7 @@
         {% endfor %}
       </div>
       <div class="news-foot">
-        <p>Every article is credited and links to the original. All content belongs to its publishers.</p>
+        <p>{% if ed('news.text2') %}{{ ed('news.text2') | richtext }}{% else %}Every article is credited and links to the original. All content belongs to its publishers.{% endif %}</p>
         <a href="/news" class="btn btn--ghost btn--sm">All AI news →</a>
       </div>
     </div>
@@ -479,8 +479,8 @@
       <div class="contact reveal">
         <div class="contact__copy">
           <p class="kicker">Get in touch</p>
-          <h2>Tell us what you need.</h2>
-          <p>A new website, a first look at AI, or a computer that just needs sorting. Send a few details and you'll hear back from Aaron directly.</p>
+          <h2>{% if ed('contact.heading1') %}{{ ed('contact.heading1') | richtext }}{% else %}Tell us what you need.{% endif %}</h2>
+          <p>{% if ed('contact.text1') %}{{ ed('contact.text1') | richtext }}{% else %}A new website, a first look at AI, or a computer that just needs sorting. Send a few details and you'll hear back from Aaron directly.{% endif %}</p>
           <p class="contact__alt">Prefer email? <a href="mailto:aaron@hapitech.dev">aaron@hapitech.dev</a></p>
         </div>
 

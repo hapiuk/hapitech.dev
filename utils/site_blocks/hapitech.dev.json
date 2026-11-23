@@ -1,0 +1,659 @@
+[
+ {
+  "key": "hero.text1",
+  "type": "longtext",
+  "group": "Top of page",
+  "label": "Top of page: text · “Websites · AI · IT support for small bus…”",
+  "default": "Websites · AI · IT support for small businesses",
+  "max_length": 95,
+  "sort": 0
+ },
+ {
+  "key": "hero.heading1",
+  "type": "text",
+  "group": "Top of page",
+  "label": "Top of page: heading · “Practical tech for small businesses.”",
+  "default": "Practical tech for small businesses.",
+  "max_length": 77,
+  "sort": 1
+ },
+ {
+  "key": "hero.text2",
+  "type": "longtext",
+  "group": "Top of page",
+  "label": "Top of page: text · “Sixteen years in IT, now put to work for…”",
+  "default": "Sixteen years in IT, now put to work for small and local businesses: websites that bring\nin enquiries, AI that runs privately on your own hardware, and the everyday IT that keeps it\nall going. One person, plain English, no hard sell.",
+  "max_length": 392,
+  "sort": 2
+ },
+ {
+  "key": "strip.text1",
+  "type": "longtext",
+  "group": "Sites we look after",
+  "label": "Sites we look after: text · “Live & looked after by HapiTech”",
+  "default": "Live & looked after by HapiTech",
+  "max_length": 69,
+  "sort": 3
+ },
+ {
+  "key": "services.heading1",
+  "type": "text",
+  "group": "Services",
+  "label": "Services: heading · “What we can help with.”",
+  "default": "What we can help with.",
+  "max_length": 60,
+  "sort": 4
+ },
+ {
+  "key": "services.text1",
+  "type": "longtext",
+  "group": "Services",
+  "label": "Services: text · “Small businesses rarely need an agency, …”",
+  "default": "Small businesses rarely need an agency, a software subscription and an IT contractor. Often one person who knows all three will do.",
+  "max_length": 229,
+  "sort": 5
+ },
+ {
+  "key": "services.title1",
+  "type": "text",
+  "group": "Services",
+  "label": "Services: title · “Websites”",
+  "default": "Websites",
+  "max_length": 60,
+  "sort": 6
+ },
+ {
+  "key": "services.text2",
+  "type": "longtext",
+  "group": "Services",
+  "label": "Services: text · “Custom sites for trades and local busine…”",
+  "default": "Custom sites for trades and local businesses that show your work and send quote requests straight to your inbox. Designed, built and hosted.",
+  "max_length": 244,
+  "sort": 7
+ },
+ {
+  "key": "services.title2",
+  "type": "text",
+  "group": "Services",
+  "label": "Services: title · “Local AI setups”",
+  "default": "Local AI setups",
+  "max_length": 60,
+  "sort": 8
+ },
+ {
+  "key": "services.text3",
+  "type": "longtext",
+  "group": "Services",
+  "label": "Services: text · “An AI assistant running on a computer in…”",
+  "default": "An AI assistant running on a computer in your office, so your documents and customer details never leave the building. No per-seat subscriptions.",
+  "max_length": 252,
+  "sort": 9
+ },
+ {
+  "key": "services.title3",
+  "type": "text",
+  "group": "Services",
+  "label": "Services: title · “AI workflows”",
+  "default": "AI workflows",
+  "max_length": 60,
+  "sort": 10
+ },
+ {
+  "key": "services.text4",
+  "type": "longtext",
+  "group": "Services",
+  "label": "Services: text · “Hand repetitive admin, like sorting enqu…”",
+  "default": "Hand repetitive admin, like sorting enquiries, drafting replies and pulling details from documents, to an AI workflow that checks with you before anything important goes out.",
+  "max_length": 298,
+  "sort": 11
+ },
+ {
+  "key": "services.title4",
+  "type": "text",
+  "group": "Services",
+  "label": "Services: title · “AI introductions”",
+  "default": "AI introductions",
+  "max_length": 60,
+  "sort": 12
+ },
+ {
+  "key": "services.text5",
+  "type": "longtext",
+  "group": "Services",
+  "label": "Services: text · “A plain-English session for you and your…”",
+  "default": "A plain-English session for you and your team: what AI is good at, where it isn't, and the handful of uses that would actually save your business time.",
+  "max_length": 261,
+  "sort": 13
+ },
+ {
+  "key": "services.title5",
+  "type": "text",
+  "group": "Services",
+  "label": "Services: title · “IT support & hardware”",
+  "default": "IT support & hardware",
+  "max_length": 60,
+  "sort": 14
+ },
+ {
+  "key": "services.text6",
+  "type": "longtext",
+  "group": "Services",
+  "label": "Services: text · “Computers, Windows, networks and Wi-Fi, …”",
+  "default": "Computers, Windows, networks and Wi-Fi, printers, new kit set up properly. Backed by 16 years in IT and hardware work done with electrical safety training.",
+  "max_length": 268,
+  "sort": 15
+ },
+ {
+  "key": "services.title6",
+  "type": "text",
+  "group": "Services",
+  "label": "Services: title · “Looking after it”",
+  "default": "Looking after it",
+  "max_length": 60,
+  "sort": 16
+ },
+ {
+  "key": "services.text7",
+  "type": "longtext",
+  "group": "Services",
+  "label": "Services: text · “Hosting, domains and business email, bac…”",
+  "default": "Hosting, domains and business email, backups and updates, and changes when you need them. You message the same person who set it up.",
+  "max_length": 231,
+  "sort": 17
+ },
+ {
+  "key": "ai.heading1",
+  "type": "text",
+  "group": "AI",
+  "label": "AI: heading · “AI that fits the way you already work.”",
+  "default": "AI that fits the way you already work.",
+  "max_length": 80,
+  "sort": 18
+ },
+ {
+  "key": "ai.text1",
+  "type": "longtext",
+  "group": "AI",
+  "label": "AI: text · “No hype and no 50-page strategy. We star…”",
+  "default": "No hype and no 50-page strategy. We start with the jobs that eat your week and only bring in AI where it clearly helps.",
+  "max_length": 210,
+  "sort": 19
+ },
+ {
+  "key": "ai.title1",
+  "type": "text",
+  "group": "AI",
+  "label": "AI: title · “Local AI setups”",
+  "default": "Local AI setups",
+  "max_length": 60,
+  "sort": 20
+ },
+ {
+  "key": "ai.text2",
+  "type": "longtext",
+  "group": "AI",
+  "label": "AI: text · “Open AI models running on your own compu…”",
+  "default": "Open AI models running on your own computer or a small server in the office. Your data stays with you, it keeps working if the internet drops, and there's no monthly fee per user.",
+  "max_length": 306,
+  "sort": 21
+ },
+ {
+  "key": "ai.title2",
+  "type": "text",
+  "group": "AI",
+  "label": "AI: title · “Agentic workflows”",
+  "default": "Agentic workflows",
+  "max_length": 60,
+  "sort": 22
+ },
+ {
+  "key": "ai.text3",
+  "type": "longtext",
+  "group": "AI",
+  "label": "AI: text · “An agentic workflow is AI that can carry…”",
+  "default": "An agentic workflow is AI that can carry out several steps on its own, like reading, deciding, drafting and filing, with you approving anything that matters.",
+  "max_length": 271,
+  "sort": 23
+ },
+ {
+  "key": "ai.title3",
+  "type": "text",
+  "group": "AI",
+  "label": "AI: title · “AI introductions”",
+  "default": "AI introductions",
+  "max_length": 60,
+  "sort": 24
+ },
+ {
+  "key": "ai.text4",
+  "type": "longtext",
+  "group": "AI",
+  "label": "AI: text · “A relaxed session at your place or onlin…”",
+  "default": "A relaxed session at your place or online, for owners and staff who keep hearing about AI and want to know if it's worth their time.",
+  "max_length": 231,
+  "sort": 25
+ },
+ {
+  "key": "work.heading1",
+  "type": "text",
+  "group": "Our work",
+  "label": "Our work: heading · “Real sites, for real local businesses.”",
+  "default": "Real sites, for real local businesses.",
+  "max_length": 80,
+  "sort": 26
+ },
+ {
+  "key": "work.text1",
+  "type": "longtext",
+  "group": "Our work",
+  "label": "Our work: text · “Both designed from scratch around how th…”",
+  "default": "Both designed from scratch around how the business actually works, then hosted and maintained by us.",
+  "max_length": 180,
+  "sort": 27
+ },
+ {
+  "key": "work.title1",
+  "type": "text",
+  "group": "Our work",
+  "label": "Our work: title · “Roland's Handyman”",
+  "default": "Roland's Handyman",
+  "max_length": 60,
+  "sort": 28
+ },
+ {
+  "key": "work.text2",
+  "type": "longtext",
+  "group": "Our work",
+  "label": "Our work: text · “Handyman & property maintenance”",
+  "default": "Handyman & property maintenance",
+  "max_length": 69,
+  "sort": 29
+ },
+ {
+  "key": "work.text3",
+  "type": "longtext",
+  "group": "Our work",
+  "label": "Our work: text · “A site that walks customers through each…”",
+  "default": "A site that walks customers through each service (furniture assembly, wall mounting, minor plumbing and electrical) and turns interest into a quote request.",
+  "max_length": 269,
+  "sort": 30
+ },
+ {
+  "key": "work.title2",
+  "type": "text",
+  "group": "Our work",
+  "label": "Our work: title · “Ray G Handyman Services”",
+  "default": "Ray G Handyman Services",
+  "max_length": 60,
+  "sort": 31
+ },
+ {
+  "key": "work.text4",
+  "type": "longtext",
+  "group": "Our work",
+  "label": "Our work: text · “Home improvement & renovation”",
+  "default": "Home improvement & renovation",
+  "max_length": 66,
+  "sort": 32
+ },
+ {
+  "key": "work.text5",
+  "type": "longtext",
+  "group": "Our work",
+  "label": "Our work: text · “A bold, full-screen site for a renovatio…”",
+  "default": "A bold, full-screen site for a renovation business covering bathrooms, kitchens, carpentry, loft conversions, extensions and paving, built to show off finished jobs.",
+  "max_length": 284,
+  "sort": 33
+ },
+ {
+  "key": "work.title3",
+  "type": "text",
+  "group": "Our work",
+  "label": "Our work: title · “What every website includes”",
+  "default": "What every website includes",
+  "max_length": 63,
+  "sort": 34
+ },
+ {
+  "key": "work.text6",
+  "type": "longtext",
+  "group": "Our work",
+  "label": "Our work: text · “The same building blocks behind the site…”",
+  "default": "The same building blocks behind the sites above, shaped around your trade and your area.",
+  "max_length": 160,
+  "sort": 35
+ },
+ {
+  "key": "work.title4",
+  "type": "text",
+  "group": "Our work",
+  "label": "Our work: title · “Custom design”",
+  "default": "Custom design",
+  "max_length": 60,
+  "sort": 36
+ },
+ {
+  "key": "work.text7",
+  "type": "longtext",
+  "group": "Our work",
+  "label": "Our work: text · “Built for your business from a blank pag…”",
+  "default": "Built for your business from a blank page, with your logo and colours and your photos front and centre. No page builders.",
+  "max_length": 213,
+  "sort": 37
+ },
+ {
+  "key": "work.title5",
+  "type": "text",
+  "group": "Our work",
+  "label": "Our work: title · “Quote & enquiry forms”",
+  "default": "Quote & enquiry forms",
+  "max_length": 60,
+  "sort": 38
+ },
+ {
+  "key": "work.text8",
+  "type": "longtext",
+  "group": "Our work",
+  "label": "Our work: text · “Forms that ask the questions you need an…”",
+  "default": "Forms that ask the questions you need answered and send a tidy, branded email straight to your inbox.",
+  "max_length": 181,
+  "sort": 39
+ },
+ {
+  "key": "work.title6",
+  "type": "text",
+  "group": "Our work",
+  "label": "Our work: title · “Service area & travel costs”",
+  "default": "Service area & travel costs",
+  "max_length": 63,
+  "sort": 40
+ },
+ {
+  "key": "work.text9",
+  "type": "longtext",
+  "group": "Our work",
+  "label": "Our work: text · “Customers enter a postcode and see wheth…”",
+  "default": "Customers enter a postcode and see whether they're in your area, and what any extra travel would cost, before they ask.",
+  "max_length": 210,
+  "sort": 41
+ },
+ {
+  "key": "work.title7",
+  "type": "text",
+  "group": "Our work",
+  "label": "Our work: title · “Galleries & before/after”",
+  "default": "Galleries & before/after",
+  "max_length": 60,
+  "sort": 42
+ },
+ {
+  "key": "work.text10",
+  "type": "longtext",
+  "group": "Our work",
+  "label": "Our work: text · “Your finished jobs are your best advert.…”",
+  "default": "Your finished jobs are your best advert. We lay them out so they load fast and look sharp on a phone.",
+  "max_length": 181,
+  "sort": 43
+ },
+ {
+  "key": "work.title8",
+  "type": "text",
+  "group": "Our work",
+  "label": "Our work: title · “Reviews”",
+  "default": "Reviews",
+  "max_length": 60,
+  "sort": 44
+ },
+ {
+  "key": "work.text11",
+  "type": "longtext",
+  "group": "Our work",
+  "label": "Our work: text · “Show what past customers have said, righ…”",
+  "default": "Show what past customers have said, right next to the button that gets new ones in touch.",
+  "max_length": 162,
+  "sort": 45
+ },
+ {
+  "key": "work.title9",
+  "type": "text",
+  "group": "Our work",
+  "label": "Our work: title · “Made for phones”",
+  "default": "Made for phones",
+  "max_length": 60,
+  "sort": 46
+ },
+ {
+  "key": "work.text12",
+  "type": "longtext",
+  "group": "Our work",
+  "label": "Our work: text · “Most customers find you on their phone. …”",
+  "default": "Most customers find you on their phone. Tap-to-call, WhatsApp and social buttons are always within reach.",
+  "max_length": 188,
+  "sort": 47
+ },
+ {
+  "key": "work.title10",
+  "type": "text",
+  "group": "Our work",
+  "label": "Our work: title · “Hosting, domain & email”",
+  "default": "Hosting, domain & email",
+  "max_length": 60,
+  "sort": 48
+ },
+ {
+  "key": "work.text13",
+  "type": "longtext",
+  "group": "Our work",
+  "label": "Our work: text · “We host it on servers we manage, with SS…”",
+  "default": "We host it on servers we manage, with SSL, backups and updates, and can set up your domain and a business email address.",
+  "max_length": 212,
+  "sort": 49
+ },
+ {
+  "key": "work.title11",
+  "type": "text",
+  "group": "Our work",
+  "label": "Our work: title · “Ongoing changes”",
+  "default": "Ongoing changes",
+  "max_length": 60,
+  "sort": 50
+ },
+ {
+  "key": "work.text14",
+  "type": "longtext",
+  "group": "Our work",
+  "label": "Our work: text · “New service, new photos, new prices? Sen…”",
+  "default": "New service, new photos, new prices? Send a message and it gets done. No logins to learn, no plugins to update.",
+  "max_length": 197,
+  "sort": 51
+ },
+ {
+  "key": "process.heading1",
+  "type": "text",
+  "group": "How it works",
+  "label": "How it works: heading · “From a quick chat to something that work…”",
+  "default": "From a quick chat to something that works and keeps working.",
+  "max_length": 116,
+  "sort": 52
+ },
+ {
+  "key": "process.title1",
+  "type": "text",
+  "group": "How it works",
+  "label": "How it works: title · “Chat”",
+  "default": "Chat",
+  "max_length": 60,
+  "sort": 53
+ },
+ {
+  "key": "process.text1",
+  "type": "longtext",
+  "group": "How it works",
+  "label": "How it works: text · “Tell us about your business and what's s…”",
+  "default": "Tell us about your business and what's slowing you down. No jargon needed, and no obligation.",
+  "max_length": 168,
+  "sort": 54
+ },
+ {
+  "key": "process.title2",
+  "type": "text",
+  "group": "How it works",
+  "label": "How it works: title · “Plan”",
+  "default": "Plan",
+  "max_length": 60,
+  "sort": 55
+ },
+ {
+  "key": "process.text2",
+  "type": "longtext",
+  "group": "How it works",
+  "label": "How it works: text · “You get a clear suggestion of what's wor…”",
+  "default": "You get a clear suggestion of what's worth doing, what it costs and what isn't worth doing yet.",
+  "max_length": 172,
+  "sort": 56
+ },
+ {
+  "key": "process.title3",
+  "type": "text",
+  "group": "How it works",
+  "label": "How it works: title · “Build & check”",
+  "default": "Build & check",
+  "max_length": 60,
+  "sort": 57
+ },
+ {
+  "key": "process.text3",
+  "type": "longtext",
+  "group": "How it works",
+  "label": "How it works: text · “We set it up and test it properly, wheth…”",
+  "default": "We set it up and test it properly, whether that's a website, an AI setup or new hardware, before you rely on it.",
+  "max_length": 199,
+  "sort": 58
+ },
+ {
+  "key": "process.title4",
+  "type": "text",
+  "group": "How it works",
+  "label": "How it works: title · “Hand over & look after”",
+  "default": "Hand over & look after",
+  "max_length": 60,
+  "sort": 59
+ },
+ {
+  "key": "process.text4",
+  "type": "longtext",
+  "group": "How it works",
+  "label": "How it works: text · “We show you how to use it, then keep it …”",
+  "default": "We show you how to use it, then keep it secure and up to date. You always know who to call.",
+  "max_length": 165,
+  "sort": 60
+ },
+ {
+  "key": "about.heading1",
+  "type": "text",
+  "group": "About",
+  "label": "About: heading · “You deal with the person who does the wo…”",
+  "default": "You deal with the person who does the work.",
+  "max_length": 88,
+  "sort": 61
+ },
+ {
+  "key": "about.text1",
+  "type": "longtext",
+  "group": "About",
+  "label": "About: text · “HapiTech is run by Aaron, who has spent …”",
+  "default": "HapiTech is run by Aaron, who has spent 16 years in IT: systems administration at Rebellion,\nIT and telecoms for NATO sites in Afghanistan with Thales, and senior customer engineering\nfor Rolls-Royce with Computacenter.",
+  "max_length": 370,
+  "sort": 62
+ },
+ {
+  "key": "about.text2",
+  "type": "longtext",
+  "group": "About",
+  "label": "About: text · “These days that experience goes into sma…”",
+  "default": "These days that experience goes into small businesses: websites that run on properly managed\nservers, AI set up carefully and privately, and IT that's done right the first time. When you\nwant something changed, you message the same person who built it.",
+  "max_length": 423,
+  "sort": 63
+ },
+ {
+  "key": "updates.heading1",
+  "type": "text",
+  "group": "Updates",
+  "label": "Updates: heading · “What we've been up to.”",
+  "default": "What we've been up to.",
+  "max_length": 60,
+  "sort": 64
+ },
+ {
+  "key": "updates.text1",
+  "type": "longtext",
+  "group": "Updates",
+  "label": "Updates: text · “Recent work and news from HapiTech.”",
+  "default": "Recent work and news from HapiTech.",
+  "max_length": 76,
+  "sort": 65
+ },
+ {
+  "key": "reviews.heading1",
+  "type": "text",
+  "group": "Reviews",
+  "label": "Reviews: heading · “What clients say.”",
+  "default": "What clients say.",
+  "max_length": 60,
+  "sort": 66
+ },
+ {
+  "key": "reviews.text1",
+  "type": "longtext",
+  "group": "Reviews",
+  "label": "Reviews: text · “Real reviews from the businesses we work…”",
+  "default": "Real reviews from the businesses we work with.",
+  "max_length": 93,
+  "sort": 67
+ },
+ {
+  "key": "news.heading1",
+  "type": "text",
+  "group": "AI news",
+  "label": "AI news: heading · “What's new in AI.”",
+  "default": "What's new in AI.",
+  "max_length": 60,
+  "sort": 68
+ },
+ {
+  "key": "news.text1",
+  "type": "longtext",
+  "group": "AI news",
+  "label": "AI news: text · “The latest from frontier AI labs and the…”",
+  "default": "The latest from frontier AI labs and the local and open-model world, gathered from the publishers' own feeds.",
+  "max_length": 194,
+  "sort": 69
+ },
+ {
+  "key": "news.text2",
+  "type": "longtext",
+  "group": "AI news",
+  "label": "AI news: text · “Every article is credited and links to t…”",
+  "default": "Every article is credited and links to the original. All content belongs to its publishers.",
+  "max_length": 165,
+  "sort": 70
+ },
+ {
+  "key": "contact.heading1",
+  "type": "text",
+  "group": "Get in touch",
+  "label": "Get in touch: heading · “Tell us what you need.”",
+  "default": "Tell us what you need.",
+  "max_length": 60,
+  "sort": 71
+ },
+ {
+  "key": "contact.text1",
+  "type": "longtext",
+  "group": "Get in touch",
+  "label": "Get in touch: text · “A new website, a first look at AI, or a …”",
+  "default": "A new website, a first look at AI, or a computer that just needs sorting. Send a few details and you'll hear back from Aaron directly.",
+  "max_length": 234,
+  "sort": 72
+ }
+]

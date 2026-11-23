@@ -84,13 +84,11 @@ def deploy(no_backup):
     # keep each client's "My website" list in step with their site (new editable sections, site order)
     from models.core import Account
     from utils.content_blocks import ensure_blocks
-    added = sum(ensure_blocks(a, None) for a in Account.query.filter_by(kind="client").all())
+    from utils.hapitech_account import ensure_own_sites
+    ensure_own_sites()
+    added = sum(ensure_blocks(a, None) for a in Account.query.filter(Account.kind.in_(["client", "internal"])).all())
     db.session.commit()
     click.echo(f"Website sections checked ({added} new).")
-    from utils.hapitech_account import ensure_own_sites
-    n = ensure_own_sites()
-    if n:
-        click.echo(f"Own sites added under Clients: {n}.")
 
 
 # ---------------------------------------------------------------- users

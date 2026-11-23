@@ -1,0 +1,137 @@
+[
+ {
+  "key": "hb-hero.heading1",
+  "type": "text",
+  "group": "Top of page",
+  "label": "Top of page: heading · “Every review.\nEvery platform.\nOne honest…”",
+  "default": "Every review.\nEvery platform.\nOne honest home.",
+  "max_length": 93,
+  "sort": 0
+ },
+ {
+  "key": "hb-hero.text1",
+  "type": "longtext",
+  "group": "Top of page",
+  "label": "Top of page: text · “HapiTech Reviews brings a local business…”",
+  "default": "HapiTech Reviews brings a local business's reviews together from Google, Facebook and its own customers, so you see the full picture in one place. Good or bad, nothing genuine is ever hidden.",
+  "max_length": 325,
+  "sort": 1
+ },
+ {
+  "key": "how.heading1",
+  "type": "text",
+  "group": "How it works",
+  "label": "How it works: heading · “One place for every review a business ge…”",
+  "default": "One place for every review a business gets.",
+  "max_length": 88,
+  "sort": 2
+ },
+ {
+  "key": "how.text1",
+  "type": "longtext",
+  "group": "How it works",
+  "label": "How it works: text · “Reviews are scattered across Google, Fac…”",
+  "default": "Reviews are scattered across Google, Facebook and more. We pull them together, keep them honest, and put them where customers will see them.",
+  "max_length": 244,
+  "sort": 3
+ },
+ {
+  "key": "how.title1",
+  "type": "text",
+  "group": "How it works",
+  "label": "How it works: title · “From every platform”",
+  "default": "From every platform",
+  "max_length": 60,
+  "sort": 4
+ },
+ {
+  "key": "how.text2",
+  "type": "longtext",
+  "group": "How it works",
+  "label": "How it works: text · “We bring in the business's reviews from …”",
+  "default": "We bring in the business's reviews from Google and Facebook, plus reviews customers leave directly with HapiTech, each one labelled with where it came from.",
+  "max_length": 269,
+  "sort": 5
+ },
+ {
+  "key": "how.title2",
+  "type": "text",
+  "group": "How it works",
+  "label": "How it works: title · “Nothing genuine hidden”",
+  "default": "Nothing genuine hidden",
+  "max_length": 60,
+  "sort": 6
+ },
+ {
+  "key": "how.text3",
+  "type": "longtext",
+  "group": "How it works",
+  "label": "How it works: text · “Good or bad, real reviews stay. Business…”",
+  "default": "Good or bad, real reviews stay. Businesses can reply in public, but they can't edit or delete reviews. Anyone can report a fake, and a person checks every report.",
+  "max_length": 279,
+  "sort": 7
+ },
+ {
+  "key": "how.title3",
+  "type": "text",
+  "group": "How it works",
+  "label": "How it works: title · “Here and on their website”",
+  "default": "Here and on their website",
+  "max_length": 60,
+  "sort": 8
+ },
+ {
+  "key": "how.text4",
+  "type": "longtext",
+  "group": "How it works",
+  "label": "How it works: text · “The same reviews appear on the business'…”",
+  "default": "The same reviews appear on the business's own website automatically, with a page here that works even if they don't have a website at all.",
+  "max_length": 240,
+  "sort": 9
+ },
+ {
+  "key": "sources.heading1",
+  "type": "text",
+  "group": "Where reviews come from",
+  "label": "Where reviews come from: heading · “Where the reviews come from”",
+  "default": "Where the reviews come from",
+  "max_length": 63,
+  "sort": 10
+ },
+ {
+  "key": "sources.text1",
+  "type": "longtext",
+  "group": "Where reviews come from",
+  "label": "Where reviews come from: text · “Left directly with HapiTech”",
+  "default": "Left directly with HapiTech",
+  "max_length": 63,
+  "sort": 11
+ },
+ {
+  "key": "businesses.heading1",
+  "type": "text",
+  "group": "Businesses",
+  "label": "Businesses: heading · “Local businesses on HapiTech Reviews”",
+  "default": "Local businesses on HapiTech Reviews",
+  "max_length": 77,
+  "sort": 12
+ },
+ {
+  "key": "latest.heading1",
+  "type": "text",
+  "group": "Latest reviews",
+  "label": "Latest reviews: heading · “Fresh from customers”",
+  "default": "Fresh from customers",
+  "max_length": 60,
+  "sort": 13
+ },
+ {
+  "key": "offer.heading1",
+  "type": "text",
+  "group": "For businesses",
+  "label": "For businesses: heading · “Turn happy customers into your best adve…”",
+  "default": "Turn happy customers into your best advert.",
+  "max_length": 88,
+  "sort": 14
+ }
+]

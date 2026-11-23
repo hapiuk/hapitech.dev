@@ -72,6 +72,14 @@ def _businesses():
     return sorted(out, key=lambda b: -b["count"])
 
 
+@hub_bp.before_request
+def _count_visit():
+    """hapitech.report page views (paths as people see them, without the internal /rv)."""
+    if request.method == "GET" and request.endpoint in ("hub.home", "hub.business", "hub.policy", "hub.terms", "hub.privacy"):
+        from utils.own_visits import count
+        count("hapitech-reviews", request.path.removeprefix("/rv") or "/")
+
+
 @hub_bp.route("/")
 def home():
     biz = _businesses()

@@ -300,7 +300,7 @@ ADMIN_PAGES = ["/admin/", "/admin/clients", "/admin/clients/new", "/admin/client
                "/admin/clients/rolands?tab=reviews", "/admin/clients/rolands?tab=site", "/admin/clients/rolands?tab=traffic", "/admin/reviews",
                "/admin/reviews/new", "/admin/requests", "/admin/settings", "/admin/lab/runs", "/admin/lab/runs/new",
                "/admin/lab/prompts", "/admin/lab/prompts/new", "/admin/lab/models", "/admin/lab/models/new", "/admin/work"]
-PORTAL_PAGES = ["/portal/", "/portal/visitors", "/portal/website/hero", "/portal/ask", "/portal/requests", "/portal/reviews", "/portal/posts", "/portal/posts/new", "/portal/jobs", "/portal/jobs/new", "/portal/calendar", "/portal/settings",
+PORTAL_PAGES = ["/portal/", "/portal/visitors", "/portal/website/hero", "/portal/ask", "/portal/reviews?show=sent", "/portal/reviews", "/portal/posts", "/portal/posts/new", "/portal/jobs", "/portal/jobs/new", "/portal/calendar", "/portal/settings",
                 "/portal/website", "/portal/help"]
 PUBLIC_PAGES = ["/", "/news", "/privacy", "/terms", "/login", "/lab", "/reviews/rolands", "/reviews/rolands/write"]
 
@@ -1554,9 +1554,10 @@ def test_review_link_expires_and_can_be_renewed(app):
     pub = app.test_client().get(f"/r/{token}")
     assert pub.status_code == 410 and "expired" in pub.get_data(as_text=True)
     o = app.test_client(); _login(o, "roland@test")
-    page = o.get("/portal/requests").get_data(as_text=True)
-    assert "Link expired" in page and "Send a fresh link" in page
-    _form(o, f"/portal/ask/{rid}", {"action": "renew"}, page="/portal/requests")
+    assert o.get("/portal/requests").headers["Location"].endswith("/portal/reviews?show=sent")
+    page = o.get("/portal/reviews?show=sent").get_data(as_text=True)
+    assert "Link expired" in page and "Send a fresh link" in page and 'aria-current="page">Sent<' in page
+    _form(o, f"/portal/ask/{rid}", {"action": "renew"}, page="/portal/reviews?show=sent")
     with app.app_context():
         r = db.session.get(ReviewRequest, rid)
         assert r.state == "sent" and r.token != token and r.days_left >= 29
@@ -1564,3 +1565,32 @@ def test_review_link_expires_and_can_be_renewed(app):
     adm = app.test_client(); _login(adm, "admin@test")
     page = adm.get("/admin/clients/rolands?tab=reviews").get_data(as_text=True)
     assert "Review requests sent" in page and "Old Olly" in page
+
+
+
+def test_own_sites_count_visits_and_take_edits(app):
+    import json as _json
+    from models import db
+    from models.content import ContentBlock, SiteVisit
+    from models.core import Account
+    from utils.content_blocks import ensure_blocks
+    from utils.hapitech_account import ensure_own_sites, get
+    with app.app_context():
+        ensure_own_sites()
+        h = get()
+        assert ensure_blocks(h, None) > 50
+        b = ContentBlock.query.filter_by(account_id=h.id, key="hero.heading1").first()
+        b.value = _json.dumps("Tech that just works")
+        db.session.commit()
+    c = app.test_client()
+    home = c.get("/", headers={"User-Agent": "Mozilla/5.0 (iPhone)", "Referer": "https://www.google.com/"}).get_data(as_text=True)
+    assert "Tech that just works" in home and '<span class="acc">small' not in home
+    assert "What we can help with." in home                       # unedited text unchanged
+    c.get("/rv/", headers={"User-Agent": "Mozilla/5.0"})
+    c.get("/", headers={"User-Agent": "Googlebot/2.1"})            # bots aren't counted
+    with app.app_context():
+        h = Account.query.filter_by(slug="hapitech").first()
+        r = Account.query.filter_by(slug="hapitech-reviews").first()
+        assert sum(v.count for v in SiteVisit.query.filter_by(account_id=h.id).all()) == 1
+        assert SiteVisit.query.filter_by(account_id=h.id).first().ref == "google"
+        assert SiteVisit.query.filter_by(account_id=r.id, path="/").first().count == 1

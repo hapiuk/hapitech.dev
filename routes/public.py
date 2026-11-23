@@ -9,6 +9,14 @@ from utils.mailer import send_contact_email
 public_bp = Blueprint("public", __name__)
 
 
+@public_bp.before_request
+def _count_visit():
+    """hapitech.dev page views, like the client sites (not the contact form or anything posted)."""
+    if request.method == "GET" and request.endpoint in ("public.index", "public.updates", "public.privacy", "public.terms", "public.post_link"):
+        from utils.own_visits import count
+        count("hapitech", request.path)
+
+
 @public_bp.route("/")
 def index():
     from utils.news import get_news

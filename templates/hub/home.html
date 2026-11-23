@@ -6,8 +6,8 @@
   <div class="hb-wrap hb-hero__grid">
     <div>
       <span class="hb-kicker"><i></i> Live · {{ total }} reviews and counting</span>
-      <h1>Every review.<br><span class="hb-grad">Every platform.</span><br>One honest home.</h1>
-      <p class="lede">HapiTech Reviews brings a local business's reviews together from Google, Facebook and its own customers, so you see the full picture in one place. Good or bad, nothing genuine is ever hidden.</p>
+      <h1>{% if ed('hb-hero.heading1') %}{{ ed('hb-hero.heading1') | richtext }}{% else %}Every review.<br><span class="hb-grad">Every platform.</span><br>One honest home.{% endif %}</h1>
+      <p class="lede">{% if ed('hb-hero.text1') %}{{ ed('hb-hero.text1') | richtext }}{% else %}HapiTech Reviews brings a local business's reviews together from Google, Facebook and its own customers, so you see the full picture in one place. Good or bad, nothing genuine is ever hidden.{% endif %}</p>
       <div class="hb-row"><a class="hb-btn" href="#businesses">Find a business</a><a class="hb-btn hb-btn--ghost" href="#how">How it works</a></div>
       {% if biz %}<button type="button" class="hb-search" data-search-open aria-haspopup="dialog"><span>Search by business, trade or town…</span><kbd>/</kbd></button>{% endif %}
       {% if total %}<div class="hb-counters">
@@ -30,30 +30,30 @@
 
 <section class="hb-section" id="how">
   <div class="hb-wrap">
-    <div class="hb-section__head reveal"><div><span class="hb-kicker">How it works</span><h2 style="margin-top:12px">One place for every review a business gets.</h2>
-      <p>Reviews are scattered across Google, Facebook and more. We pull them together, keep them honest, and put them where customers will see them.</p></div></div>
+    <div class="hb-section__head reveal"><div><span class="hb-kicker">How it works</span><h2 style="margin-top:12px">{% if ed('how.heading1') %}{{ ed('how.heading1') | richtext }}{% else %}One place for every review a business gets.{% endif %}</h2>
+      <p>{% if ed('how.text1') %}{{ ed('how.text1') | richtext }}{% else %}Reviews are scattered across Google, Facebook and more. We pull them together, keep them honest, and put them where customers will see them.{% endif %}</p></div></div>
     <div class="hb-steps">
-      <div class="hb-step reveal"><span class="hb-step__n">01 · COLLECT</span><h3>From every platform</h3><p>We bring in the business's reviews from Google and Facebook, plus reviews customers leave directly with HapiTech, each one labelled with where it came from.</p>
+      <div class="hb-step reveal"><span class="hb-step__n">01 · COLLECT</span><h3>{% if ed('how.title1') %}{{ ed('how.title1') | richtext }}{% else %}From every platform{% endif %}</h3><p>{% if ed('how.text2') %}{{ ed('how.text2') | richtext }}{% else %}We bring in the business's reviews from Google and Facebook, plus reviews customers leave directly with HapiTech, each one labelled with where it came from.{% endif %}</p>
         <div class="hb-orbit"><span class="src-chip src-chip--google"><b>G</b> Google</span><span class="src-chip src-chip--facebook"><b>f</b> Facebook</span><span class="src-chip src-chip--hapitech"><b>★</b> HapiTech</span></div></div>
-      <div class="hb-step reveal"><span class="hb-step__n">02 · KEEP IT HONEST</span><h3>Nothing genuine hidden</h3><p>Good or bad, real reviews stay. Businesses can reply in public, but they can't edit or delete reviews. Anyone can report a fake, and a person checks every report.</p></div>
-      <div class="hb-step reveal"><span class="hb-step__n">03 · SHOW IT OFF</span><h3>Here and on their website</h3><p>The same reviews appear on the business's own website automatically, with a page here that works even if they don't have a website at all.</p></div>
+      <div class="hb-step reveal"><span class="hb-step__n">02 · KEEP IT HONEST</span><h3>{% if ed('how.title2') %}{{ ed('how.title2') | richtext }}{% else %}Nothing genuine hidden{% endif %}</h3><p>{% if ed('how.text3') %}{{ ed('how.text3') | richtext }}{% else %}Good or bad, real reviews stay. Businesses can reply in public, but they can't edit or delete reviews. Anyone can report a fake, and a person checks every report.{% endif %}</p></div>
+      <div class="hb-step reveal"><span class="hb-step__n">03 · SHOW IT OFF</span><h3>{% if ed('how.title3') %}{{ ed('how.title3') | richtext }}{% else %}Here and on their website{% endif %}</h3><p>{% if ed('how.text4') %}{{ ed('how.text4') | richtext }}{% else %}The same reviews appear on the business's own website automatically, with a page here that works even if they don't have a website at all.{% endif %}</p></div>
     </div>
   </div>
 </section>
 
 {% if total %}
-<section class="hb-section">
+<section class="hb-section" id="sources">
   <div class="hb-wrap">
     <div class="hb-mix reveal">
       {% set g = (100 * by_src.google / total) | round(1) %}{% set f = (100 * by_src.facebook / total) | round(1) %}
       <div class="hb-donut" data-g="{{ g }}" data-f="{{ f }}"><span>{{ total }}<small>reviews</small></span></div>
       <div>
-        <h2 style="font-size:1.6rem;margin-bottom:6px">Where the reviews come from</h2>
+        <h2 style="font-size:1.6rem;margin-bottom:6px">{% if ed('sources.heading1') %}{{ ed('sources.heading1') | richtext }}{% else %}Where the reviews come from{% endif %}</h2>
         <p class="hb-muted" style="margin:0 0 16px">Every review keeps its source, so you always know where it was left.</p>
         <div class="hb-legend">
           <div><i style="background:#34a853"></i><p>Google reviews</p><b>{{ by_src.google }}</b></div>
           <div><i style="background:#1877f2"></i><p>Facebook recommendations</p><b>{{ by_src.facebook }}</b></div>
-          <div><i style="background:var(--acc-2)"></i><p>Left directly with HapiTech</p><b>{{ by_src.hapitech }}</b></div>
+          <div><i style="background:var(--acc-2)"></i><p>{% if ed('sources.text1') %}{{ ed('sources.text1') | richtext }}{% else %}Left directly with HapiTech{% endif %}</p><b>{{ by_src.hapitech }}</b></div>
         </div>
       </div>
     </div>
@@ -63,7 +63,7 @@
 
 <section class="hb-section" id="businesses">
   <div class="hb-wrap">
-    <div class="hb-section__head reveal"><div><span class="hb-kicker">Businesses</span><h2 style="margin-top:12px">Local businesses on HapiTech Reviews</h2></div></div>
+    <div class="hb-section__head reveal"><div><span class="hb-kicker">Businesses</span><h2 style="margin-top:12px">{% if ed('businesses.heading1') %}{{ ed('businesses.heading1') | richtext }}{% else %}Local businesses on HapiTech Reviews{% endif %}</h2></div></div>
     <div class="hb-grid">
       {% for b in biz %}
       <a class="hb-biz reveal" href="{{ hub_url('hub.business', slug=b.a.slug) }}" data-biz="{{ b.a.name }} {{ b.a.trade or '' }} {{ b.a.town or '' }}" data-tilt>
@@ -84,8 +84,8 @@
 </section>
 
 {% if wall %}
-<section class="hb-section" style="padding-top:20px">
-  <div class="hb-wrap"><div class="hb-section__head reveal"><div><span class="hb-kicker"><i></i> Latest</span><h2 style="margin-top:12px">Fresh from customers</h2></div></div></div>
+<section class="hb-section" id="latest" style="padding-top:20px">
+  <div class="hb-wrap"><div class="hb-section__head reveal"><div><span class="hb-kicker"><i></i> Latest</span><h2 style="margin-top:12px">{% if ed('latest.heading1') %}{{ ed('latest.heading1') | richtext }}{% else %}Fresh from customers{% endif %}</h2></div></div></div>
   <div class="hb-wall"><div class="hb-wall__track">
     {% for loop_i in range(2) %}{% for r in wall %}
     <div class="hb-wcard" {% if loop_i %}aria-hidden="true"{% endif %}>
@@ -97,10 +97,10 @@
 </section>
 {% endif %}
 
-<section class="hb-section">
+<section class="hb-section" id="offer">
   <div class="hb-wrap">
     <div class="hb-offer reveal">
-      <div><span class="hb-kicker">For businesses</span><h2 style="margin-top:12px">Turn happy customers into your best advert.</h2>
+      <div><span class="hb-kicker">For businesses</span><h2 style="margin-top:12px">{% if ed('offer.heading1') %}{{ ed('offer.heading1') | richtext }}{% else %}Turn happy customers into your best advert.{% endif %}</h2>
         <ul class="hb-ticks"><li>All your reviews from Google, Facebook and your own customers in one place</li>
           <li>Ask for a review in seconds with a QR code or a link</li><li>Reviews show on your website automatically</li>
           <li>Reply from your phone, with a simple dashboard for jobs, quotes and posts</li>

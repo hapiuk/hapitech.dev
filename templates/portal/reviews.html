@@ -19,7 +19,8 @@
   {% endfor %}
 </section>
 {% endif %}
-<nav class="subnav">{% for s, label in [('all','All'),('unreplied','Needs a reply')] %}<a href="{{ url_for('portal.reviews', show=s) }}" {% if show == s %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+<nav class="subnav">{% for s, label in [('all','All'),('unreplied','Needs a reply'),('sent','Sent')] %}<a href="{{ url_for('portal.reviews', show=s) }}" {% if show == s %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+{% if show == 'sent' %}{% include "portal/_sent.html" %}{% else %}
 {% with total=rows|length, keep={'show': show if show != 'all' else ''} %}{% include "app/_review_search.html" %}{% endwith %}
 {% macro owner_actions(r) %}
   <div class="review__acts">
@@ -82,4 +83,5 @@
   </form>
 </dialog>
 <div data-paged="20">{% for r in rows %}{{ review_card(r, actions=owner_actions) }}{% endfor %}</div>{% if not rows %}{{ empty('Nothing here', 'Nothing matches that search.' if active else ('You are all caught up.' if show == 'unreplied' else 'No reviews yet.')) }}{% endif %}
+{% endif %}
 {% endblock %}

@@ -6,6 +6,8 @@ from markupsafe import Markup, escape
 
 
 def init_templating(app):
+    app.jinja_env.globals["ed"] = lambda key: ed(key)
+    app.jinja_env.filters["richtext"] = lambda v: richtext(v)
     def media_by_id(mid):
         from models import db
         from models.content import Media
@@ -82,3 +84,42 @@ def init_templating(app):
     @app.template_filter("nl2br")
     def nl2br(s):
         return Markup("<br>".join(escape(s or "").split("\n")))
+
+
+# ---------------------------------------------------------------- HapiTech's own sites: edited text from My website
+
+def _own_edits():
+    """{key: text} of the sections edited in My website for the site being shown (hapitech.dev or hapitech.report)."""
+    from flask import g, request
+    slug = "hapitech-reviews" if (request.blueprint or "") == "hub" else "hapitech"
+    cache = getattr(g, "_own_edits", None)
+    if cache is None:
+        cache = g._own_edits = {}
+    if slug not in cache:
+        out = {}
+        try:
+            from models.content import ContentBlock
+            from models.core import Account
+            a = Account.query.filter_by(slug=slug).first()
+            if a:
+                for b in ContentBlock.query.filter_by(account_id=a.id).all():
+                    if b.value != b.default_value and isinstance(b.data, str) and b.data.strip():
+                        out[b.key] = b.data
+        except Exception as exc:                 # never break the public site over an edit
+            print(f"[OWN_EDITS] {exc}")
+        cache[slug] = out
+    return cache[slug]
+
+
+def ed(key):
+    return _own_edits().get(key)
+
+
+def richtext(s):
+    """Edited text → safe HTML: **bold**, new lines kept."""
+    import re as _re
+
+    from markupsafe import Markup, escape
+    t = str(escape(s or ""))
+    t = _re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)
+    return Markup(t.replace("\n", "<br>"))

@@ -192,9 +192,7 @@ def ask_send(rid):
 @owner_required
 @addon_required
 def requests_list():
-    rows = scoped(ReviewRequest).order_by(ReviewRequest.created_at.desc()).limit(200).all()
-    stale = dt.datetime.utcnow() - dt.timedelta(days=5)
-    return render_template("portal/requests.html", rows=rows, stale=stale, link_days=ReviewRequest.LINK_DAYS)
+    return redirect(url_for("portal.reviews", show="sent"))        # now the "Sent" tab on Your reviews
 
 
 # ---------------------------------------------------------------- reviews
@@ -243,6 +241,10 @@ def review_add():
 @addon_required
 def reviews():
     show = request.args.get("show", "all")
+    if show == "sent":                   # review requests: who's been asked, opened, reviewed, or whose link expired
+        sent = scoped(ReviewRequest).order_by(ReviewRequest.created_at.desc()).limit(200).all()
+        return render_template("portal/reviews.html", show=show, sent=sent, rows=[], pending=[], platforms=[], active=False,
+                               stale=dt.datetime.utcnow() - dt.timedelta(days=5), link_days=ReviewRequest.LINK_DAYS)
     pending = scoped(Review, status="pending").order_by(Review.created_at.desc()).all()
     q = scoped(Review).filter(Review.status.in_(["published", "reported"]))
     if show == "unreplied":
