@@ -78,3 +78,38 @@ def review_new():
     return render_template("admin/review_form.html", clients=clients, f={"client": request.args.get("client"),
                                                                           "source": "google"},
                            sources=REVIEW_SOURCES)
+
+
+
+@admin_bp.route("/reviews/import", methods=["GET", "POST"])
+def reviews_import():
+    """Upload a file from tools/google_reviews_export.js or tools/facebook_reviews_export.js."""
+    import json
+    import os
+
+    from flask import current_app
+    from utils.review_import import import_file
+    clients = Account.query.filter_by(kind="client").order_by(Account.name).all()
+    result, error = None, None
+    if request.method == "POST":
+        a = Account.query.filter_by(slug=request.form.get("client")).first()
+        up = request.files.get("file")
+        if not a or not up or not up.filename:
+            error = "Choose the business and the file."
+        else:
+            try:
+                data = json.load(up.stream)
+                result = import_file(a, data, photos=bool(request.form.get("photos")), dry_run=bool(request.form.get("dry")))
+                result["client"] = a
+                result["dry"] = bool(request.form.get("dry"))
+            except (ValueError, UnicodeDecodeError) as exc:
+                error = str(exc) if "HapiTech" in str(exc) else f"Couldn't read that file: {exc}"
+    scripts = {}
+    for key in ("google", "facebook"):
+        try:
+            with open(os.path.join(current_app.root_path, "tools", f"{key}_reviews_export.js"), encoding="utf-8") as fh:
+                scripts[key] = fh.read()
+        except OSError:
+            scripts[key] = ""
+    return render_template("admin/reviews_import.html", clients=clients, result=result, error=error, scripts=scripts,
+                           chosen=request.form.get("client") or request.args.get("client"))

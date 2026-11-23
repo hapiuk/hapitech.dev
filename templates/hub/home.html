@@ -25,6 +25,7 @@
           <div><div class="hb-biz__name">{{ b.a.name }}</div><div class="hb-biz__trade">{{ b.a.trade or '' }}{% if b.a.town %} · {{ b.a.town }}{% endif %}</div></div></div>
         <div class="hb-biz__score"><b>{{ '%.1f' % b.avg }}</b>{{ stars(b.avg | round | int) }}<span class="hb-muted">{{ b.count }} reviews</span></div>
         {% if b.latest.body %}<p class="hb-biz__quote">“{{ b.latest.body }}” <span class="hb-muted">— {{ b.latest.author_name }}</span></p>{% endif %}
+        <div class="hb-biz__src">{% if b.src.google %}<span>Google {{ '%.1f' % b.src.google.avg }}★</span>{% endif %}{% if b.src.facebook %}<span>Facebook {{ b.src.facebook.pct }}% recommend</span>{% endif %}{% if b.src.hapitech %}<span>HapiTech {{ '%.1f' % b.src.hapitech.avg }}★</span>{% endif %}</div>
         <div><span class="hb-badge">✓ Replies to {{ b.replied }} of {{ b.count }} reviews</span></div>
       </a>
       {% endfor %}

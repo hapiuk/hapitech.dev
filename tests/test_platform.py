@@ -1320,3 +1320,56 @@ def test_google_copy_import_and_reviews_site(app):
         assert Lead.query.filter_by(source="report").first().account.slug == "hapitech"
     assert len(_outbox(app)) == n + 1
     assert "Mohammad Zaheer" in pub.get("/rv/rolands").get_data(as_text=True)                # still visible
+
+
+def test_review_export_files_google_and_facebook(app):
+    import io
+    import json as _json
+    from models import db
+    from models.core import Account
+    from models.reviews import Review
+    with app.app_context():
+        a = Account.query.filter_by(slug="rayg").first()
+        db.session.add(Review(account_id=a.id, source="google", author_name="Paul Martin", rating=5, body="Old copy…",
+                              status="published"))
+        db.session.commit()
+        before = Review.query.filter_by(account_id=a.id).count()
+    g = {"format": "hapitech-reviews/1", "source": "google", "business": "RayG Handyman Service",
+         "copied_at": "2026-11-24T10:00:00Z", "summary": {"rating": 4.8, "count": 63}, "reviews": [
+        {"id": "ChZDSUhNMG", "author": "Paul Martin", "rating": 5, "date": "6 months ago",
+         "text": "Ray has just put in a complete new bathroom for me, and it looks stunning. Full text here.",
+         "photos": ["https://lh3.googleusercontent.com/x=w1600-h1600"], "price": None,
+         "reply": {"date": "6 months ago", "text": "Thank you so much!"}},
+        {"id": "ChZDSUhNMH", "author": "Donna Latham", "rating": 2, "date": "3 months ago", "text": "Do not use him",
+         "photos": [], "price": "Overpriced", "reply": None}]}
+    fb = {"format": "hapitech-reviews/1", "source": "facebook", "page": "rayghandymanservice", "business": "RayG Handyman services",
+          "url": "https://www.facebook.com/RayGHandymanservice/reviews", "copied_at": "2026-11-24T10:00:00Z",
+          "summary": {"recommend_pct": 98, "count": 71}, "reviews": [
+        {"id": "https://www.facebook.com/garry/posts/pfbid123", "author": "Garry Twyford", "recommends": True,
+         "header": "Garry Twyford recommends RayG Handyman services.", "time": "Monday 28 June 2021 at 14:54",
+         "text": "Meet Ray a couple of weeks ago…", "photos": [],
+         "replies": [{"label": "Comment by RayG Handyman services", "time": "Monday 28 June 2021 at 17:23",
+                      "text": "RayG Handyman services\n·\n5y\nGarry Twyford thank you very much\nReply\n1"}]},
+        {"id": "https://www.facebook.com/someone/posts/pfbid456", "author": "Someone Else", "recommends": False,
+         "time": "2y", "text": "Not great", "photos": [], "replies": []}]}
+    adm = app.test_client(); _login(adm, "admin@test")
+    page = adm.get("/admin/reviews/import").get_data(as_text=True)
+    assert "Google Maps script" in page and "data-review-id" in page and "recommends" in page
+    for data in (g, fb, g):                        # google twice: nothing doubles
+        r = adm.post("/admin/reviews/import", data={"csrf_token": _csrf(adm, "/admin/reviews/import"), "client": "rayg",
+                     "file": (io.BytesIO(_json.dumps(data).encode()), "x.json")}, content_type="multipart/form-data")
+        assert "Imported" in r.get_data(as_text=True)
+    with app.app_context():
+        a = Account.query.filter_by(slug="rayg").first()
+        pm = Review.query.filter_by(account_id=a.id, author_name="Paul Martin").all()
+        assert len(pm) == 1 and pm[0].external_id == "google:ChZDSUhNMG" and pm[0].body.endswith("Full text here.")
+        assert pm[0].reply.body == "Thank you so much!" and pm[0].photo_count == 1
+        assert Review.query.filter_by(author_name="Donna Latham").first().rating == 2
+        garry = Review.query.filter_by(author_name="Garry Twyford").first()
+        assert garry.source == "facebook" and garry.recommends and garry.rating == 5
+        assert garry.reviewed_at.year == 2021 and garry.reply.body == "Garry Twyford thank you very much"
+        assert Review.query.filter_by(author_name="Someone Else").first().recommends is False
+        assert float(a.google_rating) == 4.8 and a.facebook_pct == 98 and a.facebook_count == 71
+        assert Review.query.filter_by(account_id=a.id).count() == before + 3       # Paul updated, 3 new, none doubled
+    pub = app.test_client().get("/rv/rayg").get_data(as_text=True)
+    assert "98%" in pub and "4.8 ★" in pub and "👍 Recommends" in pub and "Doesn&#39;t recommend" in pub

@@ -6,7 +6,7 @@
     function apply() {
       var shown = 0, matches = 0;
       list.querySelectorAll(".hb-review").forEach(function (el) {
-        var hit = filter === "all" || el.getAttribute("data-r") === filter || (filter === "replied" && el.getAttribute("data-replied") === "yes");
+        var hit = filter === "all" || el.getAttribute("data-r") === filter || el.getAttribute("data-s") === filter || (filter === "replied" && el.getAttribute("data-replied") === "yes");
         if (hit) matches++;
         var show = hit && shown < limit;
         if (show) shown++;

@@ -16,21 +16,23 @@
         <button class="hb-chip" type="button" data-filter="all" aria-pressed="true">All {{ rows|length }}</button>
         {% for n in [5,4,3,2,1] if dist[n] %}<button class="hb-chip" type="button" data-filter="r{{ n }}" aria-pressed="false">{{ n }}★ ({{ dist[n] }})</button>{% endfor %}
         {% if replied %}<button class="hb-chip" type="button" data-filter="replied" aria-pressed="false">With a reply</button>{% endif %}
+        {% if (by_source.values() | select | list | length) > 1 %}{% for k, lbl in [('google','Google'),('facebook','Facebook'),('hapitech','HapiTech')] if by_source[k] %}<button class="hb-chip" type="button" data-filter="s-{{ k }}" aria-pressed="false">{{ lbl }} ({{ by_source[k] }})</button>{% endfor %}{% endif %}
       </div>
       <div data-reviews>
       {% for r in rows %}
-        <article class="hb-review" id="review-{{ r.id }}" data-r="r{{ r.rating }}" data-replied="{{ 'yes' if r.reply else 'no' }}">
+        <article class="hb-review" id="review-{{ r.id }}" data-r="r{{ r.rating }}" data-replied="{{ 'yes' if r.reply else 'no' }}" data-s="s-{{ 'hapitech' if r.source in ('hapitech','website','manual') else r.source }}">
           <div class="hb-review__top">
             <div class="hb-review__who"><span class="hb-avatar" aria-hidden="true">{{ r.author_name[:1] | upper }}</span>
               <div><strong>{{ r.author_name }}</strong><div class="hb-review__meta">{% if r.reviewed_at %}{{ r.reviewed_at | age }} · {% endif %}{% if r.link and r.external %}<a href="{{ r.link }}" target="_blank" rel="noopener">via {{ r.source_label }} ↗</a>{% else %}left on HapiTech Reviews{% endif %}{% if r.verified %} · ✓ Verified customer{% endif %}</div></div></div>
-            {{ stars(r.rating) }}
+            {% if r.source == 'facebook' %}<span class="hb-rec {{ 'hb-rec--no' if r.recommends is sameas false }}">{{ '👍 Recommends' if r.recommends is not sameas false else "👎 Doesn't recommend" }}</span>{% else %}{{ stars(r.rating) }}{% endif %}
           </div>
           {% if r.body %}<p class="hb-review__body">{{ r.body }}</p>{% else %}<p class="hb-review__body hb-muted">Left a star rating without words.</p>{% endif %}
           {% if r.price_tag or r.photo_count or (r.truncated and r.link) %}<div class="hb-review__extra">
             {% if r.price_tag %}<span class="hb-tag">{{ r.price_tag }}</span>{% endif %}
-            {% if r.photo_count and r.link %}<a href="{{ r.link }}" target="_blank" rel="noopener">📷 {{ r.photo_count }} photo{{ '' if r.photo_count == 1 else 's' }} on {{ r.source_label }}</a>{% endif %}
+            {% if r.photo_count and r.link and not (r.photos | fromjson) %}<a href="{{ r.link }}" target="_blank" rel="noopener">📷 {{ r.photo_count }} photo{{ '' if r.photo_count == 1 else 's' }} on {{ r.source_label }}</a>{% endif %}
             {% if r.truncated and r.link %}<a href="{{ r.link }}" target="_blank" rel="noopener">Read it all on {{ r.source_label }} ↗</a>{% endif %}
           </div>{% endif %}
+          {% set pics = r.photos | fromjson %}{% if pics %}<div class="hb-pics">{% for pid in pics[:6] %}{% set m = media_by_id(pid) %}{% if m %}<a href="{{ url_for('reviews_public.media_file', path=m.file_path) }}" target="_blank" rel="noopener"><img src="{{ url_for('reviews_public.media_file', path=m.file_path) }}" alt="Photo from {{ r.author_name }}'s review" loading="lazy"></a>{% endif %}{% endfor %}</div>{% endif %}
           {% if r.reply %}<div class="hb-reply"><b>Reply from {{ a.name }}</b>{{ r.reply.body }}</div>{% endif %}
           <div class="hb-review__foot"><button class="hb-link" type="button" data-report="{{ hub_url('hub.report', rid=r.id) }}">Report</button></div>
         </article>
@@ -43,7 +45,12 @@
     </div>
     <aside class="hb-side">
       {% if avg %}<div class="hb-card">
-        <div class="hb-score"><span class="hb-score__n">{{ '%.1f' % avg }}</span><div>{{ stars(avg | round | int) }}<div class="hb-muted" style="font-size:.88rem">{{ rows|length }} reviews</div></div></div>
+        <div class="hb-score"><span class="hb-score__n">{{ '%.1f' % avg }}</span><div>{{ stars(avg | round | int) }}<div class="hb-muted" style="font-size:.88rem">Overall · {{ rows|length }} reviews</div></div></div>
+        <div class="hb-srcs">
+          {% if src.google %}<a class="hb-src" href="{{ src.google.url or '#' }}" target="_blank" rel="noopener"><b>Google</b><span>{{ '%.1f' % src.google.avg }} ★</span><small>{{ src.google.count }} reviews</small></a>{% endif %}
+          {% if src.facebook %}<a class="hb-src" href="{{ src.facebook.url or '#' }}" target="_blank" rel="noopener"><b>Facebook</b><span>{{ src.facebook.pct }}%</span><small>recommend · {{ src.facebook.count }}</small></a>{% endif %}
+          {% if src.hapitech %}<span class="hb-src"><b>HapiTech</b><span>{{ '%.1f' % src.hapitech.avg }} ★</span><small>{{ src.hapitech.count }} left here</small></span>{% endif %}
+        </div>
         <div class="hb-dist">{% for n in [5,4,3,2,1] %}<button class="hb-dist__row" type="button" data-filter="r{{ n }}" {% if not dist[n] %}disabled{% endif %}><span>{{ n }}★</span><span class="hb-dist__bar"><span style="width:{{ (dist[n] / rows|length * 100) | round(1) }}%"></span></span><span>{{ dist[n] }}</span></button>{% endfor %}</div>
       </div>{% endif %}
       <div class="hb-card">

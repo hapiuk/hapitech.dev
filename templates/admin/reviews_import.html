@@ -1,0 +1,56 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import howto with context %}
+{% block title %}Import reviews{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ url_for('admin.reviews') }}">Reviews</a> / Import</p>
+<div class="page-top"><div><h1>Import from Google / Facebook</h1><p>Run the export script on the business's reviews page, then upload the file here. Run it as often as you like: new reviews are added, existing ones updated, nothing doubled.</p></div></div>
+
+{% if error %}<p class="flash flash--err">{{ error }}</p>{% endif %}
+{% if result %}
+<section class="card card--accent" style="margin-bottom:12px">
+  <div class="card__head"><h2>{{ 'Checked (nothing saved)' if result.dry else 'Imported' }}: {{ result.client.name }} · {{ result.source | title }}</h2></div>
+  <div class="grid grid--4">
+    <div class="stat"><p class="stat__label">In the file</p><p class="stat__value">{{ result.in_file }}</p>{% if result.summary.count %}<p class="stat__sub">{{ result.source | title }} says {{ result.summary.count }}</p>{% endif %}</div>
+    <div class="stat"><p class="stat__label">New</p><p class="stat__value">{{ result.added | length }}</p></div>
+    <div class="stat"><p class="stat__label">Updated</p><p class="stat__value">{{ result.updated | length }}</p></div>
+    <div class="stat"><p class="stat__label">Photos saved</p><p class="stat__value">{{ result.photos }}</p>{% if result.summary.recommend_pct is defined %}<p class="stat__sub">{{ result.summary.recommend_pct }}% recommend</p>{% elif result.summary.rating %}<p class="stat__sub">{{ result.summary.rating }}★ on Google</p>{% endif %}</div>
+  </div>
+  {% if result.summary.count and result.in_file < result.summary.count %}<p class="small" style="margin-top:10px">⚠️ The file has {{ result.in_file }} of {{ result.summary.count }}. Scroll right to the bottom of the reviews before it finishes, or run the script again; it'll only add what's missing.</p>{% endif %}
+  {% if result.added %}<p class="small muted" style="margin-top:8px">New: {{ result.added | join(', ') }}</p>{% endif %}
+  {% if result.skipped %}<p class="small muted">Skipped (no name): {{ result.skipped | length }}</p>{% endif %}
+  <p style="margin-top:10px"><a href="{{ url_for('hub.business', slug=result.client.slug) }}" target="_blank">See them on the reviews site ↗</a></p>
+</section>
+{% endif %}
+
+<div class="grid grid--2">
+<section class="card">
+  <div class="card__head"><h2>Upload</h2></div>
+  <form method="post" enctype="multipart/form-data" class="stack">
+    <label class="field"><span>Business</span><select name="client" required><option value="">Choose…</option>{% for c in clients %}<option value="{{ c.slug }}" {{ 'selected' if chosen == c.slug }}>{{ c.name }}</option>{% endfor %}</select></label>
+    <label class="field"><span>Export file <small>…-google-reviews-….json or …-facebook-reviews-….json</small></span><input type="file" name="file" accept=".json,application/json" required></label>
+    <label class="check"><input type="checkbox" name="photos" value="1" checked> <span>Download the review photos</span></label>
+    <label class="check"><input type="checkbox" name="dry" value="1"> <span>Just check it (don't save anything)</span></label>
+    <div><button class="btn btn--sm">Import</button></div>
+  </form>
+</section>
+<section class="card">
+  <div class="card__head"><h2>How to export</h2></div>
+  <ol class="small" style="padding-left:18px;margin:0">
+    <li><b>Google:</b> open the business on <a href="https://maps.google.com" target="_blank" rel="noopener">Google Maps</a> → <b>Reviews</b> tab → Sort: <b>Newest</b>.</li>
+    <li><b>Facebook:</b> open the page's <b>Reviews</b> tab (e.g. facebook.com/RayGHandymanservice/reviews), logged in.</li>
+    <li>Press <b>F12</b> → <b>Console</b>, paste the script below and press Enter. (Chrome may ask you to type <i>allow pasting</i> first.)</li>
+    <li>Leave the tab alone until it says <b>Done</b>; a .json file downloads. Upload it here.</li>
+  </ol>
+  <p class="small muted" style="margin-top:8px">The scripts only read the page, they don't post or change anything. Copied reviews keep the business's replies and link back to the original.</p>
+</section>
+</div>
+
+<div class="grid grid--2" style="margin-top:12px">
+  {% for key, label in [('google', 'Google Maps script'), ('facebook', 'Facebook script')] %}
+  <section class="card">
+    <div class="card__head"><h2>{{ label }}</h2><button type="button" class="btn btn--sm" data-copy="#script-{{ key }}">Copy</button></div>
+    <textarea id="script-{{ key }}" class="mono" rows="8" readonly style="width:100%;font-size:.74rem;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)">{{ scripts[key] }}</textarea>
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

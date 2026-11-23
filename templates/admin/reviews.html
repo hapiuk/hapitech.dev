@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-top">
   <div><h1>Reviews</h1><p>Every client's reviews. Reported ones wait here for your decision and stay visible until you act.</p></div>
-  <a class="btn btn--sm" href="{{ url_for('admin.review_new') }}">Add a review by hand</a>
+  <div class="row"><a class="btn btn--sm" href="{{ url_for('admin.reviews_import') }}">Import from Google / Facebook</a><a class="btn btn--ghost btn--sm" href="{{ url_for('admin.review_new') }}">Add one by hand</a></div>
 </div>
 {% if undated %}<p class="small muted" style="margin-bottom:12px">📅 {{ undated }} review{{ 's' if undated != 1 }} here {{ 'have' if undated != 1 else 'has' }} no date. Copy it from Google if you like (“3 months ago” is fine, roughly), or wait: the Google import will fill them in once API access is approved.</p>{% endif %}
 <form class="row" style="margin-bottom:16px">

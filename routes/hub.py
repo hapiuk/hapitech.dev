@@ -38,6 +38,26 @@ def hub_url(endpoint, **kw):
     return u
 
 
+OWN = ("hapitech", "website", "manual")
+
+
+def source_stats(a, rows):
+    """Overall (every review, Facebook 'recommends' counted as 5★ / 'doesn't' as 1★), then each source."""
+    g = [r for r in rows if r.source == "google"]
+    f = [r for r in rows if r.source == "facebook"]
+    h = [r for r in rows if r.source in OWN]
+    out = {"overall": {"avg": sum(r.rating for r in rows) / len(rows) if rows else None, "count": len(rows)}}
+    if g or a.google_rating:
+        out["google"] = {"avg": float(a.google_rating) if a.google_rating else sum(r.rating for r in g) / len(g),
+                         "count": a.google_count or len(g), "here": len(g), "url": a.google_reviews_url}
+    if f or a.facebook_pct is not None:
+        pct = a.facebook_pct if a.facebook_pct is not None else round(100 * sum(1 for r in f if r.recommends is not False) / len(f))
+        out["facebook"] = {"pct": pct, "count": a.facebook_count or len(f), "here": len(f), "url": a.facebook_url}
+    if h:
+        out["hapitech"] = {"avg": sum(r.rating for r in h) / len(h), "count": len(h)}
+    return out
+
+
 def _businesses():
     """Client businesses with at least one public review, most reviewed first."""
     out = []
@@ -48,7 +68,7 @@ def _businesses():
             continue
         latest = next((r for r in rows if r.body and r.rating >= 4 and len(r.body) > 60), rows[0])
         out.append({"a": a, "count": len(rows), "avg": sum(r.rating for r in rows) / len(rows), "latest": latest,
-                    "replied": sum(1 for r in rows if r.reply)})
+                    "replied": sum(1 for r in rows if r.reply), "src": source_stats(a, rows)})
     return sorted(out, key=lambda b: -b["count"])
 
 
@@ -73,7 +93,9 @@ def business(slug):
     for r in rows:
         sources[r.source_label] = sources.get(r.source_label, 0) + 1
     return render_template("hub/business.html", a=a, rows=rows, avg=avg, dist=dist, sources=sources,
-                           replied=sum(1 for r in rows if r.reply))
+                           replied=sum(1 for r in rows if r.reply), src=source_stats(a, rows),
+                           by_source={k: sum(1 for r in rows if (r.source in OWN if k == "hapitech" else r.source == k))
+                                      for k in ("google", "facebook", "hapitech")})
 
 
 @hub_bp.route("/report/<int:rid>", methods=["POST"])
