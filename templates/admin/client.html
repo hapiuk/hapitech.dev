@@ -312,7 +312,8 @@
       <td class="small muted" title="{{ r.created_at | ukdate('%-d %b %Y, %H:%M') }}">{{ r.created_at | ago }} · {{ r.sent_via }}</td>
       <td>{% include "app/_request_state.html" %}</td>
       <td class="right">{% if r.state != 'done' %}<form method="post" action="{{ url_for('admin.request_renew', slug=a.slug, rid=r.id) }}" class="inline-form">
-        <button class="btn btn--{{ 'sm' if r.state == 'expired' else 'ghost btn--sm' }}" {% if r.state != 'expired' %}data-confirm="Make a fresh link? The one they have stops working."{% endif %}>Fresh link</button></form>{% endif %}</td>
+        <button class="btn btn--{{ 'sm' if r.state == 'expired' else 'ghost btn--sm' }}" {% if r.state != 'expired' %}data-confirm="Make a fresh link? The one they have stops working."{% endif %}>Fresh link</button></form>
+        <form method="post" action="{{ url_for('admin.request_remove', slug=a.slug, rid=r.id) }}" class="inline-form"><button class="linkish small muted" data-confirm="Remove this request? Its link stops working.">Remove</button></form>{% endif %}</td>
     </tr>{% endfor %}</tbody></table></div>
   {% else %}<p class="small muted" style="margin-top:10px">No review requests sent yet.</p>{% endif %}
 </details>

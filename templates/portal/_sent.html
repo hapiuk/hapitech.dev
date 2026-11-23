@@ -8,5 +8,6 @@
       <td class="small muted">{{ r.created_at | ago }} · {{ r.sent_via }}</td>
       <td>{% include "app/_request_state.html" %}</td>
       <td class="right">{% if r.state == 'expired' %}<form method="post" action="{{ url_for('portal.ask_send', rid=r.id) }}" class="inline-form"><button class="btn btn--sm" name="action" value="renew">Send a fresh link</button></form>
-        {% elif r.state != 'done' and r.created_at < stale %}<a class="btn btn--ghost btn--sm" href="{{ url_for('portal.ask_send', rid=r.id) }}">Email a reminder</a>{% elif r.state != 'done' %}<a class="btn btn--ghost btn--sm" href="{{ url_for('portal.ask_send', rid=r.id) }}">Show QR again</a>{% endif %}</td></tr>
+        {% elif r.state != 'done' and r.created_at < stale %}<a class="btn btn--ghost btn--sm" href="{{ url_for('portal.ask_send', rid=r.id) }}">Email a reminder</a>{% elif r.state != 'done' %}<a class="btn btn--ghost btn--sm" href="{{ url_for('portal.ask_send', rid=r.id) }}">Show QR again</a>{% endif %}
+        {% if r.state != 'done' %}<form method="post" action="{{ url_for('portal.ask_send', rid=r.id) }}" class="inline-form"><button class="linkish small muted" name="action" value="remove" data-confirm="Remove this request? The link you sent {{ r.customer_name if r.customer_name != 'your customer' else 'them' }} will stop working.">Remove</button></form>{% endif %}</td></tr>
   {% endfor %}</tbody></table></div>{% else %}<div style="padding:22px">{{ empty('No requests yet', 'Finish a job and tap "Ask for a review".') }}</div>{% endif %}</section>

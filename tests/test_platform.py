@@ -1601,3 +1601,25 @@ def test_own_sites_count_visits_and_take_edits(app):
         assert sum(v.count for v in SiteVisit.query.filter_by(account_id=h.id).all()) == 1
         assert SiteVisit.query.filter_by(account_id=h.id).first().ref == "google"
         assert SiteVisit.query.filter_by(account_id=r.id, path="/").first().count == 1
+
+
+
+def test_remove_review_request_kills_link(app):
+    from models import db
+    from models.core import Account
+    from models.reviews import ReviewRequest
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        r1, r2 = ReviewRequest(account_id=a.id, customer_name="Cancel Me"), ReviewRequest(account_id=a.id, customer_name="Admin Cancels")
+        db.session.add_all([r1, r2]); db.session.commit()
+        (id1, t1), (id2, t2) = (r1.id, r1.token), (r2.id, r2.token)
+    assert app.test_client().get(f"/r/{t1}").status_code == 200
+    o = app.test_client(); _login(o, "roland@test")
+    assert "Remove this request?" in o.get("/portal/reviews?show=sent").get_data(as_text=True)
+    _form(o, f"/portal/ask/{id1}", {"action": "remove"}, page="/portal/reviews?show=sent")
+    assert app.test_client().get(f"/r/{t1}").status_code == 404
+    adm = app.test_client(); _login(adm, "admin@test")
+    _form(adm, f"/admin/clients/rolands/requests/{id2}/remove", {}, page="/admin/clients/rolands?tab=reviews")
+    assert app.test_client().get(f"/r/{t2}").status_code == 404
+    with app.app_context():
+        assert db.session.get(ReviewRequest, id1) is None and db.session.get(ReviewRequest, id2) is None

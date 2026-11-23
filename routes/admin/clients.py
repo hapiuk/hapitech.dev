@@ -723,3 +723,17 @@ def request_renew(slug, rid):
         from utils.links import public_url
         flash(f"Fresh link for {r.customer_name}: {public_url(url_for('reviews_public.leave', token=r.token))}  (works for {r.LINK_DAYS} days)", "ok")
     return redirect(url_for("admin.client", slug=slug, tab="reviews") + "#requests")
+
+
+@admin_bp.route("/clients/<slug>/requests/<int:rid>/remove", methods=["POST"])
+def request_remove(slug, rid):
+    """Remove a review request that hasn't been used: its link stops working."""
+    a = _acct(slug)
+    r = ReviewRequest.query.filter_by(id=rid, account_id=a.id).first_or_404()
+    if r.completed_at:
+        flash("They've already left a review, so this one stays.", "err")
+    else:
+        db.session.delete(r)
+        db.session.commit()
+        flash(f"Request for {r.customer_name} removed. Its link no longer works.", "ok")
+    return redirect(url_for("admin.client", slug=slug, tab="reviews") + "#requests")

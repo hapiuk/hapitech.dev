@@ -158,6 +158,14 @@ def ask():
 @addon_required
 def ask_send(rid):
     req = scoped(ReviewRequest, id=rid).first_or_404()
+    if request.method == "POST" and request.form.get("action") == "remove":
+        if req.completed_at:
+            flash("They've already left a review, so this one stays.", "err")
+        else:
+            db.session.delete(req)
+            db.session.commit()
+            flash("Request removed. Its link no longer works.", "ok")
+        return redirect(url_for("portal.reviews", show="sent"))
     if request.method == "POST" and request.form.get("action") == "renew":
         if req.completed_at:
             flash("They've already left a review.", "ok")
