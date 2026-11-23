@@ -46,7 +46,7 @@ def _vars(account):
 def _plan_html(v):
     return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 18px 0;'
             f'background:#eef4ff;border:1px solid #cfdcfb;border-radius:14px;"><tr><td style="padding:16px 18px;font:15px/1.55 {FONT};color:#16181d;">'
-            f'<div style="font:700 12px/1 {FONT};letter-spacing:.08em;text-transform:uppercase;color:{BLUE};margin-bottom:8px;">💛 You\'re on our Friends plan</div>'
+            f'<div style="font:700 12px/1 {FONT};letter-spacing:.08em;text-transform:uppercase;color:{BLUE};margin-bottom:8px;">😎 You\'re on our Friends plan</div>'
             f'<div style="font:700 18px/1.3 {FONT};margin-bottom:6px;">Everything in your dashboard is included</div>'
             f'<div style="color:#4a4f59;">It sits on top of me looking after your website, as a thank-you for being one of my first customers. '
             f'There\'s nothing to set up.</div></td></tr></table>')

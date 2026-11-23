@@ -265,24 +265,47 @@ class RunningCost(db.Model):
     kind = db.Column(db.String(20), nullable=False, default="other")       # hosting | email | domain | other
     value_gbp = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     my_cost_gbp = db.Column(db.Numeric(10, 2))
-    interval = db.Column(db.String(10), nullable=False, default="monthly")  # monthly | yearly
+    interval = db.Column(db.String(10), nullable=False, default="monthly")  # monthly | quarterly | yearly | once
     started_on = db.Column(db.Date)
     ended_on = db.Column(db.Date)
     covered = db.Column(db.Boolean, nullable=False, default=True)
     note = db.Column(db.String(300))
     account = db.relationship("Account", backref=db.backref("running_costs", lazy=True, order_by="RunningCost.id"))
 
+    STEP_MONTHS = {"monthly": 1, "quarterly": 3, "yearly": 12}
+
     @property
     def monthly(self):
+        """Monthly equivalent of the price (one-off items: 0)."""
         v = float(self.value_gbp or 0)
-        return v / 12 if self.interval == "yearly" else v
+        return v / self.STEP_MONTHS[self.interval] if self.interval in self.STEP_MONTHS else 0.0
 
     @property
     def my_monthly(self):
         if self.my_cost_gbp is None:
             return None
         v = float(self.my_cost_gbp)
-        return v / 12 if self.interval == "yearly" else v
+        return v / self.STEP_MONTHS[self.interval] if self.interval in self.STEP_MONTHS else 0.0
+
+    def charge_dates(self, until):
+        """Every date this is charged, from started_on up to `until` (one-offs: just the start date)."""
+        from utils.plans import add_months
+        if not self.started_on:
+            return []
+        end = min(self.ended_on, until) if self.ended_on else until
+        if self.interval not in self.STEP_MONTHS:
+            return [self.started_on] if self.started_on <= end else []
+        out, k = [], 0
+        while True:
+            d = add_months(self.started_on, k * self.STEP_MONTHS[self.interval])
+            if d > end:
+                return out
+            out.append(d)
+            k += 1
+
+    def value_so_far(self, today=None):
+        today = today or dt.date.today()
+        return round(float(self.value_gbp or 0) * len(self.charge_dates(today)), 2)
 
     def months_active(self, today=None):
         today = today or dt.date.today()
@@ -290,9 +313,6 @@ class RunningCost(db.Model):
             return 0.0
         end = min(self.ended_on or today, today)
         return max(0.0, (end - self.started_on).days / (365.25 / 12))
-
-    def value_so_far(self, today=None):
-        return round(self.monthly * self.months_active(today), 2)
 
 
 class SystemState(db.Model):

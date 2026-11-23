@@ -1,47 +1,100 @@
-# utils/plan_value.py — what a client has had from HapiTech: the work done, plus the running costs HapiTech
-# has covered for them so far (at what they'd pay to buy it themselves). Shown on their "My plan" page, and
-# with HapiTech's own costs on the admin Money tab, as a pricing reference.
+# utils/plan_value.py — a client's transaction history with HapiTech, for their "My plan" page, receipts, and the
+# admin Money tab (pricing reference).
+#   * work done (jobs) is charged on its date;
+#   * each running cost is charged on every renewal date from its start (monthly / quarterly / yearly / once);
+#   * anything "covered" gets a matching Friends plan deduction on the same transaction;
+#   * payments land on the transaction with the same date.
+# Everything on one date is one transaction (one receipt). The next 31 days show as "upcoming".
 import datetime as dt
 
 DONATE_KEY = "donate_url"
+UPCOMING_DAYS = 31
+
+
+def _ref(account, d):
+    return f"HT-{account.id:03d}-{d:%Y%m%d}"
+
+
+def transactions(account, today=None):
+    today = today or dt.date.today()
+    ad = account.addon()
+    deduction = "Friends plan" if ad and ad.status == "friends" else "Covered by HapiTech"
+    groups = {}
+
+    def group(d):
+        return groups.setdefault(d, {"date": d, "ref": _ref(account, d), "lines": [], "deductions": [], "payments": []})
+
+    for j in account.jobs:
+        if j.status == "done" and float(j.price_gbp or 0) > 0 and j.due_date:
+            group(j.due_date)["lines"].append({"title": j.title, "amount": float(j.price_gbp), "kind": "work"})
+    for c in account.running_costs:
+        per = {"monthly": "month", "quarterly": "3 months", "yearly": "year"}.get(c.interval)
+        for d in c.charge_dates(today + dt.timedelta(days=UPCOMING_DAYS)):
+            g = group(d)
+            g["lines"].append({"title": c.title, "amount": float(c.value_gbp or 0), "kind": "renewal" if per else "one-off",
+                               "period": per})
+            if c.covered:
+                g["deductions"].append({"title": f"{deduction}: {c.title}", "amount": float(c.value_gbp or 0)})
+    for p in account.payments:
+        group(p.paid_at)["payments"].append({"title": "Payment received" + (f" ({p.method})" if p.method else ""),
+                                             "amount": float(p.amount_gbp or 0)})
+    out = []
+    for d, g in sorted(groups.items(), key=lambda x: x[0], reverse=True):
+        charges = round(sum(l["amount"] for l in g["lines"]), 2)
+        covered = round(sum(x["amount"] for x in g["deductions"]), 2)
+        paid = round(sum(x["amount"] for x in g["payments"]), 2)
+        due = round(charges - covered - paid, 2)
+        if d > today:
+            status = "Upcoming"
+        elif charges and covered >= charges:
+            status = "Covered"
+        elif due <= 0 and paid:
+            status = "Paid"
+        elif due > 0:
+            status = "Due"
+        else:
+            status = "Payment"
+        work = [l["title"] for l in g["lines"] if l["kind"] == "work"]
+        titles = (["Website build & launch"] if len(work) > 1 else work) + [l["title"] for l in g["lines"] if l["kind"] != "work"]
+        g.update(charges=charges, covered=covered, paid=paid, due=max(due, 0), status=status, upcoming=d > today,
+                 summary=_summary(titles) or ("Payment" if paid else ""))
+        out.append(g)
+    return out
+
+
+def _summary(titles):
+    if not titles:
+        return ""
+    if len(titles) <= 2:
+        return " & ".join(titles)
+    return f"{titles[0]} + {len(titles) - 1} more"
 
 
 def summary(account, today=None):
     today = today or dt.date.today()
-    work = sorted([j for j in account.jobs if j.status == "done" and float(j.price_gbp or 0) > 0],
-                  key=lambda j: (j.due_date or dt.date.min, j.id))
-    work_total = sum(float(j.price_gbp or 0) for j in work)
-    costs = [c for c in account.running_costs if not c.ended_on or c.ended_on >= (c.started_on or today)]
-    covered = [c for c in costs if c.covered]
-    covered_so_far = round(sum(c.value_so_far(today) for c in covered), 2)
-    paid = round(sum(float(p.amount_gbp or 0) for p in account.payments), 2)
-    starts = [c.started_on for c in costs if c.started_on] + [j.due_date for j in work if j.due_date]
+    tx = transactions(account, today)
+    past = [t for t in tx if not t["upcoming"]]
+    costs = list(account.running_costs)
+    starts = [t["date"] for t in past]
     since = min(starts) if starts else None
-    mine_monthly = sum(c.my_monthly or 0 for c in costs)
-    # a statement: each order (work done on the same date = one order), then each running cost priced
-    # from when it started, minus what the plan covers. Saved = what the plan has covered.
-    orders, by_date = [], {}
-    for j in work:
-        by_date.setdefault(j.due_date, []).append(j)
-    for d, js in sorted(by_date.items(), key=lambda x: x[0] or dt.date.min):
-        title = "Website build & launch" if len(js) > 1 and any(j.type == "build" for j in js) else js[0].title
-        orders.append({"kind": "work", "date": d, "title": title, "parts": js,
-                       "price": round(sum(float(j.price_gbp or 0) for j in js), 2)})
-    for c in sorted(costs, key=lambda c: (c.started_on or today, c.id)):
-        so_far = c.value_so_far(today)
-        orders.append({"kind": "cost", "date": c.started_on, "title": c.title, "cost": c, "price": so_far,
-                       "months": round(c.months_active(today), 1), "covered": so_far if c.covered else 0})
-    total_price = round(sum(o["price"] for o in orders), 2)
+    work = [j for j in account.jobs if j.status == "done" and float(j.price_gbp or 0) > 0]
+    covered_so_far = round(sum(t["covered"] for t in past), 2)
     return {
-        "orders": orders, "total_price": total_price, "saved": covered_so_far,
-        "work": work, "work_total": round(work_total, 2),
-        "covered": covered, "covered_monthly": round(sum(c.monthly for c in covered), 2),
-        "covered_so_far": covered_so_far,
-        "value_total": round(work_total + covered_so_far, 2),
-        "paid": paid, "since": since,
+        "transactions": tx, "since": since,
+        "total_price": round(sum(t["charges"] for t in past), 2),
+        "saved": covered_so_far, "covered_so_far": covered_so_far,
+        "paid": round(sum(t["paid"] for t in past), 2),
+        "covered_monthly": round(sum(c.monthly for c in costs if c.covered), 2),
+        "value_total": round(sum(t["charges"] for t in past), 2),
+        "work_total": round(sum(float(j.price_gbp or 0) for j in work), 2),
         "months": round((today - since).days / (365.25 / 12), 1) if since else 0,
-        "all_costs": costs, "my_monthly": round(mine_monthly, 2),
+        "all_costs": costs, "covered": [c for c in costs if c.covered],
+        "my_monthly": round(sum(c.my_monthly or 0 for c in costs), 2),
     }
+
+
+def find(account, ref):
+    return next((t for t in transactions(account) if t["ref"] == ref), None)
 
 
 def donate_url():

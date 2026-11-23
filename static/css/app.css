@@ -457,3 +457,42 @@ html.lv-pending body{visibility:hidden}
 .lang-row{display:flex;justify-content:flex-end;margin:-14px 0 6px}
 .topbar .lang{margin-left:auto}
 @media (max-width:960px){ .lang-row{display:none} }
+
+/* ---------- My plan: transaction history ---------- */
+.txn__filters{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px}
+.txn__filter{display:grid;gap:4px}
+.txn__filter--grow{flex:1;min-width:160px}
+.txn__filter input{padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:16px;width:100%}
+.txn__list{list-style:none;margin:0;padding:0 4px 0 0;max-height:min(62vh,560px);overflow-y:auto;border-top:1px solid var(--line);border-bottom:1px solid var(--line);overscroll-behavior:contain}
+.txn__item{border-bottom:1px solid var(--line)}
+.txn__item:last-child{border-bottom:0}
+.txn__item.is-upcoming{opacity:.75}
+.txn__row{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;padding:11px 2px;cursor:pointer;list-style:none}
+.txn__row::-webkit-details-marker{display:none}
+.txn__date{display:grid;justify-items:center;line-height:1.1;padding:6px 0;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
+.txn__date strong{font-size:1.05rem}
+.txn__date small{font-size:.66rem;color:var(--muted);text-transform:uppercase}
+.txn__what{display:grid;min-width:0}
+.txn__what strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.txn__what small{font-size:.74rem;font-family:var(--mono,inherit)}
+.txn__amt{display:grid;justify-items:end;gap:3px;font-variant-numeric:tabular-nums}
+.txn__detail{padding:2px 4px 14px 64px}
+.txn__lines{display:grid;grid-template-columns:1fr auto;gap:4px 14px;margin:0 0 10px;font-size:.9rem;font-variant-numeric:tabular-nums}
+.txn__lines dd{margin:0;text-align:right}
+.txn__minus{color:var(--ok,#22c55e)}
+.txn__due{font-weight:700;border-top:1px solid var(--line);padding-top:6px}
+@media (max-width:600px){.txn__detail{padding-left:4px}}
+/* ---------- support card (PayPal) ---------- */
+.support__preview{margin:-4px 0 12px;padding:8px 12px;border-radius:10px;background:var(--acc-soft);color:var(--acc);font-size:.84rem;font-weight:600}
+.support__head{display:flex;gap:12px;align-items:flex-start}
+.support__icon{font-size:1.6rem;line-height:1}
+.support__head h2{font-size:1.05rem;margin-bottom:4px}
+.support__amounts{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 12px}
+.support__chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:8px 16px;font:600 .92rem/1 inherit;cursor:pointer}
+.support__chip.is-on{border-color:#ffc439;background:rgba(255,196,57,.14);color:var(--ink)}
+.support__pay{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:360px;min-height:48px;border-radius:999px;background:#ffc439;color:#111;font-weight:700;text-decoration:none;transition:filter .15s}
+.support__pay:hover{filter:brightness(.95)}
+.support__pay[aria-disabled="true"]{cursor:not-allowed}
+.support__pp{font-style:italic;font-weight:800;color:#003087}
+.support__pp b{color:#009cde}
+.support__foot{margin-top:8px}

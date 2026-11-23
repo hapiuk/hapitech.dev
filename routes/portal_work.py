@@ -422,5 +422,19 @@ def plan():
     from utils.plan_value import donate_url, summary
     a = g.account
     ad = a.addon()
-    return render_template("portal/plan.html", owed=Decimal(a.balance_gbp or 0), addon=ad, v=summary(a),
-                           donate=donate_url() if ad and ad.status == "friends" else None)
+    url = donate_url()
+    friends = bool(ad and ad.status == "friends")
+    # the support card: real for Friends-plan clients once a link is set; a layout preview for admins until then
+    donate = {"url": url, "preview": False} if friends and url else (
+        {"url": None, "preview": True} if current_user.is_admin and friends else None)
+    return render_template("portal/plan.html", owed=Decimal(a.balance_gbp or 0), addon=ad, v=summary(a), donate=donate)
+
+
+@portal_bp.route("/plan/<ref>")
+@owner_required
+def receipt(ref):
+    from utils.plan_value import find
+    t = find(g.account, ref)
+    if not t:
+        abort(404)
+    return render_template("portal/receipt.html", t=t, a=g.account, addon=g.account.addon())

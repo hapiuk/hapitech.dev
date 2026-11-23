@@ -272,3 +272,40 @@ document.querySelectorAll("[data-check-all]").forEach(function (all) {
     });
   });
 })();
+
+/* My plan: filter the transaction history by month or text */
+(function () {
+  var list = document.querySelector("[data-txn-list]");
+  if (!list) return;
+  var month = document.querySelector("[data-txn-month]"), search = document.querySelector("[data-txn-search]");
+  var none = document.querySelector(".txn__none");
+  function apply() {
+    var m = month.value, q = search.value.trim().toLowerCase(), any = false;
+    list.querySelectorAll(".txn__item").forEach(function (li) {
+      var hit = (!m || li.getAttribute("data-month") === m) && (!q || li.getAttribute("data-text").toLowerCase().indexOf(q) > -1);
+      li.hidden = !hit; any = any || hit;
+    });
+    if (none) none.hidden = any;
+  }
+  month.addEventListener("input", apply); search.addEventListener("input", apply);
+  document.querySelector("[data-txn-clear]").addEventListener("click", function () { month.value = ""; search.value = ""; apply(); });
+})();
+
+/* Support card: amount chips; PayPal.me links take the amount on the end */
+(function () {
+  var pay = document.querySelector("[data-donate-base]");
+  if (!pay) return;
+  var base = pay.getAttribute("data-donate-base"), show = pay.querySelector("[data-donate-amount]");
+  function set(n) {
+    show.textContent = n || "…";
+    if (base) pay.href = n && /paypal\.me\//i.test(base) ? base.replace(/\/$/, "") + "/" + n + "GBP" : base;
+  }
+  document.querySelectorAll("[data-amount]").forEach(function (c) {
+    c.addEventListener("click", function () {
+      document.querySelectorAll("[data-amount]").forEach(function (x) { x.classList.toggle("is-on", x === c); });
+      set(c.getAttribute("data-amount"));
+    });
+  });
+  pay.addEventListener("click", function (e) { if (pay.getAttribute("aria-disabled") === "true") { e.preventDefault(); } });
+  set("5");
+})();

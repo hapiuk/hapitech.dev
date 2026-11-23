@@ -244,7 +244,7 @@ def cost_save(slug, cid=None):
     c.kind = f.get("kind") if f.get("kind") in ("hosting", "email", "domain", "other") else "other"
     c.value_gbp = _money(f.get("value_gbp"))
     c.my_cost_gbp = _money(f.get("my_cost_gbp")) if (f.get("my_cost_gbp") or "").strip() else None
-    c.interval = "yearly" if f.get("interval") == "yearly" else "monthly"
+    c.interval = f.get("interval") if f.get("interval") in ("monthly", "quarterly", "yearly", "once") else "monthly"
     c.started_on, c.ended_on = _date(f.get("started_on")), _date(f.get("ended_on"))
     c.covered = bool(f.get("covered"))
     c.note = (f.get("note") or "").strip()[:300] or None

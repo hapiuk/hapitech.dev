@@ -1106,14 +1106,24 @@ def test_my_plan_value_running_costs_and_support_button(app):
         from utils.plan_value import summary
         v = summary(a)
         assert v["work_total"] == 500 and v["paid"] == 500
-        assert 380 < v["covered_so_far"] < 390                # ~12 months x (29.99 + 2.08)
+        tx = [t for t in v["transactions"] if not t["upcoming"]]
+        assert len(tx) == 13                                   # a charge each month for 13 months (start + 12)
+        first = tx[-1]
+        assert first["summary"].startswith("Website build & launch") and first["paid"] == 500 and first["status"] == "Paid"
+        assert round(v["saved"], 2) == round(13 * 29.99 + 2 * 25, 2)   # hosting monthly + email at start and at 1 year
     o = app.test_client(); _login(o, "roland@test")
     page = o.get("/portal/plan").get_data(as_text=True)
-    assert "Saved on this plan" in page and "Your orders" in page and "Covered by your plan" in page and "Server hosting" in page
-    assert page.index("Your orders") < page.index("Saved on this plan")
-    assert "Website creation" in page and "Support HapiTech" not in page          # no link set yet
+    assert "Saved on this plan" in page and "Transaction history" in page and "Friends plan: Server hosting" in page
+    assert page.index("Transaction history") < page.index("Saved on this plan") and "💛" not in page and "😎" in page
+    ref = re.search(r'/portal/plan/(HT-[\d-]+)"', page).group(1)
+    rc = o.get(f"/portal/plan/{ref}").get_data(as_text=True)
+    assert "Download PDF" in rc and ref in rc and "Friends plan" in rc
+    assert o.get("/portal/plan/HT-999-20200101").status_code == 404
+    assert "Support HapiTech" not in page                                          # no link set yet (clients)
     assert "£40" not in page                                                        # HapiTech's own cost stays private
     adm = app.test_client(); _login(adm, "admin@test")
+    adm.get("/admin/clients/rolands/portal")
+    assert "Layout preview" in adm.get("/portal/plan").get_data(as_text=True)                   # admin sees a preview
     _form(adm, "/admin/settings", {"action": "donate", "donate_url": "https://paypal.me/hapitech"}, page="/admin/settings")
     assert "Support HapiTech" in o.get("/portal/plan").get_data(as_text=True)
     with app.app_context():

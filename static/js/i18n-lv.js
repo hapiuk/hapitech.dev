@@ -178,6 +178,19 @@
     "See requests you've sent →": "Skatīt nosūtītos pieprasījumus →", "Review requests": "Atsauksmju pieprasījumi",
     "Who you've asked, and who's left a review.": "Kam esat lūdzis un kas ir atstājis atsauksmi.", "Ask someone": "Palūgt kādam",
     "No requests yet": "Vēl nav pieprasījumu", "Finish a job and tap \"Ask for a review\".": "Pabeidziet darbu un pieskarieties “Lūgt atsauksmi”.",
+    /* transaction history + support */
+    "Your plan, and everything HapiTech has done and covered for your website.": "Jūsu plāns un viss, ko HapiTech ir paveicis un sedzis jūsu vietnei.",
+    "Transaction history": "Darījumu vēsture", "Month": "Mēnesis", "Search": "Meklēt", "Show all": "Rādīt visu",
+    "e.g. hosting, 2025, HT-001…": "piem., mitināšana, 2025, HT-001…", "Show one month": "Rādīt vienu mēnesi", "Search transactions": "Meklēt darījumus",
+    "Paid": "Apmaksāts", "Covered": "Segts", "Upcoming": "Gaidāms", "Due": "Jāmaksā", "Payment": "Maksājums",
+    "To pay": "Jāmaksā", "Left to pay": "Atlikums", "Nothing for that month or search.": "Šim mēnesim vai meklējumam nekā nav.",
+    "Total so far": "Kopā līdz šim", "Friends plan": "Draugu plāns", "Covered by HapiTech": "Sedz HapiTech",
+    "Server maintenance": "Servera uzturēšana", "Security updates": "Drošības atjauninājumi", "SSL certificate renewal": "SSL sertifikāta atjaunošana",
+    "Terms & privacy pages": "Noteikumu un privātuma lapas", "Payment received": "Maksājums saņemts", "Payment received (bank)": "Maksājums saņemts (banka)",
+    "per month": "mēnesī", "per year": "gadā", "per 3 months": "par 3 mēnešiem",
+    "Support HapiTech": "Atbalstīt HapiTech", "Other": "Cita summa", "Amount": "Summa",
+    "🔒 Card or PayPal accepted, handled securely by PayPal.": "🔒 Pieņem karti vai PayPal, droši apstrādā PayPal.",
+    "Hosting, maintenance, security, email and more": "Mitināšana, uzturēšana, drošība, e-pasts un vairāk",
     /* fragments around bold words (help, calendar) */
     "iPhone:": "iPhone:", "tap": "pieskarieties", ", then Settings → Calendar → Accounts → Add Account → Other →": ", tad Iestatījumi → Kalendārs → Konti → Pievienot kontu → Cits →",
     "Add Subscribed Calendar": "Pievienot abonētu kalendāru", ", and paste.": ", un ielīmējiet.", "Android / Google Calendar:": "Android / Google kalendārs:",
@@ -210,6 +223,14 @@
     week: ["nedēļas", "nedēļām"], month: ["mēneša", "mēnešiem"], year: ["gada", "gadiem"] };
 
   var P = [
+    [/^Receipt · download PDF$/, "Kvīts · lejupielādēt PDF"], [/^View · download PDF$/, "Skatīt · lejupielādēt PDF"],
+    [/^(.+) \+ (\d+) more$/, function (m, a, n) { return tr(a) + " + vēl " + n; }],
+    [/^(.+) & (.+)$/, function (m, a, b) { var x = tr(a), y = tr(b); return (x === a && y === b) ? null : x + " un " + y; }],
+    [/^Friends plan: (.+)$/, function (m, a) { return "Draugu plāns: " + tr(a); }],
+    [/^Covered by HapiTech: (.+)$/, function (m, a) { return "Sedz HapiTech: " + tr(a); }],
+    [/^Donate £(.*)$/, "Ziedot £$1"],
+    [/^(Hosting, maintenance, security, email and more) since (\w+) (\d{4}), covered by HapiTech\.$/, function (m, a, mo, y) { return "Mitināšanu, uzturēšanu, drošību, e-pastu un vairāk kopš " + y + ". gada " + (MONTHS_GEN[mo] || mo) + " sedz HapiTech."; }],
+    [/^(\w{3}) (\d{4})$/, function (m, mo, y) { return SHORT[mo] ? SHORT[mo] + " " + y : null; }],
     [/^([\d.]+)★ average$/, "vidēji $1★"],
     [/^\/ (.+)$/, function (m, a) { return "/ " + tr(a); }],
     [/^Total (£[\d,.]+)$/, "Kopā $1"],

@@ -1,0 +1,76 @@
+{# templates/portal/receipt.html — one transaction as a receipt / invoice. "Download PDF" uses the browser's Save as PDF. #}
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+  <title>{{ 'Invoice' if t.upcoming or t.due else 'Receipt' }} {{ t.ref }} | HapiTech</title>
+  <style>
+    :root{--ink:#16181d;--muted:#6b7280;--line:#e6e3dd;--acc:#2563eb;--ok:#15803d}
+    *{box-sizing:border-box}
+    body{margin:0;background:#f2f0ec;font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink)}
+    .bar{max-width:760px;margin:18px auto 0;padding:0 16px;display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}
+    .bar a,.bar button{font:600 14px/1 inherit;padding:11px 18px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink);text-decoration:none;cursor:pointer}
+    .bar button{background:var(--ink);color:#fff;border-color:var(--ink)}
+    .doc{max-width:760px;margin:14px auto 40px;background:#fff;border:1px solid var(--line);border-top:5px solid var(--acc);border-radius:16px;padding:36px 40px}
+    .top{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand img{width:44px;height:44px;border-radius:10px}
+    .brand strong{font-size:20px;display:block}
+    .brand small{color:var(--muted)}
+    h1{margin:0;font-size:26px;letter-spacing:-.01em;text-align:right}
+    .meta{color:var(--muted);text-align:right;font-size:14px}
+    .stamp{display:inline-block;margin-top:8px;padding:5px 12px;border-radius:8px;border:2px solid currentColor;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:13px;transform:rotate(-2deg)}
+    .stamp--paid,.stamp--covered,.stamp--payment{color:var(--ok)} .stamp--upcoming{color:var(--acc)} .stamp--due{color:#b45309}
+    .parties{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:30px 0 22px}
+    .parties h3{margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+    .parties p{margin:0}
+    table{width:100%;border-collapse:collapse;margin-top:6px}
+    th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:10px 0;border-bottom:2px solid var(--ink)}
+    td{padding:11px 0;border-bottom:1px solid var(--line);vertical-align:top}
+    td.num,th.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+    td small{color:var(--muted)}
+    tr.minus td{color:var(--ok)}
+    .totals{margin-left:auto;width:min(320px,100%);margin-top:16px}
+    .totals div{display:flex;justify-content:space-between;padding:6px 0;font-variant-numeric:tabular-nums}
+    .totals .grand{border-top:2px solid var(--ink);margin-top:6px;padding-top:10px;font-weight:800;font-size:18px}
+    .note{margin-top:26px;padding:14px 16px;border-radius:12px;background:#f7f6f3;color:#4a4f59;font-size:14px}
+    .foot{margin-top:26px;color:var(--muted);font-size:12px;text-align:center}
+    @media (max-width:600px){.doc{padding:24px 18px;border-radius:0;margin:10px 0 0}.parties{grid-template-columns:1fr}h1,.meta{text-align:left}}
+    @media print{body{background:#fff}.bar{display:none}.doc{border:0;margin:0;max-width:none;padding:0}@page{margin:16mm}}
+  </style>
+</head>
+<body>
+  <div class="bar"><a href="{{ url_for('portal.plan') }}">← Back to My plan</a><button type="button" onclick="window.print()">Download PDF</button></div>
+  <article class="doc">
+    <div class="top">
+      <div class="brand"><img src="{{ url_for('static', filename='media/favicon/apple-touch-icon.png') }}" alt="">
+        <div><strong>HapiTech</strong><small>Websites, practical AI &amp; IT · hapitech.dev</small></div></div>
+      <div>
+        <h1>{{ 'Upcoming' if t.upcoming else ('Invoice' if t.due else 'Receipt') }}</h1>
+        <p class="meta">{{ t.ref }}<br>{{ t.date | ukdate('%-d %B %Y') }}</p>
+        <div style="text-align:right"><span class="stamp stamp--{{ t.status | lower }}">{{ t.status }}</span></div>
+      </div>
+    </div>
+    <div class="parties">
+      <div><h3>From</h3><p><strong>HapiTech</strong><br>Aaron<br>aaron@hapitech.dev</p></div>
+      <div><h3>For</h3><p><strong>{{ a.name }}</strong>{% if a.contact_name %}<br>{{ a.contact_name }}{% endif %}{% if a.domain %}<br>{{ a.domain }}{% endif %}</p></div>
+    </div>
+    <table>
+      <thead><tr><th>Description</th><th class="num">Amount</th></tr></thead>
+      <tbody>
+        {% for l in t.lines %}<tr><td>{{ l.title }}{% if l.period %}<br><small>Renewal, per {{ l.period }}</small>{% elif l.kind == 'work' %}<br><small>Website work</small>{% endif %}</td><td class="num">{{ l.amount | gbp(true) }}</td></tr>{% endfor %}
+        {% for x in t.deductions %}<tr class="minus"><td>{{ x.title }}</td><td class="num">−{{ x.amount | gbp(true) }}</td></tr>{% endfor %}
+        {% for x in t.payments %}<tr class="minus"><td>{{ x.title }}</td><td class="num">−{{ x.amount | gbp(true) }}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    <div class="totals">
+      <div><span>Subtotal</span><span>{{ t.charges | gbp(true) }}</span></div>
+      {% if t.covered %}<div><span>{{ 'Friends plan' if addon and addon.status == 'friends' else 'Covered by HapiTech' }}</span><span>−{{ t.covered | gbp(true) }}</span></div>{% endif %}
+      {% if t.paid %}<div><span>Paid</span><span>−{{ t.paid | gbp(true) }}</span></div>{% endif %}
+      <div class="grand"><span>{{ 'Amount due' if t.due else 'Balance' }}</span><span>{{ t.due | gbp(true) }}</span></div>
+    </div>
+    {% if t.covered %}<p class="note">{{ '😎 ' if addon and addon.status == 'friends' }}You're on the HapiTech {{ addon.plan.name if addon and addon.plan else 'plan' }}: the items marked above are covered for you, so there's nothing to pay for them.</p>{% endif %}
+    <p class="foot">HapiTech · hapitech.dev · aaron@hapitech.dev</p>
+  </article>
+</body>
+</html>

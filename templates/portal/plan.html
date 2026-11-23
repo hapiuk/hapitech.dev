@@ -1,11 +1,11 @@
 {% extends "app/base.html" %}
 {% block title %}My plan{% endblock %}
 {% block content %}
-<div class="page-top"><div><h1>My plan</h1><p>Your plan, the work done on your website, and what's included.</p></div></div>
+<div class="page-top"><div><h1>My plan</h1><p>Your plan, and everything HapiTech has done and covered for your website.</p></div></div>
 
 <div class="grid grid--2">
   <section class="card plan-card">
-    <div class="plan-card__icon" aria-hidden="true">{{ '💛' if addon and addon.status == 'friends' else ('🎁' if addon and addon.status == 'trial' else '✅') }}</div>
+    <div class="plan-card__icon" aria-hidden="true">{{ '😎' if addon and addon.status == 'friends' else ('🎁' if addon and addon.status == 'trial' else '✅') }}</div>
     <div>
       <p class="stat__label">Your plan</p>
       <p class="plan-card__name">{{ addon.plan.name if addon and addon.plan else 'Website care' }}</p>
@@ -20,32 +20,63 @@
   </section>
 </div>
 
-{% if v.orders %}
-<section class="card statement" style="margin-top:12px">
-  <div class="card__head"><h2>Your orders</h2>{% if v.since %}<span class="small muted">since {{ v.since | ukdate('%B %Y') }}</span>{% endif %}</div>
-  <ul class="statement__list">
-  {% for o in v.orders %}
-    <li class="statement__row">
-      <div class="statement__main">
-        <span><strong>{{ o.title }}</strong><br><span class="small muted">
-          {% if o.kind == 'work' %}{{ o.date | ukdate('%-d %B %Y') if o.date else '' }}
-          {% else %}{{ o.cost.value_gbp | gbp(true) }} a {{ 'year' if o.cost.interval == 'yearly' else 'month' }}{% if o.date %} · {{ o.date | ukdate('%b %Y') }} to now ({{ o.months }} months){% endif %}{% endif %}</span></span>
-        <span class="statement__price">{{ o.price | gbp(true) }}</span>
-      </div>
-      {% if o.kind == 'work' and o.parts | length > 1 %}
-      <p class="statement__parts small muted">{% for j in o.parts %}{{ j.title }} {{ j.price_gbp | gbp }}{{ ' · ' if not loop.last }}{% endfor %}</p>
-      {% endif %}
-      {% if o.kind == 'cost' and o.covered %}
-      <div class="statement__sub"><span class="small">💛 Covered by your plan</span><span class="statement__minus">−{{ o.covered | gbp(true) }}</span></div>
-      {% endif %}
+{% if v.transactions %}
+<section class="card txn" style="margin-top:12px">
+  <div class="card__head"><h2>Transaction history</h2>{% if v.since %}<span class="small muted">since {{ v.since | ukdate('%B %Y') }}</span>{% endif %}</div>
+  <div class="txn__filters">
+    <label class="txn__filter"><span class="small muted">Month</span><input type="month" data-txn-month aria-label="Show one month"></label>
+    <label class="txn__filter txn__filter--grow"><span class="small muted">Search</span><input type="search" data-txn-search placeholder="e.g. hosting, 2025, HT-001…" aria-label="Search transactions"></label>
+    <button type="button" class="btn btn--ghost btn--sm" data-txn-clear>Show all</button>
+  </div>
+  <ul class="txn__list" data-txn-list>
+  {% for t in v.transactions %}
+    <li class="txn__item {{ 'is-upcoming' if t.upcoming }}" data-month="{{ t.date.strftime('%Y-%m') }}"
+        data-text="{{ t.ref }} {{ t.date | ukdate('%-d %B %Y') }} {% for l in t.lines %}{{ l.title }} {% endfor %}{{ t.status }}">
+      <details>
+        <summary class="txn__row">
+          <span class="txn__date"><strong>{{ t.date.strftime('%-d') }}</strong><small>{{ t.date.strftime('%b %Y') }}</small></span>
+          <span class="txn__what"><strong>{{ t.summary }}</strong><small class="muted">{{ t.ref }}</small></span>
+          <span class="txn__amt"><strong>{{ t.charges | gbp(true) if t.charges else t.paid | gbp(true) }}</strong>
+            <span class="badge {{ {'Paid':'badge--ok','Covered':'badge--ok','Upcoming':'','Due':'badge--warn','Payment':'badge--ok'}[t.status] }}">{{ t.status }}</span></span>
+        </summary>
+        <div class="txn__detail">
+          <dl class="txn__lines">
+            {% for l in t.lines %}<dt>{{ l.title }}{% if l.period %} <small class="muted">· per {{ l.period }}</small>{% endif %}</dt><dd>{{ l.amount | gbp(true) }}</dd>{% endfor %}
+            {% for x in t.deductions %}<dt class="txn__minus">{{ x.title }}</dt><dd class="txn__minus">−{{ x.amount | gbp(true) }}</dd>{% endfor %}
+            {% for x in t.payments %}<dt>{{ x.title }}</dt><dd>−{{ x.amount | gbp(true) }}</dd>{% endfor %}
+            <dt class="txn__due">{{ 'To pay' if t.upcoming else 'Left to pay' }}</dt><dd class="txn__due">{{ t.due | gbp(true) }}</dd>
+          </dl>
+          <a class="btn btn--ghost btn--sm" href="{{ url_for('portal.receipt', ref=t.ref) }}">{{ 'View' if t.upcoming else 'Receipt' }} · download PDF</a>
+        </div>
+      </details>
     </li>
   {% endfor %}
   </ul>
+  <p class="small muted txn__none" hidden>Nothing for that month or search.</p>
   <dl class="statement__totals">
-    <dt>Total</dt><dd>{{ v.total_price | gbp(true) }}</dd>
-    {% if v.saved %}<dt>Covered by your plan</dt><dd class="statement__minus">−{{ v.saved | gbp(true) }}</dd>{% endif %}
+    <dt>Total so far</dt><dd>{{ v.total_price | gbp(true) }}</dd>
+    {% if v.saved %}<dt>{{ 'Friends plan' if addon and addon.status == 'friends' else 'Covered by HapiTech' }}</dt><dd class="statement__minus">−{{ v.saved | gbp(true) }}</dd>{% endif %}
     <dt>You paid</dt><dd>{{ v.paid | gbp(true) }}</dd>
   </dl>
+</section>
+{% endif %}
+
+{% if donate %}
+<section class="card support" style="margin-top:12px">
+  {% if donate.preview %}<p class="support__preview">👀 Layout preview: only you can see this until a PayPal link is added in Admin → Settings.</p>{% endif %}
+  <div class="support__head">
+    <span class="support__icon" aria-hidden="true">☕</span>
+    <div><h2>Support HapiTech</h2>
+      <p class="small muted">Totally optional, and your plan stays exactly the same either way. If you'd like to chip in towards the running costs, it's very much appreciated.</p></div>
+  </div>
+  <div class="support__amounts" role="group" aria-label="Amount">
+    {% for n in [3, 5, 10, 20] %}<button type="button" class="support__chip {{ 'is-on' if n == 5 }}" data-amount="{{ n }}">£{{ n }}</button>{% endfor %}
+    <button type="button" class="support__chip" data-amount="">Other</button>
+  </div>
+  <a class="support__pay" href="{{ donate.url or '#' }}" data-donate-base="{{ donate.url or '' }}" target="_blank" rel="noopener" {% if donate.preview %}aria-disabled="true"{% endif %}>
+    <span class="support__pp">Pay<b>Pal</b></span><span>Donate £<span data-donate-amount>5</span></span>
+  </a>
+  <p class="small muted support__foot">🔒 Card or PayPal accepted, handled securely by PayPal.</p>
 </section>
 {% endif %}
 
@@ -53,15 +84,7 @@
 <section class="card card--accent value-hero" style="margin-top:12px">
   <p class="stat__label">Saved on this plan</p>
   <p class="value-hero__total">{{ v.saved | gbp(true) }}</p>
-  <p class="small muted">Your hosting, email and domain{% if v.since %} since {{ v.since | ukdate('%B %Y') }}{% endif %}, covered by HapiTech. That's {{ (v.covered | sum(attribute='monthly')) | gbp(true) }} a month you don't pay.</p>
-</section>
-{% endif %}
-
-{% if donate %}
-<section class="card donate" style="margin-top:12px">
-  <div><h2>☕ Fancy saying thanks?</h2>
-    <p class="small muted">Totally optional, and your plan stays exactly the same either way. If you'd like to chip in towards the running costs, it's very much appreciated.</p></div>
-  <a class="btn btn--sm" href="{{ donate }}" target="_blank" rel="noopener">Support HapiTech</a>
+  <p class="small muted">Hosting, maintenance, security, email and more{% if v.since %} since {{ v.since | ukdate('%B %Y') }}{% endif %}, covered by HapiTech.</p>
 </section>
 {% endif %}
 <p class="small muted" style="margin-top:14px">Questions about anything here? <a href="{{ url_for('portal.help') }}">Message Aaron</a>.</p>
