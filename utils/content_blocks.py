@@ -25,6 +25,8 @@ def ensure_blocks(account, site_dir) -> int:
             b = ContentBlock(account_id=account.id, key=d["key"], value=default)
             db.session.add(b)
             created += 1
+        elif b.value == b.default_value and b.default_value != default:
+            b.value = default             # never edited: follow the site's updated wording (e.g. a refreshed policy)
         b.type, b.label, b.group = d["type"], d["label"], d.get("group", "General")
         b.help, b.max_length, b.sort = d.get("help"), d.get("max_length"), d.get("sort", i)
         b.default_value = default

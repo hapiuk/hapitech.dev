@@ -95,8 +95,8 @@ def content(slug):
         v = b.data
         if b.type == "setting":
             continue                      # hero settings: sent below as "hero"
-        if b.type == "images" and b.value == b.default_value:
-            continue                      # unedited photos: the site keeps using its own folder, unchanged
+        if b.value == b.default_value:
+            continue                      # unedited: the site keeps its own text / photos, exactly as before
         if b.type == "images":
             imgs = []
             for x in v or []:

@@ -1422,3 +1422,26 @@ def test_reply_skip_rate_shortcuts_platforms_extras(app):
     adm = app.test_client(); _login(adm, "admin@test")
     _form(adm, "/admin/clients/rolands/extras/ai_chat", {"status": "active"}, page="/admin/clients/rolands")
     assert "On</span>" in o.get("/portal/plan").get_data(as_text=True)
+
+
+def test_unedited_sections_follow_new_defaults_and_arent_sent(app):
+    import json as _json
+    from models import db
+    from models.core import Account
+    from models.content import ContentBlock
+    from utils.content_blocks import ensure_blocks
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        a.domain = "rolandshandyman.co.uk"
+        ensure_blocks(a, None); db.session.commit()
+        pol = ContentBlock.query.filter_by(account_id=a.id, key="legal.privacy.page").first()
+        assert "saved in Roland's business dashboard" in pol.data
+        pol.default_value = pol.value = _json.dumps("an older policy")          # as if made before the update
+        hero = ContentBlock.query.filter_by(account_id=a.id, key="hero.title").first()
+        hero.value = _json.dumps("Edited by Roland")
+        db.session.commit()
+        ensure_blocks(a, None); db.session.commit()
+        assert "saved in Roland's business dashboard" in ContentBlock.query.filter_by(account_id=a.id, key="legal.privacy.page").first().data
+        assert ContentBlock.query.filter_by(account_id=a.id, key="hero.title").first().data == "Edited by Roland"
+    content = app.test_client().get("/api/v1/sites/rolands/content", headers=_site_key(app, "rolands")).json["content"]
+    assert content == {"hero.title": "Edited by Roland"}           # only real edits are sent
