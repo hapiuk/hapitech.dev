@@ -1109,7 +1109,8 @@ def test_my_plan_value_running_costs_and_support_button(app):
         assert 380 < v["covered_so_far"] < 390                # ~12 months x (29.99 + 2.08)
     o = app.test_client(); _login(o, "roland@test")
     page = o.get("/portal/plan").get_data(as_text=True)
-    assert "What you've had from HapiTech so far" in page and "Covered for you" in page and "Server hosting" in page
+    assert "Saved on this plan" in page and "Your orders" in page and "Covered by your plan" in page and "Server hosting" in page
+    assert page.index("Your orders") < page.index("Saved on this plan")
     assert "Website creation" in page and "Support HapiTech" not in page          # no link set yet
     assert "£40" not in page                                                        # HapiTech's own cost stays private
     adm = app.test_client(); _login(adm, "admin@test")

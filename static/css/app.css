@@ -438,3 +438,14 @@ a.stat:hover{border-color:var(--line-2)}
 .value-hero__meter{margin-top:12px;height:10px}
 .donate{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .donate h2{font-size:1.02rem;margin-bottom:4px}
+.statement__list{list-style:none;margin:0;padding:0}
+.statement__row{padding:12px 0;border-bottom:1px solid var(--line)}
+.statement__main{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.statement__price{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.statement__parts{margin-top:4px}
+.statement__sub{display:flex;justify-content:space-between;gap:12px;margin-top:6px;color:var(--ok,#22c55e)}
+.statement__minus{color:var(--ok,#22c55e);font-variant-numeric:tabular-nums;white-space:nowrap}
+.statement__totals{display:grid;grid-template-columns:1fr auto;gap:6px 16px;margin:12px 0 0;font-variant-numeric:tabular-nums}
+.statement__totals dt{color:var(--muted)}
+.statement__totals dd{margin:0;text-align:right;font-weight:600}
+.statement__totals dt:last-of-type,.statement__totals dd:last-of-type{padding-top:6px;border-top:1px solid var(--line);color:var(--ink);font-weight:700}

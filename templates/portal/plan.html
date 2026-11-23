@@ -3,18 +3,7 @@
 {% block content %}
 <div class="page-top"><div><h1>My plan</h1><p>Your plan, the work done on your website, and what's included.</p></div></div>
 
-{# ---------- the headline: value had so far ---------- #}
-{% if v.value_total %}
-<section class="card card--accent value-hero">
-  <p class="stat__label">What you've had from HapiTech so far</p>
-  <p class="value-hero__total">{{ v.value_total | gbp }}</p>
-  <p class="small muted">{{ v.work_total | gbp }} of work on your website{% if v.covered_so_far %}, plus {{ v.covered_so_far | gbp }} of hosting, email and your domain covered for you{% endif %}{% if v.since %} since {{ v.since | ukdate('%B %Y') }}{% endif %}.{% if v.paid %} You've paid {{ v.paid | gbp }}.{% endif %}</p>
-  {% if v.paid and v.value_total > v.paid %}<div class="meter value-hero__meter" aria-hidden="true"><span style="width:{{ (v.paid / v.value_total * 100) | round(0) }}%"></span></div>
-  <p class="small muted" style="margin-top:6px">You paid for the bar on the left. The rest is on us 💛</p>{% endif %}
-</section>
-{% endif %}
-
-<div class="grid grid--2" style="margin-top:12px">
+<div class="grid grid--2">
   <section class="card plan-card">
     <div class="plan-card__icon" aria-hidden="true">{{ '💛' if addon and addon.status == 'friends' else ('🎁' if addon and addon.status == 'trial' else '✅') }}</div>
     <div>
@@ -31,23 +20,40 @@
   </section>
 </div>
 
-{% if v.covered %}
-<section class="card" style="margin-top:12px">
-  <div class="card__head"><h2>Covered for you</h2><span class="small muted">{{ v.covered_monthly | gbp(true) }} a month in value</span></div>
-  <p class="small muted" style="margin-bottom:8px">What it would cost to run your website yourself. HapiTech pays these for you at the moment.</p>
-  <ul class="list">{% for c in v.covered %}
-    <li><span><strong>{{ c.title }}</strong><br><span class="small muted">{{ c.value_gbp | gbp(true) }} a {{ 'year' if c.interval == 'yearly' else 'month' }}{% if c.interval == 'yearly' %} ({{ c.monthly | gbp(true) }}/month){% endif %}{% if c.started_on %} · since {{ c.started_on | ukdate('%b %Y') }}{% endif %}</span></span>
-      <span class="badge badge--ok">Covered · {{ c.value_so_far() | gbp }} so far</span></li>
-  {% endfor %}</ul>
+{% if v.orders %}
+<section class="card statement" style="margin-top:12px">
+  <div class="card__head"><h2>Your orders</h2>{% if v.since %}<span class="small muted">since {{ v.since | ukdate('%B %Y') }}</span>{% endif %}</div>
+  <ul class="statement__list">
+  {% for o in v.orders %}
+    <li class="statement__row">
+      <div class="statement__main">
+        <span><strong>{{ o.title }}</strong><br><span class="small muted">
+          {% if o.kind == 'work' %}{{ o.date | ukdate('%-d %B %Y') if o.date else '' }}
+          {% else %}{{ o.cost.value_gbp | gbp(true) }} a {{ 'year' if o.cost.interval == 'yearly' else 'month' }}{% if o.date %} · {{ o.date | ukdate('%b %Y') }} to now ({{ o.months }} months){% endif %}{% endif %}</span></span>
+        <span class="statement__price">{{ o.price | gbp(true) }}</span>
+      </div>
+      {% if o.kind == 'work' and o.parts | length > 1 %}
+      <p class="statement__parts small muted">{% for j in o.parts %}{{ j.title }} {{ j.price_gbp | gbp }}{{ ' · ' if not loop.last }}{% endfor %}</p>
+      {% endif %}
+      {% if o.kind == 'cost' and o.covered %}
+      <div class="statement__sub"><span class="small">💛 Covered by your plan</span><span class="statement__minus">−{{ o.covered | gbp(true) }}</span></div>
+      {% endif %}
+    </li>
+  {% endfor %}
+  </ul>
+  <dl class="statement__totals">
+    <dt>Total</dt><dd>{{ v.total_price | gbp(true) }}</dd>
+    {% if v.saved %}<dt>Covered by your plan</dt><dd class="statement__minus">−{{ v.saved | gbp(true) }}</dd>{% endif %}
+    <dt>You paid</dt><dd>{{ v.paid | gbp(true) }}</dd>
+  </dl>
 </section>
 {% endif %}
 
-{% if v.work %}
-<section class="card" style="margin-top:12px">
-  <div class="card__head"><h2>Work on your website</h2><span class="small muted">{{ v.work_total | gbp }}</span></div>
-  <ul class="list">{% for j in v.work %}
-    <li><span><strong>{{ j.title }}</strong>{% if j.due_date %}<br><span class="small muted">{{ j.due_date | ukdate('%B %Y') }}</span>{% endif %}</span><span>{{ j.price_gbp | gbp }}</span></li>
-  {% endfor %}</ul>
+{% if v.saved %}
+<section class="card card--accent value-hero" style="margin-top:12px">
+  <p class="stat__label">Saved on this plan</p>
+  <p class="value-hero__total">{{ v.saved | gbp(true) }}</p>
+  <p class="small muted">Your hosting, email and domain{% if v.since %} since {{ v.since | ukdate('%B %Y') }}{% endif %}, covered by HapiTech. That's {{ (v.covered | sum(attribute='monthly')) | gbp(true) }} a month you don't pay.</p>
 </section>
 {% endif %}
 

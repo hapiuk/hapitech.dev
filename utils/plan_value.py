@@ -18,7 +18,22 @@ def summary(account, today=None):
     starts = [c.started_on for c in costs if c.started_on] + [j.due_date for j in work if j.due_date]
     since = min(starts) if starts else None
     mine_monthly = sum(c.my_monthly or 0 for c in costs)
+    # a statement: each order (work done on the same date = one order), then each running cost priced
+    # from when it started, minus what the plan covers. Saved = what the plan has covered.
+    orders, by_date = [], {}
+    for j in work:
+        by_date.setdefault(j.due_date, []).append(j)
+    for d, js in sorted(by_date.items(), key=lambda x: x[0] or dt.date.min):
+        title = "Website build & launch" if len(js) > 1 and any(j.type == "build" for j in js) else js[0].title
+        orders.append({"kind": "work", "date": d, "title": title, "parts": js,
+                       "price": round(sum(float(j.price_gbp or 0) for j in js), 2)})
+    for c in sorted(costs, key=lambda c: (c.started_on or today, c.id)):
+        so_far = c.value_so_far(today)
+        orders.append({"kind": "cost", "date": c.started_on, "title": c.title, "cost": c, "price": so_far,
+                       "months": round(c.months_active(today), 1), "covered": so_far if c.covered else 0})
+    total_price = round(sum(o["price"] for o in orders), 2)
     return {
+        "orders": orders, "total_price": total_price, "saved": covered_so_far,
         "work": work, "work_total": round(work_total, 2),
         "covered": covered, "covered_monthly": round(sum(c.monthly for c in covered), 2),
         "covered_so_far": covered_so_far,
