@@ -109,3 +109,18 @@
     try { localStorage.setItem(key, String(Date.now() + 14 * 864e5)); } catch (e) {}   /* ask again in 2 weeks */
   });
 })();
+
+/* long review text: clamp to 4 lines with a "Read more" toggle */
+(function () {
+  document.querySelectorAll(".review__body").forEach(function (p) {
+    p.classList.add("is-clamped");
+    if (p.scrollHeight <= p.clientHeight + 2) { p.classList.remove("is-clamped"); return; }
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "review__more"; b.textContent = "Read more";
+    b.addEventListener("click", function () {
+      var open = p.classList.toggle("is-clamped") === false;
+      b.textContent = open ? "Show less" : "Read more";
+    });
+    p.insertAdjacentElement("afterend", b);
+  });
+})();

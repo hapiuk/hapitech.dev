@@ -5,7 +5,8 @@
 <div class="page-top"><div><h1>Your reviews</h1><p>Everything here shows on your website. Replying shows customers you care.</p></div></div>
 <nav class="subnav">{% for s, label in [('all','All'),('unreplied','Needs a reply')] %}<a href="{{ url_for('portal.reviews', show=s) }}" {% if show == s %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
 {% macro owner_actions(r) %}
-  <details class="fold" style="margin-top:10px">
+  <div class="review__acts">
+  <details class="fold">
     <summary class="small">{{ 'Edit your reply' if r.reply else 'Reply' }}</summary>
     <form method="post" action="{{ url_for('portal.review_action', rid=r.id, show=show) }}" class="stack">
       <textarea name="body" rows="3" class="field" style="padding:12px;border-radius:12px;border:1px solid var(--line-2);background:var(--bg)" placeholder="Thanks so much, {{ r.author_name.split()[0] }}! Glad you're happy with it.">{{ r.reply.body if r.reply else '' }}</textarea>
@@ -22,6 +23,7 @@
     </form>
   </details>
   {% endif %}
+  </div>
 {% endmacro %}
 {% for r in rows %}{{ review_card(r, actions=owner_actions) }}{% else %}{{ empty('Nothing here', 'You are all caught up.' if show == 'unreplied' else 'No reviews yet.') }}{% endfor %}
 {% endblock %}

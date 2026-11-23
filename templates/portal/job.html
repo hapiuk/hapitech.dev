@@ -110,9 +110,10 @@
 
   {# ---------------- side: contact + housekeeping ---------------- #}
   <div>
-    <form method="post" class="card stack">
+    <details class="card">
+      <summary><span><strong>Customer</strong><br><span class="small muted">{{ [lead.phone, lead.email, lead.postcode] | select | join(' · ') or 'No contact details yet' }}</span></span></summary>
+    <form method="post" class="stack">
       <input type="hidden" name="action" value="save">
-      <div class="card__head"><h3>Customer</h3></div>
       <label class="field"><span>Name</span><input name="name" value="{{ lead.name }}" required></label>
       <label class="field"><span>Email</span><input type="email" name="email" value="{{ lead.email or '' }}"></label>
       <label class="field"><span>Phone</span><input name="phone" value="{{ lead.phone or '' }}"></label>
@@ -122,6 +123,7 @@
       <label class="field"><span>Private notes</span><textarea name="notes" rows="3">{{ lead.notes or '' }}</textarea></label>
       <div><button class="btn btn--sm">Save</button></div>
     </form>
+    </details>
     <form method="post" class="card stack">
       {% if lead.status in ('new', 'quoted', 'accepted', 'booked') %}<button class="btn btn--ghost btn--sm" name="action" value="decline" data-confirm="Mark as not going ahead? It'll be deleted in 30 days.">Not going ahead</button>{% endif %}
       {% if lead.archived_at %}<button class="btn btn--ghost btn--sm" name="action" value="unarchive">Move back to jobs</button>

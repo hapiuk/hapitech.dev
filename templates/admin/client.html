@@ -32,7 +32,7 @@
   <section class="card">
     <div class="card__head"><h2>Notes</h2></div>
     <form method="post" action="{{ url_for('admin.note_add', slug=a.slug) }}" class="stack">
-      <label class="field"><span class="small muted">Add a note (calls, decisions, what's next)</span><textarea name="body" rows="3" required></textarea></label>
+      <label class="field"><span class="small muted">Add a note (calls, decisions, what's next)</span><textarea name="body" rows="2" required></textarea></label>
       <div><button class="btn btn--sm" type="submit">Add note</button></div>
     </form>
     <hr class="hr">
