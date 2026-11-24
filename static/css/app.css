@@ -875,3 +875,7 @@ details.platforms[open] > summary::after{content:" ▴"}
 .client-acc__stats dd{margin:2px 0 0;font-weight:650}
 .client-acc__links{display:flex;flex-wrap:wrap;gap:6px}
 @container main (max-width:560px){.client-acc__stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.bank-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
+@container main (max-width:560px){.bank-grid{grid-template-columns:1fr}}
+.priced-lock{border:0;padding:0;margin:0;display:grid;gap:12px;min-width:0}
+.priced-lock:disabled{opacity:.7}

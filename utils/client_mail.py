@@ -63,8 +63,9 @@ def send_booking_reminder(lead):
           after=["If anything has changed, reply to this email and let us know."])
 
 
-def send_invoice(invoice):
-    """The invoice email: the business's payment message, the reference to quote, their pay link and/or bank details."""
+def send_invoice(invoice, updated=False):
+    """The invoice email: the business's payment message, the reference to quote, their pay link and/or bank
+    details. `updated` = it was changed after it was first sent."""
     from utils.pay_links import for_invoice
     lead, a = invoice.lead, invoice.lead.account
     total = f"£{invoice.totals[2]:,.2f}"
@@ -76,14 +77,14 @@ def send_invoice(invoice):
     after = []
     if pay and not pay["with_amount"]:
         after.append(f"Enter {total} and add {invoice.reference} as the reference.")
-    if a.pay_bank and a.payment_details:
-        after.append(("Or pay by bank transfer:\n" if pay else "Pay by bank transfer:\n") + a.payment_details.strip()
-                     + f"\nReference: {invoice.reference}")
+    bank = [(k, v) for k, v in a.bank_rows] + [("Reference", invoice.reference)] if (a.pay_bank and a.has_bank) else None
     after.append(f"See the full invoice: {page}" if pay else "You can print it or save it as a PDF from that page.")
-    _send(lead, f"Invoice {invoice.number} from {a.name}",
-          heading=f"Thanks again, {_first(lead)}",
-          lines=[f"Here's the invoice for {lead.label.lower()}.", a.pay_message],
+    _send(lead, f"{'Updated invoice' if updated else 'Invoice'} {invoice.number} from {a.name}",
+          heading=f"Your updated invoice, {_first(lead)}" if updated else f"Thanks again, {_first(lead)}",
+          lines=([f"We've updated your invoice for {lead.label.lower()}. This one replaces the earlier version."] if updated
+                 else [f"Here's the invoice for {lead.label.lower()}."]) + [a.pay_message],
           box=box,
+          box2=bank, box2_title=("Or pay by bank transfer" if pay else "Pay by bank transfer") if bank else None,
           button=({"label": f"Pay {total} " + ("online" if pay["kind"] == "other" else f"with {pay['label']}"), "url": pay["url"]}
                   if pay else {"label": "View your invoice", "url": page}),
           after=after)

@@ -92,7 +92,13 @@
     </div>
     <small class="muted">Revolut: in the app tap your name → <b>Share revolut.me link</b>. PayPal and Monzo links get the amount filled in.</small>
     <label class="check" style="margin-top:8px"><input type="checkbox" name="pay_bank" value="1" {{ 'checked' if g.account.pay_bank }}> <span><b>Bank transfer</b></span></label>
-    <textarea name="payment_details" rows="3" placeholder="Account name, sort code, account number">{{ g.account.payment_details or '' }}</textarea>
+    <div class="bank-grid">
+      <label class="field"><span>Bank</span><input name="bank_name" value="{{ g.account.bank_name or '' }}" placeholder="e.g. Revolut, Barclays" maxlength="80"></label>
+      <label class="field"><span>Account name</span><input name="bank_account_name" value="{{ g.account.bank_account_name or '' }}" placeholder="e.g. A Gomm" maxlength="120" autocomplete="off"></label>
+      <label class="field"><span>Sort code</span><input name="bank_sort_code" value="{{ g.account.bank_sort_code or '' }}" placeholder="00-00-00" inputmode="numeric" maxlength="8" autocomplete="off"></label>
+      <label class="field"><span>Account number</span><input name="bank_account_number" value="{{ g.account.bank_account_number or '' }}" placeholder="8 digits" inputmode="numeric" maxlength="8" autocomplete="off"></label>
+    </div>
+    {% if g.account.payment_details and not g.account.bank_sort_code %}<p class="small muted">Your old bank details text is still used until you fill these in: {{ g.account.payment_details }}</p>{% endif %}
     <label class="field" style="margin-top:8px"><span>Message on invoices <small>leave blank for the default</small></span>
       <input name="pay_note" value="{{ g.account.pay_note or '' }}" placeholder="{{ g.account.DEFAULT_PAY_NOTE }}" maxlength="300"></label>
   </fieldset>

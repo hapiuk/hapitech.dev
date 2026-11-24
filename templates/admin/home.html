@@ -58,8 +58,8 @@
     </section>
     <section class="card">
       <div class="card__head"><h2>Needs attention</h2></div>
-      {% if not overdue and not unpaid_jobs and not due_soon and not changes %}
-        {{ empty('All clear', 'No overdue payments, unpaid jobs or open change requests.') }}
+      {% if not overdue and not unpaid_jobs and not due_soon and not changes and not biz.to_invoice %}
+        {{ empty('All clear', 'No overdue payments, work to invoice, unpaid jobs or open change requests.') }}
       {% else %}
       <ul class="list">
         {% for s in overdue %}
@@ -72,6 +72,10 @@
         {% endfor %}
         {% for s in due_soon %}
         <li><span><strong>{{ s.account.name }}</strong> · {{ s.title }} · {{ s.amount_gbp | gbp }}</span><span class="muted small">Due {{ s.next_due | ukdate }}</span></li>
+        {% endfor %}
+        {% for x in biz.to_invoice %}
+        <li><span><strong>{{ x.task.ref ~ ' ' if x.task else '' }}{{ x.lead.label }}</strong> · {{ x.task.tag if x.task else x.lead.name }} <span class="badge badge--warn">Waiting to be invoiced</span></span>
+          <a class="btn btn--ghost btn--sm" href="{{ url_for('admin.task', tid=x.task.id) ~ '#money' if x.task else url_for('admin.view_portal', slug='hapitech', next='/portal/jobs/' ~ x.lead.id) }}">Invoice</a></li>
         {% endfor %}
         {% for c in changes %}
         <li><span><strong>{{ c.account.name }}</strong> asked: {{ c.body[:90] }}{% if c.body|length > 90 %}…{% endif %}</span>

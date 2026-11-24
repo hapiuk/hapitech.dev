@@ -26,6 +26,12 @@
         {% for k, v in box %}<tr><td style="padding:10px 14px;font:14px/1.4 -apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#7a7f89;white-space:nowrap;vertical-align:top;">{{ k }}</td><td style="padding:10px 14px;font:600 14px/1.4 -apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#16181d;">{{ v }}</td></tr>{% endfor %}
       </table>
       {% endif %}
+      {% if box2 %}
+      {% if box2_title %}<p style="margin:0 0 6px 0;font-size:13px;color:#7a7f89;">{{ box2_title }}</p>{% endif %}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px 0;background:#f7f6f3;border-radius:12px;border:1px solid #ece9e3;">
+        {% for k, v in box2 %}<tr><td style="padding:9px 14px;font:14px/1.4 -apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#7a7f89;white-space:nowrap;vertical-align:top;">{{ k }}</td><td style="padding:9px 14px;font:600 14px/1.4 -apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#16181d;white-space:pre-line;">{{ v }}</td></tr>{% endfor %}
+      </table>
+      {% endif %}
       {% if html_block %}<div style="margin:0 0 14px 0;">{{ html_block }}</div>{% endif %}
       {% if button %}
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 18px 0;"><tr><td align="center" style="border-radius:999px;background:{{ brand.colour }};">

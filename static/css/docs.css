@@ -32,3 +32,6 @@
 .doc__paymsg{margin:0;font-weight:600}
 .doc__ref{margin:0;padding:10px 14px;border-radius:12px;border:1px dashed #cfcac2;text-align:center}
 .doc__ref b{font-size:1.1rem;letter-spacing:.02em}
+.doc__bank{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:4px 0 0}
+.doc__bank dt{color:#6b7280;font-size:.9rem}
+.doc__bank dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums}

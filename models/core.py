@@ -85,10 +85,27 @@ class Account(TimestampMixin, db.Model):
     payment_details = db.Column(db.Text)                                     # e.g. bank name / sort code / account
     pay_link_kind = db.Column(db.String(20))                                 # revolut | paypal | monzo | sumup | stripe | other
     pay_link = db.Column(db.String(300))                                     # their link; one "Pay now" button on invoices
-    pay_bank = db.Column(db.Boolean, nullable=False, default=False)          # show bank details (payment_details) on invoices
+    pay_bank = db.Column(db.Boolean, nullable=False, default=False)          # show bank transfer details on invoices
+    bank_name = db.Column(db.String(80))
+    bank_account_name = db.Column(db.String(120))
+    bank_sort_code = db.Column(db.String(8))                                 # "00-00-00"
+    bank_account_number = db.Column(db.String(8))
     pay_note = db.Column(db.Text)                                            # message on invoices; blank = the default
 
     DEFAULT_PAY_NOTE = "Thanks! Use the payment link provided, or quote your reference in your bank transfer."
+
+    @property
+    def bank_rows(self):
+        """Bank transfer details as (label, value) rows; falls back to the old free-text details."""
+        rows = [(k, v) for k, v in (("Bank", self.bank_name), ("Account name", self.bank_account_name),
+                                    ("Sort code", self.bank_sort_code), ("Account number", self.bank_account_number)) if v]
+        if not rows and (self.payment_details or "").strip():
+            rows = [("Details", self.payment_details.strip())]
+        return rows
+
+    @property
+    def has_bank(self):
+        return bool(self.bank_sort_code and self.bank_account_number) or bool((self.payment_details or "").strip())
 
     @property
     def pay_message(self):

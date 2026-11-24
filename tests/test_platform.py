@@ -2210,3 +2210,68 @@ def test_job_done_invoice_invoiced_paid_with_bank_transfer(app):
     assert "Sarah Jones" in c.get("/portal/jobs?show=paid").get_data(as_text=True)
     _form(c, f"/portal/jobs/{lid}", {"action": "receipt"}, page=f"/portal/jobs/{lid}")
     assert any("To: sarah@example.com" in m and "Receipt INV" in m for m in _outbox(app))
+
+
+def test_bank_fields_resend_amend_unpaid_and_receipt_again(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account
+    from models.work import Invoice, Lead
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        l = Lead(account_id=a.id, name="Sarah Jones", email="sarah@example.com", status="done", title="Shelves",
+                 done_at=dt.datetime.utcnow())
+        db.session.add(l); db.session.commit(); lid = l.id
+    c = app.test_client(); _login(c, "roland@test")
+    s = "/portal/settings"
+    _form(c, s, {"action": "business", "pay_bank": "1", "bank_sort_code": "12345", "bank_account_number": "12345678"}, page=s)
+    with app.app_context():
+        assert Account.query.filter_by(slug="rolands").first().bank_sort_code is None          # bad sort code refused
+    _form(c, s, {"action": "business", "pay_bank": "1", "bank_name": "Monzo", "bank_account_name": "R Handyman",
+                 "bank_sort_code": "040004", "bank_account_number": "12345678"}, page=s)
+    with app.app_context():
+        acc = Account.query.filter_by(slug="rolands").first()
+        assert acc.bank_sort_code == "04-00-04" and acc.pay_bank
+    # waiting to be invoiced shows in Your work
+    assert "send the invoice" in c.get("/portal/").get_data(as_text=True)
+    page = f"/portal/jobs/{lid}/invoice"
+    _form(c, page, {"desc": "Shelves", "qty": "1", "price": "60", "vat_rate": "0", "action": "send"}, page=page)
+    first = _html_of([m for m in _outbox(app) if "To: sarah@example.com" in m and "Invoice INV" in m][-1])
+    assert "04-00-04" in first and "R Handyman" in first and "Pay by bank transfer" in first
+    with app.app_context():
+        iid = Invoice.query.filter_by(lead_id=lid).one().id
+    edit = f"/portal/jobs/{lid}/invoice/{iid}"
+    assert "Save and email it again" in c.get(edit).get_data(as_text=True)
+    _form(c, edit, {"desc": "Shelves", "qty": "1", "price": "75", "vat_rate": "0", "action": "send"}, page=edit)
+    assert any("To: sarah@example.com" in m and "Updated invoice INV" in m and "75.00" in m for m in _outbox(app))
+    assert "waiting for payment" in c.get("/portal/").get_data(as_text=True)
+    _form(c, edit, {"action": "paid"}, page=edit)
+    locked = c.get(edit).get_data(as_text=True)
+    assert "Mark as unpaid" in locked and "Email the receipt" in locked
+    _form(c, edit, {"desc": "Shelves", "qty": "1", "price": "1", "action": "send"}, page=edit)   # locked: ignored
+    with app.app_context():
+        assert float(db.session.get(Invoice, iid).totals[2]) == 75
+    _form(c, edit, {"action": "receipt"}, page=edit)
+    _form(c, edit, {"action": "receipt"}, page=edit)
+    assert len([m for m in _outbox(app) if "To: sarah@example.com" in m and "Receipt INV" in m]) == 2
+    _form(c, edit, {"action": "unpaid"}, page=edit)
+    with app.app_context():
+        assert db.session.get(Invoice, iid).status == "sent"
+
+
+def test_needs_attention_lists_work_waiting_to_be_invoiced(app):
+    from models import db
+    from models.core import Account
+    from models.tasks import Task
+    from models.work import Lead, Quote
+    from utils.hapitech_account import get as hapitech
+    with app.app_context():
+        ht = hapitech(); ro = Account.query.filter_by(slug="rolands").first()
+        l = Lead(account_id=ht.id, source="request", name="Roland", email="roland@test", for_account_id=ro.id, title="New page", status="done")
+        db.session.add(l); db.session.flush()
+        db.session.add(Quote(account_id=ht.id, lead_id=l.id, number="Q-0001", items='[{"desc":"x","qty":1,"price":50}]', status="accepted"))
+        db.session.add(Task(title="New page", account_id=ro.id, lead_id=l.id, status="done", shared=True))
+        db.session.commit()
+    adm = app.test_client(); _login(adm, "admin@test")
+    home = adm.get("/admin/").get_data(as_text=True)
+    assert "Waiting to be invoiced" in home and "New page" in home

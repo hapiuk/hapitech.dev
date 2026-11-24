@@ -2,6 +2,7 @@
 # Registered on the portal blueprint (imported at the bottom of routes/portal.py).
 import datetime as dt
 import json
+import re
 import secrets
 from decimal import Decimal, InvalidOperation
 from functools import wraps
@@ -300,6 +301,28 @@ def priced(lid, kind, did=None):
             from models.tasks import Task
             t = Task.query.filter_by(lead_id=lead.id).first() if g.account.kind == "internal" else None
             return redirect(url_for("admin.task", tid=t.id) + "#money" if t else url_for("portal.job", lid=lid))
+        if kind == "invoice" and doc.id and f.get("action") in ("unpaid", "receipt") or (doc.status == "paid" and f.get("action") in ("send", "save")):
+            act = f.get("action")
+            back = url_for("portal.priced", lid=lid, kind=kind, did=doc.id)
+            if act == "unpaid" and doc.status == "paid":            # reopen to amend: undo the recorded payment too
+                doc.status, doc.paid_at = "sent" if doc.sent_at else "draft", None
+                if g.account.kind == "internal" and lead.for_account_id:
+                    from models.core import Payment
+                    Payment.query.filter_by(account_id=lead.for_account_id, ref=doc.number, method="invoice").delete()
+                db.session.commit()
+                flash(f"{doc.number} is unpaid again: you can change it and send it again.", "ok")
+            elif act == "receipt" and doc.status == "paid":
+                if not lead.email:
+                    flash("Add the customer's email to the job first.", "err")
+                else:
+                    try:
+                        client_mail.send_receipt(doc)
+                        flash(f"Receipt {doc.number} emailed to {lead.email}.", "ok")
+                    except Exception as exc:
+                        flash(f"The receipt email failed: {exc}", "err")
+            else:
+                flash("This invoice is paid, so it's locked. Mark it unpaid first to change it.", "err")
+            return redirect(back)
         if f.get("action") == "delete" and doc.status == "draft":
             db.session.delete(doc)
             db.session.commit()
@@ -333,7 +356,10 @@ def priced(lid, kind, did=None):
                 return redirect(url_for("portal.priced", lid=lid, kind=kind, did=doc.id))
             try:
                 db.session.flush()
-                (client_mail.send_quote if kind == "quote" else client_mail.send_invoice)(doc)
+                if kind == "quote":
+                    client_mail.send_quote(doc)
+                else:
+                    client_mail.send_invoice(doc, updated=bool(doc.sent_at))       # sent before = an updated invoice
                 doc.status, doc.sent_at = ("sent" if doc.status != "paid" else "paid"), dt.datetime.utcnow()
                 if kind == "quote" and lead.status == "new":
                     lead.status = "quoted"
@@ -399,8 +425,21 @@ def settings():
         if action == "business":
             a.business_address = (f.get("business_address") or "").strip()[:500] or None
             a.vat_number = (f.get("vat_number") or "").strip()[:40] or None
-            a.payment_details = (f.get("payment_details") or "").strip()[:500] or None
-            a.pay_bank = bool(f.get("pay_bank")) and bool(a.payment_details)
+            sort = re.sub(r"\D", "", f.get("bank_sort_code") or "")
+            acct = re.sub(r"\D", "", f.get("bank_account_number") or "")
+            if (sort and len(sort) != 6) or (acct and len(acct) != 8):
+                db.session.rollback()
+                flash("Check the bank details: a sort code has 6 digits and an account number has 8.", "err")
+                return redirect(url_for("portal.settings") + "#business")
+            a.bank_name = (f.get("bank_name") or "").strip()[:80] or None
+            a.bank_account_name = (f.get("bank_account_name") or "").strip()[:120] or None
+            a.bank_sort_code = f"{sort[:2]}-{sort[2:4]}-{sort[4:]}" if sort else None
+            a.bank_account_number = acct or None
+            if f.get("bank_pick") is None and f.get("payment_details") is not None:      # older form
+                a.payment_details = (f.get("payment_details") or "").strip()[:500] or None
+            if f.get("pay_bank") and not a.has_bank:
+                flash("Add your sort code and account number to show bank transfer on invoices.", "err")
+            a.pay_bank = bool(f.get("pay_bank")) and a.has_bank
             a.pay_note = (f.get("pay_note") or "").strip()[:300] or None
             from utils.pay_links import clean
             try:

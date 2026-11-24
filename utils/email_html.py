@@ -34,13 +34,13 @@ def brand(account=None):
 
 
 def build(subject, *, account=None, heading=None, lines=(), code=None, box=None, button=None, after=(),
-          sign=None, footer=None, html_block=None, preheader=None, quote=None, quote_label=None):
+          sign=None, footer=None, html_block=None, preheader=None, quote=None, quote_label=None, box2=None, box2_title=None):
     """Returns (text, html) for send_email(text=..., html=...). `quote` is someone's own words (a message,
     a request), shown in full with its line breaks, under `quote_label`."""
     b = brand(account)
     html = render_template("email/base.html", subject=subject, brand=b, heading=heading, lines=list(lines), code=code,
                            box=box, button=button, after=list(after), sign=sign, footer=footer,
-                           quote=quote, quote_label=quote_label,
+                           quote=quote, quote_label=quote_label, box2=box2, box2_title=box2_title,
                            html_block=Markup(html_block) if html_block else None,
                            preheader=preheader or (lines[0] if lines else heading or subject))
     parts = [heading] if heading else []
@@ -51,6 +51,8 @@ def build(subject, *, account=None, heading=None, lines=(), code=None, box=None,
         parts.append(code)
     if box:
         parts.append("\n".join(f"{k}: {v}" for k, v in box))
+    if box2:
+        parts.append((f"{box2_title}\n" if box2_title else "") + "\n".join(f"{k}: {v}" for k, v in box2))
     if button:
         parts.append(f"{button['label']}: {button['url']}")
     parts += list(after)

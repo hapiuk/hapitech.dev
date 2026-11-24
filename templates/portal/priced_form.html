@@ -6,11 +6,14 @@
 <p class="crumbs"><a href="{{ url_for('portal.jobs') }}">Jobs</a> / <a href="{{ url_for('portal.job', lid=lead.id) }}">{{ lead.name }}</a> / {{ title }}</p>
 <div class="page-top"><div><h1>{{ title }}{% if doc and doc.number %} {{ doc.number }}{% endif %}</h1><p>For {{ lead.name }} · {{ lead.label }}{% if doc and doc.status %} · {{ status_badge(doc.status) }}{% endif %}</p></div>
   {% if doc and doc.token and doc.status != 'draft' %}<a class="btn btn--ghost btn--sm" target="_blank" href="{{ url_for('customer.' ~ kind, token=doc.token) }}">See what they see ↗</a>{% endif %}</div>
-{% if not g.account.business_address and not g.account.payment_details %}
+{% if not g.account.business_address and not g.account.has_bank and not g.account.pay_link %}
 <p class="trial">ℹ️ <span>Add your address{{ ' and bank details' if kind == 'invoice' }} in <a href="{{ url_for('portal.settings') }}">Settings</a> so they show on the {{ kind }}.</span></p>
 {% endif %}
 {% call howto() %}<p>Add a line for each part of the job, e.g. "Labour, 1 day" or "Materials". <b>Send</b> emails {{ lead.name.split()[0] }} a link to view it{{ ' and accept it' if kind == 'quote' }}. They can print it or save it as a PDF from there.</p>{% endcall %}
+{% set locked = kind == 'invoice' and doc and doc.status == 'paid' %}
+{% if locked %}<p class="notice notice--good"><span class="notice__icon" aria-hidden="true">✓</span><span><b>Paid{% if doc.paid_at %} on {{ doc.paid_at | ukdate }}{% endif %}.</b> It's locked so it matches what they paid. Mark it unpaid to change it.</span></p>{% endif %}
 <form method="post" class="card stack" id="pricedForm">
+  <fieldset class="priced-lock" {{ 'disabled' if locked }}>
   <table class="items"><thead><tr><th class="small muted" style="text-align:left">What</th><th class="small muted q">Qty</th><th class="small muted p">£ each</th></tr></thead>
     <tbody id="lines">
       {% for it in (items or [{'desc':'','qty':1,'price':''}]) %}
@@ -25,10 +28,17 @@
     <label class="field full"><span>Notes for the customer <small>optional</small></span><textarea name="notes" rows="3">{{ doc.notes if doc and doc.notes else '' }}</textarea></label>
   </div>
   <div class="totals" id="totals"></div>
+  </fieldset>
   <div class="form-actions">
-    <button class="btn" name="action" value="send">{{ 'Save and email it' if lead.email else 'Save' }}</button>
-    <button class="btn btn--ghost" name="action" value="save">Save draft</button>
+    {% if locked %}
+      {% if lead.email %}<button class="btn" name="action" value="receipt">Email the receipt{{ ' again' if doc.sent_at }}</button>{% endif %}
+      <button class="btn btn--ghost" name="action" value="unpaid" data-confirm="Mark {{ doc.number }} as unpaid so you can change it?">Mark as unpaid</button>
+    {% else %}
+    {% set was_sent = doc and doc.sent_at %}
+    <button class="btn" name="action" value="send">{{ ('Save and email it again' if was_sent else 'Save and email it') if lead.email else 'Save' }}</button>
+    <button class="btn btn--ghost" name="action" value="save">{{ "Save changes (don't email)" if was_sent else 'Save draft' }}</button>
     {% if kind == 'invoice' and doc and doc.id and doc.status != 'paid' %}<button class="btn btn--ghost" name="action" value="paid">Mark as paid</button>{% endif %}
+    {% endif %}
     {% if doc and doc.id and doc.status == 'draft' %}<button class="btn btn--danger" name="action" value="delete" data-confirm="Delete this draft?" style="margin-left:auto">Delete draft</button>{% endif %}
   </div>
   {% if not lead.email %}<p class="small muted">No email on this job, so you can save it but not send it. Add their email on the job page.</p>{% endif %}

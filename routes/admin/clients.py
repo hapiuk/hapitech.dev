@@ -70,7 +70,7 @@ def home():
     from models.work import Invoice, Lead, Quote
     from utils.hapitech_account import get as _ht
     ht = _ht(create=False)
-    biz = {"enquiries": [], "quotes": [], "unpaid": [], "paid_month": 0, "accepted": [], "task_for": {}}
+    biz = {"enquiries": [], "quotes": [], "unpaid": [], "paid_month": 0, "accepted": [], "task_for": {}, "to_invoice": []}
     if ht:
         biz["enquiries"] = (Lead.query.filter(Lead.account_id == ht.id, Lead.status == "new", Lead.archived_at.is_(None))
                             .order_by(Lead.created_at.desc()).all())
@@ -82,6 +82,11 @@ def home():
         task_by_lead = {t.lead_id: t for t in Task.query.filter(Task.lead_id.isnot(None)).all()}
         biz["task_for"] = task_by_lead
         biz["accepted"] = fresh_accepted()
+        # finished but not invoiced yet: HapiTech jobs that are done (priced ones, or any not linked to a free task)
+        for l in Lead.query.filter(Lead.account_id == ht.id, Lead.status == "done", Lead.archived_at.is_(None)).all():
+            t = task_by_lead.get(l.id)
+            if l.stage == "done" and (l.quotes or not t):
+                biz["to_invoice"].append({"lead": l, "task": t})
     from models.tasks import Task
     open_q = Task.query.filter(Task.status != "done")
     tasks_top = (open_q.filter(Task.status != "waiting")
