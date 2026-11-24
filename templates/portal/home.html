@@ -23,18 +23,21 @@
   <a class="stat" href="{{ url_for('portal.reviews', show='unreplied') }}"><p class="stat__label">Reply rate</p><p class="stat__value">{{ (stats.rate_year ~ '%') if stats.rate_year is not none else '–' }}</p><p class="stat__sub">this year{% if stats.rate_month is not none %} · {{ stats.rate_month }}% this month{% endif %} · {{ stats.unreplied }} waiting</p></a>
 </div>
 
-{% if upcoming or needs_date %}
-<section class="card upcoming" style="margin-top:12px">
-  <div class="card__head"><h2>Upcoming jobs</h2><a class="small" href="{{ url_for('portal.calendar') }}">Calendar →</a></div>
-  {% for l in needs_date %}
-  <a class="job-row" href="{{ url_for('portal.job', lid=l.id) }}"><strong>{{ l.name }}</strong><span class="badge badge--warn">Needs a date</span>
-    <span class="job-row__meta"><span>{{ l.label }}</span>{% if l.postcode %}<span>📍 {{ l.postcode }}</span>{% endif %}</span></a>
-  {% endfor %}
-  {% for l in upcoming %}
-  <a class="job-row" href="{{ url_for('portal.job', lid=l.id) }}"><strong>{{ 'Today' if l.start_at.date() <= today else (l.start_at | ukdate('%a %-d %b')) }} · {{ l.start_at.strftime('%H:%M') }} · {{ l.name }}</strong>
-    {% if l.start_at.date() <= today %}<span class="badge badge--acc">Today</span>{% endif %}
-    <span class="job-row__meta"><span>{{ l.label }}</span>{% if l.days > 1 %}<span>{{ l.days }} days</span>{% endif %}{% if l.postcode %}<span>📍 {{ l.postcode }}</span>{% endif %}</span></a>
-  {% endfor %}
+{% if upcoming or needs_date or new_jobs or quoted %}
+<section class="card upcoming" style="margin-top:12px" id="work">
+  <div class="card__head"><h2>Your work</h2><a class="small" href="{{ url_for('portal.jobs') }}">All jobs →</a></div>
+  {% macro row(l, badge, cls, when=None) -%}
+  <a class="job-row" href="{{ url_for('portal.job', lid=l.id) }}"><strong>{% if when %}{{ when }} · {% endif %}{{ l.name }}</strong><span class="badge badge--{{ cls }}">{{ badge }}</span>
+    <span class="job-row__meta"><span>{{ l.label }}</span>{% if l.days and l.days > 1 and l.start_at %}<span>{{ l.days }} days</span>{% endif %}{% if l.postcode %}<span>📍 {{ l.postcode }}</span>{% endif %}{% if not when %}<span>{{ (l.updated_at if l.status == 'quoted' else l.created_at) | ago }}</span>{% endif %}</span></a>
+  {%- endmacro %}
+  {% if new_jobs %}<p class="work-group">New enquiries: reply or quote <span class="badge badge--acc">{{ new_jobs|length }}</span></p>
+    {% for l in new_jobs[:5] %}{{ row(l, 'New', 'acc') }}{% endfor %}
+    {% if new_jobs|length > 5 %}<a class="small" href="{{ url_for('portal.jobs', show='new') }}">and {{ new_jobs|length - 5 }} more →</a>{% endif %}{% endif %}
+  {% if needs_date %}<p class="work-group">Accepted: pick a date</p>{% for l in needs_date %}{{ row(l, 'Needs a date', 'warn') }}{% endfor %}{% endif %}
+  {% if upcoming %}<p class="work-group">Booked <a class="small" href="{{ url_for('portal.calendar') }}">Calendar →</a></p>
+    {% for l in upcoming %}{{ row(l, 'Today' if l.start_at.date() <= today else 'Booked', 'acc' if l.start_at.date() <= today else 'ok',
+         when=('Today' if l.start_at.date() <= today else (l.start_at | ukdate('%a %-d %b'))) ~ ' · ' ~ l.start_at.strftime('%H:%M')) }}{% endfor %}{% endif %}
+  {% if quoted %}<p class="work-group">Quotes waiting for an answer</p>{% for l in quoted[:5] %}{{ row(l, 'Quote sent', '') }}{% endfor %}{% endif %}
 </section>
 {% endif %}
 <section class="card tip" style="margin-top:12px" data-tips='{{ tips | tojson }}' data-start="{{ tip_start }}">

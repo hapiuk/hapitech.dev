@@ -488,3 +488,39 @@ document.querySelectorAll("[data-check-all]").forEach(function (all) {
 
 /* a checkbox that saves as soon as it's ticked */
 document.querySelectorAll("[data-autosubmit-check]").forEach(function (c) { c.addEventListener("change", function () { c.form.submit(); }); });
+
+
+/* tab bars that scroll sideways on small screens: show ‹ / › while there's more to see */
+(function () {
+  document.querySelectorAll(".subnav").forEach(function (nav) {
+    if (nav.parentNode.classList.contains("subnav-wrap")) return;
+    var wrap = document.createElement("div"); wrap.className = "subnav-wrap";
+    nav.parentNode.insertBefore(wrap, nav); wrap.appendChild(nav);
+    ["l", "r"].forEach(function (side) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "subnav-arrow subnav-arrow--" + side;
+      b.setAttribute("aria-label", side === "l" ? "Scroll tabs left" : "Scroll tabs right");
+      b.textContent = side === "l" ? "‹" : "›";
+      b.addEventListener("click", function () { nav.scrollBy({ left: (side === "l" ? -1 : 1) * nav.clientWidth * 0.7 }); });
+      wrap.appendChild(b);
+    });
+    function update() {
+      var max = nav.scrollWidth - nav.clientWidth;
+      wrap.classList.toggle("can-l", nav.scrollLeft > 4);
+      wrap.classList.toggle("can-r", max - nav.scrollLeft > 4);
+    }
+    nav.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    var cur = nav.querySelector('[aria-current="page"]');               // keep the current tab in view
+    if (cur && cur.offsetLeft + cur.offsetWidth > nav.clientWidth) nav.scrollLeft = cur.offsetLeft - 40;
+    update();
+  });
+})();
+
+/* opened from Jobs → Booked: highlight that booking in the calendar and bring it into view */
+(function () {
+  var m = /^#job-(\d+)$/.exec(location.hash || ""); if (!m) return;
+  var el = document.getElementById("job-" + m[1]); if (!el) return;
+  el.classList.add("is-target");
+  setTimeout(function () { el.scrollIntoView({ block: "center" }); }, 60);
+})();

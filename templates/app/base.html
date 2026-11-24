@@ -98,8 +98,9 @@
 
   <div class="main">
     <header class="topbar">
-      <button class="topbar__menu" type="button" data-side-open aria-controls="side" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      {% set alerts = nav | selectattr('badge') | list %}
+      <button class="topbar__menu{{ ' has-alert' if alerts }}" type="button" data-side-open aria-controls="side" aria-label="Open menu{{ ' (something needs your attention)' if alerts }}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>{% if alerts %}<i class="alert-dot" aria-hidden="true"></i>{% endif %}
       </button>
       <p class="topbar__title">{{ self.title() }}</p>
       {% if area == 'portal' and g.account.offers_lv %}<div class="lang" role="group" aria-label="Language" data-no-translate><button type="button" data-lang="en">EN</button><button type="button" data-lang="lv">LV</button></div>{% endif %}
@@ -146,8 +147,8 @@
   {% if area == 'portal' %}
   <nav class="tabbar" aria-label="Quick">
     {% for item in nav | selectattr('tab') | sort(attribute='tab') %}
-      <a href="{{ item.url }}" class="tabbar__item{% if item.active %} is-active{% endif %}{% if item.primary %} tabbar__item--primary{% endif %}">
-        <svg viewBox="0 0 24 24" aria-hidden="true">{{ item.icon | safe }}</svg><span>{{ item.short or item.label }}</span>
+      <a href="{{ item.url }}" class="tabbar__item{% if item.active %} is-active{% endif %}{% if item.primary %} tabbar__item--primary{% endif %}{% if item.badge %} has-alert{% endif %}"{% if item.badge %} aria-label="{{ item.short or item.label }} ({{ item.badge }} new)"{% endif %}>
+        <span class="tabbar__icon"><svg viewBox="0 0 24 24" aria-hidden="true">{{ item.icon | safe }}</svg>{% if item.badge %}<i class="alert-dot" aria-hidden="true">{{ item.badge }}</i>{% endif %}</span><span>{{ item.short or item.label }}</span>
       </a>
     {% endfor %}
   </nav>

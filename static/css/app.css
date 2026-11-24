@@ -715,3 +715,29 @@ details.platforms[open] > summary::after{content:" ▴"}
 .money-list{list-style:none;margin:4px 0 8px;padding:0;display:grid;gap:6px}
 .money-list li{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:.88rem}
 .money-list li > span{white-space:nowrap}
+.work-group{margin:14px 0 2px;font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);display:flex;gap:8px;align-items:center}
+.work-group:first-of-type{margin-top:4px}
+.work-group .small{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:600}
+
+/* notification dots: bottom bar icons and the menu button glow while something needs attention */
+.topbar__menu{position:relative}
+.tabbar__icon{position:relative;display:inline-grid;place-items:center}
+.alert-dot{position:absolute;top:-5px;right:-8px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#ef4444;color:#fff;
+  font:700 10px/17px system-ui,sans-serif;font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--card,#fff);animation:alert-glow 2s ease-in-out infinite}
+.topbar__menu .alert-dot{top:-4px;right:-4px;min-width:12px;height:12px;padding:0}
+@keyframes alert-glow{0%,100%{box-shadow:0 0 0 2px var(--card,#fff),0 0 0 0 #ef444466}50%{box-shadow:0 0 0 2px var(--card,#fff),0 0 0 6px #ef444400}}
+@media (prefers-reduced-motion:reduce){.alert-dot{animation:none}}
+/* sideways-scrolling tab bars show ‹ › when there's more */
+.subnav-wrap{position:relative}
+.subnav-wrap > .subnav{scroll-behavior:smooth}
+.subnav-arrow{position:absolute;top:0;bottom:1px;width:34px;display:none;align-items:center;justify-content:center;border:0;padding:0;
+  font:700 20px/1 system-ui,sans-serif;color:var(--ink);cursor:pointer;z-index:1}
+.subnav-arrow--l{left:0;background:linear-gradient(90deg,var(--bg) 55%,transparent)}
+.subnav-arrow--r{right:0;background:linear-gradient(270deg,var(--bg) 55%,transparent)}
+.subnav-wrap.can-l .subnav-arrow--l,.subnav-wrap.can-r .subnav-arrow--r{display:flex}
+/* a booking opened from Jobs → Booked is highlighted in the calendar */
+.job-row:target{background:var(--acc-soft);box-shadow:inset 3px 0 0 var(--acc)}
+.subnav-wrap{margin-bottom:22px}
+.subnav-wrap > .subnav{margin-bottom:0}
+@media (max-width:700px){.subnav-wrap{margin-bottom:12px}}
+.card .job-row.is-target,.card .job-row:target{background:var(--acc-soft);box-shadow:inset 4px 0 0 var(--acc)}

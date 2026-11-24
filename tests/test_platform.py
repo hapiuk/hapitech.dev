@@ -1896,7 +1896,7 @@ def test_jobs_today_email_upcoming_on_home_and_review_link(app):
     assert mail and f"/portal/jobs/{lid}" in mail[0].replace("=\n", "")
     c = app.test_client(); _login(c, "roland@test")
     home = c.get("/portal/").get_data(as_text=True)
-    assert "Upcoming jobs" in home and f"/portal/jobs/{lid}" in home and "Needs a date" in home
+    assert "Your work" in home and f"/portal/jobs/{lid}" in home and "Needs a date" in home
     job = c.get(f"/portal/jobs/{lid}").get_data(as_text=True)
     assert "Show the review QR code" in job and "name=Sarah" in job
     ask = c.get("/portal/ask?name=Sarah&job=Fit+shelves").get_data(as_text=True)
@@ -2061,3 +2061,24 @@ def test_contact_email_details_in_box_message_alone(app):
     assert "Please call me about my printer" in quote and "Looking for" not in quote
     assert ">Looking for<" in html and ">Test Ltd<" in html and ">07700 900123<" in html
     assert 'width="100%"' in html.split("Open it in Jobs")[0][-900:]
+
+
+def test_client_home_shows_all_open_work_alerts_and_booked_links_to_calendar(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account
+    from models.work import Lead
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        b = Lead(account_id=a.id, name="Bea", status="booked", title="Shelves",
+                 start_at=dt.datetime.combine(dt.date.today() + dt.timedelta(days=2), dt.time(10)), days=1)
+        db.session.add_all([Lead(account_id=a.id, name="Rik", status="new", title="Light switch", source="website"),
+                            Lead(account_id=a.id, name="Quinn", status="quoted", title="Decking"), b])
+        db.session.commit(); bid = b.id
+    c = app.test_client(); _login(c, "roland@test")
+    home = c.get("/portal/").get_data(as_text=True)
+    assert "Your work" in home and "Rik" in home and "New enquiries" in home and "Quinn" in home and "Bea" in home
+    assert "has-alert" in home and "alert-dot" in home                       # Jobs icon + menu button flagged
+    booked = c.get("/portal/jobs?show=booked").get_data(as_text=True)
+    assert f"/portal/calendar#job-{bid}" in booked
+    assert f'id="job-{bid}"' in c.get("/portal/calendar").get_data(as_text=True)

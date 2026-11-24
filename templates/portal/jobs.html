@@ -30,7 +30,8 @@
 {% if rows %}
 <section class="card card--flush">
   {% for l in rows %}
-  <a class="job-row" href="{{ url_for('portal.job', lid=l.id) }}">
+  {% set in_cal = l.status == 'booked' and l.start_at and l.end_at.date() >= now.date() and show == 'booked' %}
+  <a class="job-row" href="{{ url_for('portal.calendar') ~ '#job-' ~ l.id if in_cal else url_for('portal.job', lid=l.id) }}">
     <strong>{{ l.name }}</strong>{{ status_badge(l.status if l.status != 'declined' else 'cancelled') }}
     <span class="job-row__meta">
       <span>{{ l.label }}</span>

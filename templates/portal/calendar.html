@@ -12,7 +12,7 @@
         <div class="card card--flush">{% for t in reminders.get(day, []) %}
           <a class="job-row task-row {{ 'is-due' if t.due }}" href="{{ url_for('admin.task', tid=t.id) }}"><strong>⏰ <span class="ref">{{ t.ref }}</span> {{ t.title }}</strong><span class="small muted">{{ t.tag }}</span></a>
         {% endfor %}{% for l in jobs %}
-          <a class="job-row" href="{{ url_for('portal.job', lid=l.id) }}"><strong>{{ l.start_at.strftime('%H:%M') }} · {{ l.name }}</strong><span class="small muted">{% if l.days > 1 %}{{ l.days }} days{% endif %}</span>
+          <a class="job-row" id="job-{{ l.id }}" href="{{ url_for('portal.job', lid=l.id) }}"><strong>{{ l.start_at.strftime('%H:%M') }} · {{ l.name }}</strong><span class="small muted">{% if l.days > 1 %}{{ l.days }} days{% endif %}</span>
             <span class="job-row__meta"><span>{{ l.label }}</span>{% if l.postcode %}<span>📍 {{ l.postcode }}</span>{% endif %}</span></a>
         {% endfor %}</div>
       </div>
