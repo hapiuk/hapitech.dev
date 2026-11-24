@@ -791,7 +791,7 @@ def test_publish_post_shows_share_card_and_home_tips(app):
     assert "Share it" in page and "/posts/" in page
     assert page.index('data-share-to="facebook"') < page.index('data-share-to="instagram"') < page.index('data-share-to="whatsapp"')   # Facebook, Instagram first
     home = o.get("/portal/").get_data(as_text=True)
-    assert "Edit my website" in home and "tip__text" in home and "Latest reviews" not in home
+    assert "Edit my website" in home and "tipbar__text" in home and "Latest reviews" not in home
     assert "Visitors" in o.get("/portal/visitors").get_data(as_text=True)
 
 
@@ -2082,3 +2082,14 @@ def test_client_home_shows_all_open_work_alerts_and_booked_links_to_calendar(app
     booked = c.get("/portal/jobs?show=booked").get_data(as_text=True)
     assert f"/portal/calendar#job-{bid}" in booked
     assert f'id="job-{bid}"' in c.get("/portal/calendar").get_data(as_text=True)
+
+
+def test_dashboard_layout_switch_and_fitted_home(app):
+    c = app.test_client(); _login(c, "roland@test")
+    home = c.get("/portal/").get_data(as_text=True)
+    assert 'class="site app app--portal page-home"' in home and "tipbar" in home
+    assert 'localStorage.getItem("layout")' in home and "data-layout" in home       # phone-style unless "wide"
+    settings = c.get("/portal/settings").get_data(as_text=True)
+    assert 'data-look="layout" data-val="compact"' in settings and 'data-val="wide"' in settings
+    adm = app.test_client(); _login(adm, "admin@test")
+    assert 'localStorage.getItem("layout")' not in adm.get("/admin/").get_data(as_text=True)   # admin unchanged

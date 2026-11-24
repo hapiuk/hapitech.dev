@@ -1,6 +1,7 @@
 {% extends "app/base.html" %}
 {% from "app/_macros.html" import empty, review_card with context %}
 {% block title %}Home{% endblock %}
+{% block body_class %}page-home{% endblock %}
 {% block content %}
 {% include "portal/_trial.html" %}
 <section class="hello">
@@ -40,9 +41,9 @@
   {% if quoted %}<p class="work-group">Quotes waiting for an answer</p>{% for l in quoted[:5] %}{{ row(l, 'Quote sent', '') }}{% endfor %}{% endif %}
 </section>
 {% endif %}
-<section class="card tip" style="margin-top:12px" data-tips='{{ tips | tojson }}' data-start="{{ tip_start }}">
-  <div class="tip__icon" aria-hidden="true">💡</div>
-  <div class="tip__body"><p class="tip__label">Tip</p><p class="tip__text">{{ tips[tip_start] }}</p></div>
-  <button type="button" class="linkish tip__next">Next tip</button>
+<section class="tipbar" data-tips='{{ tips | tojson }}' data-start="{{ tip_start }}" aria-label="Tip">
+  <span class="tipbar__icon" aria-hidden="true">💡</span>
+  <div class="tipbar__viewport"><p class="tipbar__text" aria-live="polite">{{ tips[tip_start] }}</p></div>
+  <button type="button" class="tipbar__next" aria-label="Next tip">›</button>
 </section>
 {% endblock %}

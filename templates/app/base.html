@@ -16,6 +16,10 @@
       var c = null; try { c = localStorage.getItem("accent"); } catch (e) {}
       document.documentElement.setAttribute("data-accent", c === "hapitech" ? "hapitech" : "brand");
       {% endif %}
+      {% if area == 'portal' %}
+      var w = null; try { w = localStorage.getItem("layout"); } catch (e) {}
+      document.documentElement.setAttribute("data-layout", w === "wide" ? "wide" : "compact");
+      {% endif %}
       document.documentElement.classList.add("js");
       {% if area == 'portal' and g.account.offers_lv %}
       var l = null; try { l = localStorage.getItem("lang"); } catch (e) {}
@@ -44,7 +48,7 @@
   {% endif %}
   {% block head %}{% endblock %}
 </head>
-<body class="site app app--{{ area }}">
+<body class="site app app--{{ area }} {% block body_class %}{% endblock %}">
   <a class="skip" href="#main">Skip to content</a>
 
   <aside class="side" id="side" aria-label="Dashboard">

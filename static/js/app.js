@@ -125,15 +125,36 @@
   });
 })();
 
-/* dashboard home: cycle tips */
+/* dashboard home: one-line tips that scroll by themselves, then move on (› skips ahead) */
 (function () {
-  var card = document.querySelector(".tip[data-tips]");
-  if (!card) return;
-  var tips = JSON.parse(card.getAttribute("data-tips")), i = Number(card.getAttribute("data-start")) || 0;
-  card.querySelector(".tip__next").addEventListener("click", function () {
-    i = (i + 1) % tips.length;
-    card.querySelector(".tip__text").textContent = tips[i];
-  });
+  var bar = document.querySelector(".tipbar[data-tips]");
+  if (!bar) return;
+  var tips = JSON.parse(bar.getAttribute("data-tips")), i = Number(bar.getAttribute("data-start")) || 0;
+  var view = bar.querySelector(".tipbar__viewport"), text = bar.querySelector(".tipbar__text");
+  var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var anim = null, timer = null;
+  function play() {
+    clearTimeout(timer); if (anim) { anim.cancel(); anim = null; }
+    if (still) return;                                     // reduced motion: two lines, no movement
+    var extra = text.scrollWidth - view.clientWidth;
+    if (extra > 4 && text.animate) {                       // too long for one line: glide along it
+      var ms = Math.max(4000, extra * 28);
+      anim = text.animate([{ transform: "translateX(0)" }, { transform: "translateX(0)", offset: 0.15 },
+                           { transform: "translateX(" + (-extra) + "px)", offset: 0.85 }, { transform: "translateX(" + (-extra) + "px)" }],
+                          { duration: ms + 3000, easing: "linear" });
+      anim.onfinish = next;
+    } else {
+      timer = setTimeout(next, 7000);
+    }
+  }
+  function show(n) {
+    i = (n + tips.length) % tips.length;
+    text.classList.add("is-fading");
+    setTimeout(function () { text.textContent = tips[i]; text.classList.remove("is-fading"); play(); }, 250);
+  }
+  function next() { show(i + 1); }
+  bar.querySelector(".tipbar__next").addEventListener("click", next);
+  play();
 })();
 
 /* posts: share with photos (phone share sheet), copy text */
@@ -204,7 +225,8 @@
 /* Settings → Dashboard look: brand / HapiTech colours, dark / light (saved on this device) */
 (function () {
   var root = document.documentElement;
-  function current(kind) { return root.getAttribute(kind === "accent" ? "data-accent" : "data-theme"); }
+  function attr(kind) { return kind === "accent" ? "data-accent" : kind === "layout" ? "data-layout" : "data-theme"; }
+  function current(kind) { return root.getAttribute(attr(kind)); }
   function paint() {
     document.querySelectorAll("[data-look]").forEach(function (b) {
       b.setAttribute("role", "radio");
@@ -214,7 +236,7 @@
   document.querySelectorAll("[data-look]").forEach(function (b) {
     b.addEventListener("click", function () {
       var kind = b.getAttribute("data-look"), val = b.getAttribute("data-val");
-      root.setAttribute(kind === "accent" ? "data-accent" : "data-theme", val);
+      root.setAttribute(attr(kind), val);
       try { localStorage.setItem(kind, val); } catch (e) {}
       paint();
     });
