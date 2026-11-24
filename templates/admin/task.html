@@ -39,7 +39,7 @@
     </p>
   </div>
   <form method="post" class="seg" aria-label="Status"><input type="hidden" name="action" value="status">
-    {% for k, l in statuses %}<button type="submit" name="status" value="{{ k }}" class="seg__btn {{ 'is-on' if t.status == k }} {{ 'seg__btn--done' if k == 'done' }}" aria-pressed="{{ 'true' if t.status == k else 'false' }}">{{ l }}{{ ' ✓' if k == 'done' }}</button>{% endfor %}
+    {% for k, l in statuses %}<button type="submit" name="status" value="{{ k }}" class="seg__btn {{ 'is-on' if t.status == k }} {{ 'seg__btn--done' if k == 'done' }}" aria-pressed="{{ 'true' if t.status == k else 'false' }}">{% if k == 'done' and t.stage in ('invoiced', 'paid') %}{{ t.stage_label }}{{ ' ✓' if t.stage == 'paid' }}{% else %}{{ l }}{{ ' ✓' if k == 'done' }}{% endif %}</button>{% endfor %}
   </form>
 </header>
 
@@ -84,21 +84,26 @@
       {% if t.remind_on %}<form method="post"><input type="hidden" name="action" value="clear_reminder"><button class="linkish small muted" type="submit">Clear</button></form>{% endif %}
     </div>
     {% if t.account %}
-    <div class="task-side__block {{ 'is-due' if t.status == 'done' and not m.paid }}" id="money">
+    <div class="task-side__block {{ 'is-due' if t.status == 'done' and (m.sent or (m.quotes and not m.invoices)) }}" id="money">
       <h3>Money{% if m.price is not none %} <span class="muted small">· {{ m.price | gbp(true) }}</span>{% endif %}</h3>
       {% if m.quotes or m.invoices %}<ul class="money-list">
         {% for q in m.quotes %}<li><a href="{{ url_for('portal.priced', lid=t.lead.id, kind='quote', did=q.id, **{'as': 'hapitech'}) }}">Quote {{ q.number }}</a><span>{{ q.totals[2] | gbp(true) }} <span class="badge badge--{{ {'accepted':'ok','sent':'acc','declined':'err'}.get(q.status, '') }}">{{ q.status | capitalize }}</span></span></li>{% endfor %}
         {% for i in m.invoices %}<li><a href="{{ url_for('portal.priced', lid=t.lead.id, kind='invoice', did=i.id, **{'as': 'hapitech'}) }}">{{ 'Receipt' if i.status == 'paid' else 'Invoice' }} {{ i.number }}</a><span>{{ i.totals[2] | gbp(true) }} <span class="badge badge--{{ 'ok' if i.status == 'paid' else 'acc' if i.status == 'sent' else '' }}">{{ 'Paid' if i.status == 'paid' else i.status | capitalize }}</span></span></li>{% endfor %}
       </ul>{% else %}<p class="small muted">No price yet.</p>{% endif %}
       <form method="post" class="chips">
-        {% if not m.invoices %}<button class="chip" name="action" value="quote" type="submit">{{ '+ Another quote' if m.quotes else '+ Add a quote' }}</button>{% endif %}
-        {% if not m.invoices and m.quotes %}<button class="chip" name="action" value="invoice" type="submit">+ Invoice</button>{% endif %}
+        {% if not m.invoices and t.status != 'done' %}<button class="chip" name="action" value="quote" type="submit">{{ '+ Another quote' if m.quotes else '+ Add a quote' }}</button>{% endif %}
       </form>
       {% if t.status == 'done' %}
-        {% if m.paid and m.paid.sent_at %}<p class="small muted">Receipt {{ m.paid.number }} sent {{ m.paid.sent_at | ago }}.</p>{% endif %}
-        <form method="post"><input type="hidden" name="action" value="receipt">
-          <button class="btn btn--sm {{ 'btn--ghost' if m.paid and m.paid.sent_at }}" type="submit" data-confirm="Mark {{ (m.price | gbp(true)) if m.price else 'it' }} as paid and email a receipt to {{ t.account.name }}?">{{ 'Send the receipt again' if m.paid and m.paid.sent_at else 'Send receipt' }}</button></form>
-        {% if m.price is none %}<p class="small muted" style="margin-top:6px">Not priced, so the receipt shows the work at £0.</p>{% endif %}
+        {% if m.sent %}
+          <p class="small">Invoiced: <b>{{ m.sent.number }}</b>, reference <b>{{ m.sent.reference }}</b>.</p>
+          <form method="post"><input type="hidden" name="action" value="paid"><button class="btn btn--sm" type="submit" data-confirm="Mark {{ m.sent.number }} ({{ m.sent.totals[2] | gbp(true) }}) as paid?">Mark paid ✓</button></form>
+        {% elif m.paid %}
+          <p class="small">Paid ✓ <b>{{ m.paid.number }}</b>{% if m.paid.paid_at %} on {{ m.paid.paid_at | ukdate }}{% endif %}.</p>
+          <form method="post"><input type="hidden" name="action" value="receipt"><button class="btn btn--ghost btn--sm" type="submit">Email a receipt</button></form>
+        {% else %}
+          <form method="post"><input type="hidden" name="action" value="invoice"><button class="btn btn--sm" type="submit">{{ 'Finish and send the invoice' if m.draft else 'Send the invoice' }}</button></form>
+          {% if not m.quotes %}<p class="small muted" style="margin-top:6px">Not chargeable? Leave it: it stays as Done.</p>{% endif %}
+        {% endif %}
       {% endif %}
     </div>
     <div class="task-side__block">

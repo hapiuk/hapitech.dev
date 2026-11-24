@@ -1,0 +1,8 @@
+{# How to pay an invoice: the business's message, the reference to quote, their one pay link and/or bank transfer. #}
+<div class="doc__howpay">
+  <p class="doc__paymsg">{{ a.pay_message }}</p>
+  <p class="doc__ref">Your reference <b>{{ inv.reference }}</b></p>
+  {% if pay %}<a class="doc__paybtn noprint" style="--pay:{{ a.brand_colour or '#16181d' }}" href="{{ pay.url }}" target="_blank" rel="noopener">Pay {{ '£%.2f' % inv.totals[2] }} {{ 'online' if pay.kind == 'other' else 'with ' ~ pay.label }}</a>
+    {% if not pay.with_amount %}<p class="small" style="text-align:center;margin:0">Enter <b>£{{ '%.2f' % inv.totals[2] }}</b> and add <b>{{ inv.reference }}</b> as the reference.</p>{% endif %}{% endif %}
+  {% if a.pay_bank and a.payment_details %}<div class="doc__pay"><strong>{{ 'Or pay by bank transfer' if pay else 'Pay by bank transfer' }}</strong><p>{{ a.payment_details | nl2br }}</p><p class="small">Reference: <b>{{ inv.reference }}</b></p></div>{% endif %}
+</div>

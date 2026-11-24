@@ -37,38 +37,39 @@ def money(t):
     elif accepted or quotes:
         price = (accepted or quotes[0]).totals[2]
     return {"quotes": quotes, "invoices": invoices, "accepted": accepted, "price": price,
-            "paid": next((i for i in invoices if i.status == "paid"), None)}
+            "paid": next((i for i in invoices if i.status == "paid"), None),
+            "sent": next((i for i in invoices if i.status == "sent"), None),
+            "draft": next((i for i in invoices if i.status == "draft"), None)}
 
 
-def make_receipt(t, user_id=None):
-    """On completion: a paid invoice for the task (from its accepted / latest quote, or one line at £0 if it
-    was never priced), emailed to the client as a receipt. Returns the invoice. Commits."""
+def mark_paid(t):
+    """Confirm the task's (latest) sent invoice is paid; record it on the client's Money tab. Commits."""
+    import datetime as _dt
     from models import db
-    from models.work import Invoice
-    from models.work import next_number
-    from utils import client_mail
-    lead = ensure_lead(t, user_id)
-    if lead is None:
-        raise ValueError("Receipts need a client: set who the task is for first.")
-    if not lead.email:
-        raise ValueError("The client has no email address. Add one on their client page first.")
     m = money(t)
-    inv = m["invoices"][0] if m["invoices"] else None
+    inv = next((i for i in m["invoices"] if i.status == "sent"), None)
     if inv is None:
-        base = m["accepted"] or (m["quotes"][0] if m["quotes"] else None)
-        items = base.items if base else json.dumps([{"desc": t.title, "qty": 1, "price": 0}])
-        inv = Invoice(account_id=lead.account_id, lead_id=lead.id, number=next_number(Invoice, lead.account_id, "INV"),
-                      items=items, vat_rate=base.vat_rate if base else 0)
-        db.session.add(inv)
-    if inv.status != "paid":
-        inv.status, inv.paid_at = "paid", dt.datetime.utcnow()
+        raise ValueError("There's no sent invoice waiting to be paid.")
+    inv.status, inv.paid_at = "paid", _dt.datetime.utcnow()
     db.session.flush()
     record_payment(inv)
-    client_mail.send_receipt(inv)
-    inv.sent_at = dt.datetime.utcnow()
     db.session.commit()
     return inv
 
+
+def make_receipt(t, user_id=None):
+    """After it's paid: email the client a receipt for the paid invoice. Returns the invoice. Commits."""
+    from models import db
+    from utils import client_mail
+    m = money(t)
+    inv = m["paid"]
+    if inv is None:
+        raise ValueError("Mark the invoice as paid first, then send the receipt.")
+    if not inv.lead.email:
+        raise ValueError("The client has no email address. Add one on their client page first.")
+    client_mail.send_receipt(inv)
+    db.session.commit()
+    return inv
 
 def record_payment(inv):
     """A HapiTech invoice was paid: record it on the client's Money tab (once, ref = invoice number),

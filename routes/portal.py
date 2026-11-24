@@ -153,7 +153,7 @@ def home():
     stats["pending"] = scoped(Review, status="pending").count()
     stats["rate_year"], stats["rate_month"] = reply_rate(a, dt.date(dt.date.today().year, 1, 1)), reply_rate(a, dt.date.today().replace(day=1))
     from utils.traffic import summary
-    upcoming, needs_date, new_jobs, quoted = [], [], [], []
+    upcoming, needs_date, new_jobs, quoted, unpaid = [], [], [], [], []
     if a.has_feature("jobs") and a.has_addon():
         from models.work import Lead
         today = dt.datetime.combine(dt.date.today(), dt.time())
@@ -168,9 +168,11 @@ def home():
                     .order_by(Lead.created_at.desc()).all())
         quoted = (scoped(Lead).filter(Lead.status == "quoted", Lead.archived_at.is_(None))
                   .order_by(Lead.updated_at.desc()).all())
+        unpaid = [l for l in scoped(Lead).filter(Lead.status == "done", Lead.archived_at.is_(None))
+                  .order_by(Lead.done_at.desc()).all() if l.stage in ("done", "invoiced")]
     accepted = accepted_waiting(a) if a.has_feature("jobs") else []
     return render_template("portal/home.html", stats=stats, last_post=last_post, t=summary(a), tips=TIPS, accepted=accepted,
-                           upcoming=upcoming, needs_date=needs_date, new_jobs=new_jobs, quoted=quoted,
+                           upcoming=upcoming, needs_date=needs_date, new_jobs=new_jobs, quoted=quoted, unpaid=unpaid,
                            today=dt.date.today(),
                            tip_start=dt.date.today().timetuple().tm_yday % len(TIPS))
 

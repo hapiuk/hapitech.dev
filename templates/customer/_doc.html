@@ -12,6 +12,7 @@
     <div><span>Date</span><strong>{{ (d.sent_at or d.created_at) | ukdate }}</strong></div>
     {% if d.valid_until is defined and d.valid_until %}<div><span>Valid until</span><strong>{{ d.valid_until | ukdate }}</strong></div>{% endif %}
     {% if d.due_date is defined and d.due_date %}<div><span>Pay by</span><strong>{{ d.due_date | ukdate }}</strong></div>{% endif %}
+    {% if d.reference is defined and d.reference != d.number %}<div><span>Reference</span><strong>{{ d.reference }}</strong></div>{% endif %}
   </div>
   <p class="doc__job">{{ lead.label }}</p>
   <table class="doc__items">

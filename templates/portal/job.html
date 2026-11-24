@@ -72,10 +72,19 @@
           </form>
         </details>
       {% elif lead.status == 'done' %}
-        <div class="card__head"><h2>Done{% if lead.done_at %} {{ lead.done_at | ukdate }}{% endif %} ✓</h2></div>
+        {% set st = lead.stage %}{% set sent = lead.invoices | selectattr('status', 'eq', 'sent') | list %}{% set paid = lead.invoices | selectattr('status', 'eq', 'paid') | list %}
+        <div class="card__head"><h2>{{ {'done': 'Done ✓ Next: the invoice', 'invoiced': 'Invoiced: waiting for payment', 'paid': 'Paid ✓'}[st] }}</h2>
+          <span class="badge badge--{{ {'done':'acc','invoiced':'warn','paid':'ok'}[st] }}">{{ lead.stage_label }}</span></div>
         <div class="stack">
-          {% set unpaid = lead.invoices | selectattr('status', 'ne', 'paid') | list %}
-          {% if current_user.is_owner and not lead.invoices %}<a class="btn btn--block" href="{{ url_for('portal.priced', lid=lead.id, kind='invoice') }}">Send the invoice</a>{% endif %}
+          {% if st == 'done' and current_user.is_owner %}
+            <a class="btn btn--block" href="{{ url_for('portal.priced', lid=lead.id, kind='invoice', did=(lead.invoices[0].id if lead.invoices else None)) }}">{{ 'Finish and send the invoice' if lead.invoices else 'Send the invoice' }}</a>
+          {% elif st == 'invoiced' %}
+            <p class="small muted">{{ sent[0].number }} · {{ sent[0].totals[2] | gbp(true) }} · sent {{ (sent[0].sent_at or sent[0].created_at) | ago }}. Reference <b>{{ sent[0].reference }}</b>.</p>
+            {% if current_user.is_owner %}<form method="post"><input type="hidden" name="action" value="paid"><button class="btn btn--block" data-confirm="Mark {{ sent[0].number }} ({{ sent[0].totals[2] | gbp(true) }}) as paid?">Mark paid ✓</button></form>{% endif %}
+          {% elif st == 'paid' %}
+            <p class="small muted">{{ paid[0].number }} · {{ paid[0].totals[2] | gbp(true) }} · paid {{ (paid[0].paid_at or paid[0].updated_at) | ukdate }}.</p>
+            {% if current_user.is_owner and lead.email %}<form method="post"><input type="hidden" name="action" value="receipt"><button class="btn btn--ghost btn--block">Email a receipt</button></form>{% endif %}
+          {% endif %}
           {% if lead.review_requested_at %}<p class="small muted">Review link emailed {{ lead.review_requested_at | ago }}.</p>
           {% else %}<a class="btn btn--ghost btn--block" href="{{ url_for('portal.ask', name=lead.name.split()[0], job=lead.title or '') }}">Ask for a review (QR code)</a>{% endif %}
         </div>

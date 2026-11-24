@@ -84,6 +84,20 @@ class Lead(TimestampMixin, db.Model):
         return dict(LEAD_STATUSES).get(self.status, self.status)
 
     @property
+    def stage(self):
+        """Where the job is, money included: … done → invoiced (sent, waiting) → paid. Worked out from its invoices."""
+        if self.status != "done":
+            return self.status
+        sent = [i for i in self.invoices if i.status in ("sent", "paid")]
+        if sent and all(i.status == "paid" for i in sent):
+            return "paid"
+        return "invoiced" if sent else "done"
+
+    @property
+    def stage_label(self):
+        return {"done": "Done: send the invoice", "invoiced": "Invoiced", "paid": "Paid"}.get(self.stage, self.status_label)
+
+    @property
     def delete_on(self):
         if self.status == "declined" and self.declined_at:
             return (self.declined_at + dt.timedelta(days=DECLINED_RETENTION_DAYS)).date()
@@ -146,6 +160,13 @@ class Invoice(_Priced, TimestampMixin, db.Model):
     paid_at = db.Column(db.DateTime)
     lead = db.relationship("Lead", back_populates="invoices")
 
+
+    @property
+    def reference(self):
+        """What the customer quotes when paying: the task reference for HapiTech's own work (T-12), else the number."""
+        from .tasks import Task
+        t = Task.query.filter_by(lead_id=self.lead_id).first() if self.lead and self.lead.account.kind == "internal" else None
+        return t.ref if t else self.number
 
 class RepeatReminder(db.Model):
     """"Remind me next autumn about the gutters" — only with the customer's permission."""

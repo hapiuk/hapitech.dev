@@ -31,7 +31,7 @@
   <a class="stat" href="{{ url_for('portal.reviews', show='unreplied') }}"><p class="stat__label">Reply rate</p><p class="stat__value">{{ (stats.rate_year ~ '%') if stats.rate_year is not none else '–' }}</p><p class="stat__sub">this year{% if stats.rate_month is not none %} · {{ stats.rate_month }}% this month{% endif %} · {{ stats.unreplied }} waiting</p></a>
 </div>
 
-{% if upcoming or needs_date or new_jobs or quoted %}
+{% if upcoming or needs_date or new_jobs or quoted or unpaid %}
 <section class="card upcoming" style="margin-top:12px" id="work">
   <div class="card__head"><h2>Your work</h2><a class="small" href="{{ url_for('portal.jobs') }}">All jobs →</a></div>
   {% macro row(l, badge, cls, when=None) -%}
@@ -45,6 +45,7 @@
   {% if upcoming %}<p class="work-group">Booked <a class="small" href="{{ url_for('portal.calendar') }}">Calendar →</a></p>
     {% for l in upcoming %}{{ row(l, 'Today' if l.start_at.date() <= today else 'Booked', 'acc' if l.start_at.date() <= today else 'ok',
          when=('Today' if l.start_at.date() <= today else (l.start_at | ukdate('%a %-d %b'))) ~ ' · ' ~ l.start_at.strftime('%H:%M')) }}{% endfor %}{% endif %}
+  {% if unpaid %}<p class="work-group">Finished: invoice &amp; get paid</p>{% for l in unpaid[:5] %}{{ row(l, 'Invoiced' if l.stage == 'invoiced' else 'To invoice', 'warn' if l.stage == 'invoiced' else 'acc') }}{% endfor %}{% endif %}
   {% if quoted %}<p class="work-group">Quotes waiting for an answer</p>{% for l in quoted[:5] %}{{ row(l, 'Quote sent', '') }}{% endfor %}{% endif %}
 </section>
 {% endif %}

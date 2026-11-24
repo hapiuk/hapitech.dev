@@ -20,7 +20,7 @@ from utils.security import owner_required, scoped
 from .portal import addon_required, portal_bp
 
 FILTERS = [("active", "Open"), ("new", "New"), ("quoted", "Quoted"), ("booked", "Booked"), ("done", "Done"),
-           ("archive", "Archive")]
+           ("invoiced", "Invoiced"), ("paid", "Paid"), ("archive", "Archive")]
 
 
 def owner_only(fn):
@@ -82,12 +82,19 @@ def jobs():
         q = q.filter(Lead.archived_at.is_(None))
         if show == "active":
             q = q.filter(Lead.status.in_(["new", "quoted", "accepted", "booked"]))
+        elif show in ("done", "invoiced", "paid"):
+            q = q.filter(Lead.status == "done")
         elif show in dict(LEAD_STATUSES):
             q = q.filter(Lead.status == show)
     rows = q.order_by(db.case((Lead.status == "new", 0), else_=1), Lead.start_at.is_(None),
                       Lead.start_at, Lead.created_at.desc()).all()
+    if show in ("done", "invoiced", "paid"):                 # finished work, split by money: to invoice / waiting / paid
+        rows = [r for r in rows if r.stage == show]
     counts = dict(db.session.query(Lead.status, db.func.count()).filter(
         Lead.account_id == g.account.id, Lead.archived_at.is_(None), Lead.status != "spam").group_by(Lead.status).all())
+    finished = scoped(Lead).filter(Lead.status == "done", Lead.archived_at.is_(None)).all()
+    for k in ("done", "invoiced", "paid"):
+        counts[k] = sum(1 for r in finished if r.stage == k)
     return render_template("portal/jobs.html", rows=rows, show=show, filters=FILTERS, counts=counts)
 
 
@@ -164,7 +171,28 @@ def job(lid):
                     msg += " Review request emailed."
                 except Exception as exc:
                     msg += f" (Review email failed: {exc})"
+            if current_user.is_owner and not lead.invoices and g.account.kind != "internal":
+                db.session.commit()
+                flash(msg + " Now send the invoice.", "ok")
+                return redirect(url_for("portal.priced", lid=lid, kind="invoice"))
             flash(msg, "ok")
+        elif action == "paid":                       # confirm the money's in (latest unpaid invoice)
+            inv = next((i for i in lead.invoices if i.status == "sent"), None)
+            if inv:
+                inv.status, inv.paid_at = "paid", now
+                if g.account.kind == "internal":
+                    from utils.task_money import record_payment
+                    db.session.flush()
+                    record_payment(inv)
+                flash(f"{inv.number} marked as paid ✓", "ok")
+        elif action == "receipt":
+            inv = next((i for i in lead.invoices if i.status == "paid"), None)
+            if inv and lead.email:
+                try:
+                    client_mail.send_receipt(inv)
+                    flash(f"Receipt emailed to {lead.email}.", "ok")
+                except Exception as exc:
+                    flash(f"The receipt email failed: {exc}", "err")
         elif action == "make-client" and current_user.is_admin and g.account.kind == "internal" and not lead.for_account_id:
             acc, err = make_client_from_lead(lead)
             if err:
@@ -372,9 +400,12 @@ def settings():
             a.business_address = (f.get("business_address") or "").strip()[:500] or None
             a.vat_number = (f.get("vat_number") or "").strip()[:40] or None
             a.payment_details = (f.get("payment_details") or "").strip()[:500] or None
+            a.pay_bank = bool(f.get("pay_bank")) and bool(a.payment_details)
+            a.pay_note = (f.get("pay_note") or "").strip()[:300] or None
             from utils.pay_links import clean
             try:
-                a.pay_link_kind, a.pay_link = clean(f.get("pay_link_kind"), f.get("pay_link"))
+                a.pay_link_kind, a.pay_link = (clean(f.get("pay_link_kind"), f.get("pay_link")) if f.get("pay_link_on")
+                                               else (None, None))
             except ValueError as e:
                 db.session.rollback()
                 flash(str(e), "err")

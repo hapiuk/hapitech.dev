@@ -2005,8 +2005,18 @@ def test_task_quote_receipt_and_job_sync(app):
     r = _form(adm, page, {"desc": "Gallery page", "qty": "1", "price": "120", "vat_rate": "0", "action": "save"}, page=page)
     assert r.headers["Location"].endswith(f"/admin/tasks/{tid}#money")
     assert "£120" in adm.get(f"/admin/tasks/{tid}").get_data(as_text=True)
-    # done -> the job is done too; receipt = paid invoice emailed to the client
-    _form(adm, f"/admin/tasks/{tid}", {"action": "status", "status": "done"}, page=f"/admin/tasks/{tid}")
+    # done -> straight to the invoice; sent = Invoiced; Mark paid = Paid; then a receipt
+    r = _form(adm, f"/admin/tasks/{tid}", {"action": "status", "status": "done"}, page=f"/admin/tasks/{tid}")
+    assert f"/portal/jobs/{lid}/invoice" in r.headers["Location"]
+    inv_page = f"/portal/jobs/{lid}/invoice?as=hapitech"
+    _form(adm, inv_page, {"desc": "Gallery page", "qty": "1", "price": "120", "vat_rate": "0", "action": "send"}, page=inv_page)
+    with app.app_context():
+        assert db.session.get(Task, tid).stage == "invoiced"
+    sent = _html_of([m for m in _outbox(app) if "To: roland@test" in m and "Invoice INV" in m][-1])
+    assert f"T-{tid}" in sent and "Thanks! Use the payment link provided" in sent        # task ref + default message
+    _form(adm, f"/admin/tasks/{tid}", {"action": "paid"}, page=f"/admin/tasks/{tid}")
+    with app.app_context():
+        assert db.session.get(Task, tid).stage == "paid"
     _form(adm, f"/admin/tasks/{tid}", {"action": "receipt"}, page=f"/admin/tasks/{tid}")
     with app.app_context():
         assert db.session.get(Lead, lid).status == "done"
@@ -2110,10 +2120,10 @@ def test_pay_link_on_invoices_and_your_business_on_admin(app):
     adm = app.test_client(); _login(adm, "admin@test")
     # pick one provider in Settings; a bad link is refused
     s = "/portal/settings?as=hapitech"
-    _form(adm, s, {"action": "business", "pay_link_kind": "revolut", "pay_link": "https://evil.example/x"}, page=s)
+    _form(adm, s, {"action": "business", "pay_link_on": "1", "pay_link_kind": "revolut", "pay_link": "https://evil.example/x"}, page=s)
     with app.app_context():
         assert hapitech().pay_link is None
-    _form(adm, s, {"action": "business", "pay_link_kind": "revolut", "pay_link": "revolut.me/aaron"}, page=s)
+    _form(adm, s, {"action": "business", "pay_link_on": "1", "pay_link_kind": "revolut", "pay_link": "revolut.me/aaron"}, page=s)
     with app.app_context():
         assert hapitech().pay_link_kind == "revolut" and hapitech().pay_link == "https://revolut.me/aaron"
     home = adm.get("/admin/").get_data(as_text=True)
@@ -2168,3 +2178,35 @@ def test_quote_accepted_notices_for_clients_and_admin(app):
     adm = app.test_client(); _login(adm, "admin@test")
     ov = adm.get("/admin/").get_data(as_text=True)
     assert "Roland accepted quote Q-0001" in ov and "ready to start" in ov
+
+
+def test_job_done_invoice_invoiced_paid_with_bank_transfer(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account
+    from models.work import Lead
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        l = Lead(account_id=a.id, name="Sarah Jones", email="sarah@example.com", status="booked", title="Shelves",
+                 start_at=dt.datetime.combine(dt.date.today(), dt.time(9)), days=1)
+        db.session.add(l); db.session.commit(); lid = l.id
+    c = app.test_client(); _login(c, "roland@test")
+    _form(c, "/portal/settings", {"action": "business", "pay_bank": "1", "payment_details": "Sort code 00-00-00\nAccount 12345678",
+                                  "pay_link_on": "1", "pay_link_kind": "monzo", "pay_link": "monzo.me/roland"}, page="/portal/settings")
+    r = _form(c, f"/portal/jobs/{lid}", {"action": "done"}, page=f"/portal/jobs/{lid}")
+    assert r.headers["Location"].endswith(f"/portal/jobs/{lid}/invoice")                  # done -> invoice
+    page = f"/portal/jobs/{lid}/invoice"
+    _form(c, page, {"desc": "Shelves", "qty": "1", "price": "60", "vat_rate": "0", "action": "send"}, page=page)
+    mail = _html_of([m for m in _outbox(app) if "To: sarah@example.com" in m and "Invoice INV" in m][-1])
+    assert "monzo.me/roland/60.00" in mail and "Sort code 00-00-00" in mail and "Your reference" in mail
+    assert "Thanks! Use the payment link provided" in mail
+    with app.app_context():
+        assert db.session.get(Lead, lid).stage == "invoiced"
+    assert "Sarah Jones" in c.get("/portal/jobs?show=invoiced").get_data(as_text=True)
+    assert "Mark paid" in c.get(f"/portal/jobs/{lid}").get_data(as_text=True)
+    _form(c, f"/portal/jobs/{lid}", {"action": "paid"}, page=f"/portal/jobs/{lid}")
+    with app.app_context():
+        assert db.session.get(Lead, lid).stage == "paid"
+    assert "Sarah Jones" in c.get("/portal/jobs?show=paid").get_data(as_text=True)
+    _form(c, f"/portal/jobs/{lid}", {"action": "receipt"}, page=f"/portal/jobs/{lid}")
+    assert any("To: sarah@example.com" in m and "Receipt INV" in m for m in _outbox(app))

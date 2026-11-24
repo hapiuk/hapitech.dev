@@ -64,29 +64,29 @@ def send_booking_reminder(lead):
 
 
 def send_invoice(invoice):
-    lead = invoice.lead
-    box = [("Invoice", invoice.number), ("Amount", f"£{invoice.totals[2]:,.2f}")]
+    """The invoice email: the business's payment message, the reference to quote, their pay link and/or bank details."""
+    from utils.pay_links import for_invoice
+    lead, a = invoice.lead, invoice.lead.account
+    total = f"£{invoice.totals[2]:,.2f}"
+    page = public_url(url_for("customer.invoice", token=invoice.token))
+    pay = for_invoice(a, float(invoice.totals[2]))
+    box = [("Invoice", invoice.number), ("Amount", total), ("Your reference", invoice.reference)]
     if invoice.due_date:
         box.append(("Please pay by", invoice.due_date.strftime("%-d %B %Y")))
-    from utils.pay_links import for_invoice
-    page = public_url(url_for("customer.invoice", token=invoice.token))
-    pay = for_invoice(lead.account, float(invoice.totals[2]))
-    if pay:                                          # one tap to pay; the invoice itself is a link underneath
-        _send(lead, f"Invoice {invoice.number} from {lead.account.name}",
-              heading=f"Thanks again, {_first(lead)}",
-              lines=[f"Here's the invoice for {lead.label.lower()}."],
-              box=box + [("Reference", invoice.number)],
-              button={"label": f"Pay £{invoice.totals[2]:,.2f} " + ("online" if pay["kind"] == "other" else f"with {pay['label']}"),
-                      "url": pay["url"]},
-              after=[("" if pay["with_amount"] else f"Enter £{invoice.totals[2]:,.2f} and ") + f"use {invoice.number} as the reference.",
-                     f"See the full invoice (or other ways to pay): {page}"])
-        return
-    _send(lead, f"Invoice {invoice.number} from {lead.account.name}",
+    after = []
+    if pay and not pay["with_amount"]:
+        after.append(f"Enter {total} and add {invoice.reference} as the reference.")
+    if a.pay_bank and a.payment_details:
+        after.append(("Or pay by bank transfer:\n" if pay else "Pay by bank transfer:\n") + a.payment_details.strip()
+                     + f"\nReference: {invoice.reference}")
+    after.append(f"See the full invoice: {page}" if pay else "You can print it or save it as a PDF from that page.")
+    _send(lead, f"Invoice {invoice.number} from {a.name}",
           heading=f"Thanks again, {_first(lead)}",
-          lines=[f"Here's the invoice for {lead.label.lower()}. Payment details are on it."],
+          lines=[f"Here's the invoice for {lead.label.lower()}.", a.pay_message],
           box=box,
-          button={"label": "View your invoice", "url": page},
-          after=["You can print it or save it as a PDF from that page."])
+          button=({"label": f"Pay {total} " + ("online" if pay["kind"] == "other" else f"with {pay['label']}"), "url": pay["url"]}
+                  if pay else {"label": "View your invoice", "url": page}),
+          after=after)
 
 
 def send_receipt(invoice):
@@ -95,7 +95,7 @@ def send_receipt(invoice):
     _send(lead, f"Receipt {invoice.number} from {lead.account.name}",
           heading=f"Thanks, {_first(lead)}: all done ✓",
           lines=[f"Here's your receipt for {lead.label.lower()}."],
-          box=[("Receipt", invoice.number), ("Amount", f"£{invoice.totals[2]:,.2f}"),
+          box=[("Receipt", invoice.number), ("Reference", invoice.reference), ("Amount", f"£{invoice.totals[2]:,.2f}"),
                ("Paid", (invoice.paid_at or invoice.updated_at).strftime("%-d %B %Y") if invoice.totals[2] else "Nothing to pay")],
           button={"label": "View your receipt", "url": public_url(url_for("customer.invoice", token=invoice.token))},
           after=["You can print it or save it as a PDF from that page."])

@@ -14,7 +14,8 @@ from utils import task_mail
 
 from . import admin_bp
 
-SHOWS = [("open", "Open"), ("due", "Reminders due"), ("waiting", "Waiting"), ("done", "Done"), ("all", "All")]
+SHOWS = [("open", "Open"), ("due", "Reminders due"), ("waiting", "Waiting"), ("done", "Done"), ("invoiced", "Invoiced"),
+         ("paid", "Paid"), ("all", "All")]
 
 
 def _accounts():
@@ -56,8 +57,8 @@ def filtered(show="open", tag="", q=""):
         query = query.filter(Task.status != "done")
     elif show == "due":
         query = query.filter(Task.status != "done", Task.remind_on.isnot(None), Task.remind_on <= dt.date.today())
-    elif show in ("waiting", "done"):
-        query = query.filter(Task.status == show)
+    elif show in ("waiting", "done", "invoiced", "paid"):
+        query = query.filter(Task.status == ("waiting" if show == "waiting" else "done"))
     if tag == "infra":
         query = query.filter(Task.account_id.is_(None))
     elif tag:
@@ -81,6 +82,8 @@ def tasks():
             t = cr.task
             return redirect(url_for("admin.task", tid=t.id) if t else url_for("admin.change_requests", r=cr.id) + f"#r{cr.id}")
     rows = filtered("all" if q else show, tag, q).limit(300).all()
+    if not q and show in ("done", "invoiced", "paid"):      # finished work, split by money
+        rows = [t for t in rows if t.stage == show]
     return render_template("admin/tasks.html", rows=rows, show=show, tag=tag, q=q, shows=SHOWS, accounts=_accounts(),
                            today=dt.date.today())
 
@@ -144,7 +147,13 @@ def task(tid):
             flash("Saved.", "ok")
         elif action == "status":
             if change_status(t, f.get("status")) and t.status == "done" and t.account:
-                flash("Done ✓. You can send a receipt from the Money panel.", "ok")
+                from utils.task_money import money
+                m = money(t)
+                if m["quotes"] and not m["invoices"]:        # priced work: straight on to the invoice
+                    db.session.commit()
+                    flash(f"{t.ref} done ✓ Now send the invoice.", "ok")
+                    return redirect(url_for("portal.priced", lid=t.lead_id, kind="invoice", **{"as": "hapitech"}))
+                flash("Done ✓ Send the invoice from the Money panel if it's chargeable.", "ok")
         elif action == "share":
             t.shared = bool(t.account) and f.get("on") == "1"
             flash(f"Now {'visible to ' + t.account.name if t.shared else 'private'}.", "ok")
@@ -160,6 +169,15 @@ def task(tid):
             else:
                 db.session.commit()
                 return redirect(url_for("portal.priced", lid=lead.id, kind=action, **{"as": "hapitech"}))
+        elif action == "paid":
+            from utils.task_money import mark_paid
+            try:
+                inv = mark_paid(t)
+                flash(f"{inv.number} marked as paid ✓ ({inv.totals[2]:,.2f} recorded on their Money tab).", "ok")
+            except Exception as exc:
+                db.session.rollback()
+                flash(str(exc), "err")
+            return redirect(url_for("admin.task", tid=t.id) + "#money")
         elif action == "receipt":
             from utils.task_money import make_receipt
             try:

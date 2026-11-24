@@ -47,6 +47,19 @@ class Task(TimestampMixin, db.Model):
         return dict(TASK_STATUSES).get(self.status, self.status)
 
     @property
+    def stage(self):
+        """todo / doing / waiting / done, then invoiced → paid once the work has been billed (from its invoices)."""
+        if self.status == "done" and self.lead:
+            st = self.lead.stage
+            if st in ("invoiced", "paid"):
+                return st
+        return self.status
+
+    @property
+    def stage_label(self):
+        return {"invoiced": "Invoiced", "paid": "Paid"}.get(self.stage, self.status_label)
+
+    @property
     def due(self):
         return self.status != "done" and self.remind_on is not None and self.remind_on <= dt.date.today()
 

@@ -32,7 +32,7 @@
   {% for l in rows %}
   {% set in_cal = l.status == 'booked' and l.start_at and l.end_at.date() >= now.date() and show == 'booked' %}
   <a class="job-row" href="{{ url_for('portal.calendar') ~ '#job-' ~ l.id if in_cal else url_for('portal.job', lid=l.id) }}">
-    <strong>{{ l.name }}</strong>{{ status_badge(l.status if l.status != 'declined' else 'cancelled') }}
+    <strong>{{ l.name }}</strong>{% if l.status == 'done' %}<span class="badge badge--{{ {'done':'acc','invoiced':'warn','paid':'ok'}[l.stage] }}">{{ {'done':'To invoice','invoiced':'Invoiced','paid':'Paid'}[l.stage] }}</span>{% else %}{{ status_badge(l.status if l.status != 'declined' else 'cancelled') }}{% endif %}
     <span class="job-row__meta">
       <span>{{ l.label }}</span>
       {% if l.start_at %}<span>📅 {{ l.start_at | ukdate('%a %-d %b, %H:%M') }}</span>{% endif %}

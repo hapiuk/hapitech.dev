@@ -85,6 +85,14 @@ class Account(TimestampMixin, db.Model):
     payment_details = db.Column(db.Text)                                     # e.g. bank name / sort code / account
     pay_link_kind = db.Column(db.String(20))                                 # revolut | paypal | monzo | sumup | stripe | other
     pay_link = db.Column(db.String(300))                                     # their link; one "Pay now" button on invoices
+    pay_bank = db.Column(db.Boolean, nullable=False, default=False)          # show bank details (payment_details) on invoices
+    pay_note = db.Column(db.Text)                                            # message on invoices; blank = the default
+
+    DEFAULT_PAY_NOTE = "Thanks! Use the payment link provided, or quote your reference in your bank transfer."
+
+    @property
+    def pay_message(self):
+        return (self.pay_note or "").strip() or self.DEFAULT_PAY_NOTE
     quote_terms = db.Column(db.Text)
     # holiday / away mode (shown on their website while active)
     away_until = db.Column(db.Date)

@@ -28,3 +28,7 @@
 .doc__paybtn{display:block;text-align:center;padding:15px 18px;border-radius:999px;background:var(--pay,#16181d);color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none}
 .doc__paybtn:hover{filter:brightness(1.08)}
 .doc__paynow .small{text-align:center;margin:0}
+.doc__howpay{display:grid;gap:10px;margin:16px 0}
+.doc__paymsg{margin:0;font-weight:600}
+.doc__ref{margin:0;padding:10px 14px;border-radius:12px;border:1px dashed #cfcac2;text-align:center}
+.doc__ref b{font-size:1.1rem;letter-spacing:.02em}
