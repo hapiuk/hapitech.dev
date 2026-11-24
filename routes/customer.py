@@ -102,6 +102,16 @@ def calendar_feed(token):
                   f"SUMMARY:{_ics_escape(l.label + ' – ' + l.name)}",
                   f"LOCATION:{_ics_escape(l.postcode or '')}", f"DESCRIPTION:{_ics_escape(desc)}",
                   "STATUS:CONFIRMED" if l.status == "booked" else "STATUS:CONFIRMED", "END:VEVENT"]
+    if a.slug == "hapitech":                      # Aaron's feed: task reminders as all-day events
+        from models.tasks import Task
+        for t in Task.query.filter(Task.status != "done", Task.remind_on.isnot(None)).all():
+            lines += ["BEGIN:VEVENT", f"UID:task-{t.id}-{t.remind_on:%Y%m%d}@hapitech.dev", f"DTSTAMP:{stamp}",
+                      f"DTSTART;VALUE=DATE:{t.remind_on:%Y%m%d}",
+                      f"DTEND;VALUE=DATE:{(t.remind_on + dt.timedelta(days=1)):%Y%m%d}",
+                      f"SUMMARY:{_ics_escape('⏰ ' + t.ref + ' ' + t.title)}",
+                      f"DESCRIPTION:{_ics_escape(t.tag + chr(10) + 'https://hapitech.dev/admin/tasks/' + str(t.id))}",
+                      "BEGIN:VALARM", "ACTION:DISPLAY", f"DESCRIPTION:{_ics_escape(t.ref + ' ' + t.title)}",
+                      "TRIGGER:PT9H", "END:VALARM", "END:VEVENT"]
     lines.append("END:VCALENDAR")
     resp = make_response("\r\n".join(lines) + "\r\n")
     resp.headers["Content-Type"] = "text/calendar; charset=utf-8"

@@ -43,6 +43,7 @@
   </form>
 </header>
 
+{% if t.due %}<p class="due-banner">⏰ Reminder due{{ ' today' if t.remind_on == today else ' since ' ~ (t.remind_on | ukdate('%a %-d %b')) }}. Do it, or push it back with the buttons on the right.</p>{% endif %}
 <div class="task-layout">
   <section class="card task-thread" id="notes">
     <div class="card__head"><h2>Notes</h2><span class="small muted">{{ t.notes|length }} · {% if t.shared %}👁 = the client sees it{% else %}all private{% endif %}</span></div>

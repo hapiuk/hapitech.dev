@@ -4,8 +4,8 @@
 {% include "portal/_trial.html" %}
 <div class="page-top"><div><h1>Job done? 🎉</h1><p>Ask while you're still there. Most people say yes on the spot.</p></div></div>
 <form method="post" class="card stack" style="max-width:560px">
-  <label class="field"><span>Customer's first name <small>optional, makes the email friendlier</small></span><input name="customer_name" autocomplete="off" autocapitalize="words"></label>
-  <label class="field"><span>What was the job? <small>optional</small></span><input name="job_ref" placeholder="e.g. Wardrobe assembly"></label>
+  <label class="field"><span>Customer's first name <small>optional, makes the email friendlier</small></span><input name="customer_name" autocomplete="off" autocapitalize="words" value="{{ f.customer_name or '' }}"></label>
+  <label class="field"><span>What was the job? <small>optional</small></span><input name="job_ref" placeholder="e.g. Wardrobe assembly" value="{{ f.job_ref or '' }}"></label>
   <button class="btn btn--lg btn--block" type="submit">Show the QR code</button>
   <p class="small muted">Next screen: they scan the code with their phone camera, or you email them the link.</p>
 </form>

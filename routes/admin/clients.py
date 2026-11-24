@@ -202,7 +202,11 @@ def client(slug):
     crs = ChangeRequest.query.filter_by(account_id=a.id).order_by(
         db.case((ChangeRequest.status == "done", 1), else_=0), ChangeRequest.created_at.desc())
     recent_requests = crs.limit(5).all() if tab == "overview" else []
-    client_requests = crs.all() if tab == "requests" else []
+    rshow = request.args.get("show", "open")
+    client_requests = []
+    if tab == "requests":
+        client_requests = (crs.filter(ChangeRequest.status != "done") if rshow == "open"
+                           else crs.filter(ChangeRequest.status == "done") if rshow == "done" else crs).all()
     cr_tasks = ({t.change_request_id: t for t in Task.query.filter(Task.change_request_id.in_([r.id for r in client_requests]))}
                 if client_requests else {})
     client_tasks = []
@@ -211,7 +215,7 @@ def client(slug):
         client_tasks = filtered("all", a.slug).all()
     return render_template("admin/client.html", a=a, tab=tab, reviews=reviews, stats=stats, requests_sent=requests_sent,
                            open_tasks=open_tasks, tab_counts=tab_counts, recent_requests=recent_requests,
-                           client_requests=client_requests, tasks=cr_tasks, hl=None, client_tasks=client_tasks,
+                           client_requests=client_requests, tasks=cr_tasks, hl=None, client_tasks=client_tasks, rshow=rshow,
                            job_types=JOB_TYPES, job_statuses=JOB_STATUSES, today=dt.date.today(), new_key=new_key,
                            t=traffic, value=value, extras=__import__("utils.extras", fromlist=["x"]).EXTRAS,
                            extra_status=__import__("utils.extras", fromlist=["x"]).status, friends_end=__import__("utils.plans", fromlist=["x"]).friends_end_default())
@@ -465,12 +469,19 @@ def work():
 
 @admin_bp.route("/requests")
 def change_requests():
-    rows = ChangeRequest.query.order_by(db.case((ChangeRequest.status == "done", 1), else_=0),
-                                        ChangeRequest.created_at.desc()).all()
+    hl = request.args.get("r", type=int)
+    show = request.args.get("show") or ("all" if hl else "open")
+    q = ChangeRequest.query
+    if show == "open":
+        q = q.filter(ChangeRequest.status != "done")
+    elif show == "done":
+        q = q.filter(ChangeRequest.status == "done")
+    rows = q.order_by(ChangeRequest.created_at.desc()).all()
+    counts = dict(db.session.query(db.case((ChangeRequest.status == "done", "done"), else_="open"), db.func.count())
+                  .group_by(db.case((ChangeRequest.status == "done", "done"), else_="open")).all())
     from models.tasks import Task
     tasks = {t.change_request_id: t for t in Task.query.filter(Task.change_request_id.isnot(None)).all()}
-    hl = request.args.get("r", type=int)
-    return render_template("admin/change_requests.html", rows=rows, tasks=tasks, hl=hl)
+    return render_template("admin/change_requests.html", rows=rows, tasks=tasks, hl=hl, show=show, counts=counts)
 
 
 @admin_bp.route("/requests/<int:rid>", methods=["POST"])

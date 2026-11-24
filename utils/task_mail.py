@@ -24,8 +24,10 @@ def admin_request_url(cr):
 
 
 def _client_emails(account, extra_user=None):
+    """The business's contact address plus its owners' logins (never Aaron's admin address)."""
     out = []
-    for e in [account.contact_email if account else None, extra_user.email if extra_user else None]:
+    people = [u.email for u in (account.users if account else []) if u.role == "owner" and u.is_active and not u.is_admin]
+    for e in [account.contact_email if account else None, extra_user.email if extra_user else None] + people:
         e = (e or "").strip()
         if e and e.lower() != ADMIN_EMAIL and e.lower() not in [x.lower() for x in out]:
             out.append(e)

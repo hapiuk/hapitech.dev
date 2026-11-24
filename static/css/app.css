@@ -704,3 +704,11 @@ details.platforms[open] > summary::after{content:" ▴"}
 .task-layout > .card,.task-layout > .card + .card{margin-top:0}
 .job-row .badge{white-space:nowrap;align-self:flex-start;flex:none}
 @media (max-width:640px){.task-filters select{flex:1 1 100%}}
+.task-row.is-due,.list li.is-due{background:#d977061a;box-shadow:inset 3px 0 0 #d97706}
+.list li.is-due{padding-left:10px;border-radius:8px}
+.due-banner{margin:0 0 14px;padding:10px 14px;border-radius:12px;background:#d977061f;border:1px solid #d9770655;color:#92400e;font-weight:600}
+.due-banner a{color:inherit}
+:root[data-theme="dark"] .due-banner{color:#fbbf24}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .due-banner{color:#fbbf24}}
+.chip.is-on{border-color:var(--acc);background:var(--acc-soft);color:var(--acc);font-weight:600}
+.upcoming .job-row{padding-left:0;padding-right:0}

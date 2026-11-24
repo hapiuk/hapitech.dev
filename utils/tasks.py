@@ -70,6 +70,14 @@ def run_all(app, force=False) -> dict:
                 print(f"[TASK repeat {rem.id}] {exc}")
         db.session.commit()
 
+        # the business's own reminder: "your jobs today", once a day from 7am (customers get theirs separately)
+        if now.hour >= 7:
+            try:
+                out["jobs_today"] = send_jobs_today(now)
+            except Exception as exc:
+                out["errors"] += 1
+                print(f"[TASK jobs-today] {exc}")
+
         # Aaron's task reminders: one email listing every task whose remind-on date has come (from 8am)
         if now.hour >= 8:
             try:
@@ -149,3 +157,52 @@ def send_task_reminders(now=None) -> int:
         t.reminded_at = now
     db.session.commit()
     return len(due)
+
+
+def send_jobs_today(now=None) -> int:
+    """Each business with jobs booked today gets one morning email listing them (with links). Returns emails sent."""
+    from flask import url_for
+
+    from models import db
+    from models.core import Account, SystemState
+    from models.work import Lead
+    from utils import email_html
+    from utils.links import public_url
+    from utils.task_mail import _client_emails
+    now = now or dt.datetime.utcnow()
+    day = now.date()
+    start, end = dt.datetime.combine(day, dt.time()), dt.datetime.combine(day + dt.timedelta(days=1), dt.time())
+    rows = (Lead.query.filter(Lead.status == "booked", Lead.archived_at.is_(None), Lead.start_at < end)
+            .order_by(Lead.start_at).all())
+    by_acc = {}
+    for l in rows:
+        if l.start_at >= start or l.end_at >= start:               # starts today, or a multi-day job running today
+            by_acc.setdefault(l.account_id, []).append(l)
+    sent = 0
+    for acc_id, jobs in by_acc.items():
+        key = f"jobs_today:{acc_id}:{day.isoformat()}"
+        if db.session.get(SystemState, key):
+            continue
+        a = db.session.get(Account, acc_id)
+        if not a or a.status != "active" or not a.has_feature("jobs"):
+            continue
+        to = _client_emails(a) if a.kind == "client" else [a.contact_email or "aaron@hapitech.dev"]
+        if not to:
+            continue
+        lines = [f"• {l.start_at:%H:%M} {l.name}: {l.label}" + (f" ({l.postcode})" if l.postcode else "")
+                 + (f", day {(day - l.start_at.date()).days + 1} of {l.days}" if l.days > 1 and l.start_at < start else "")
+                 for l in jobs]
+        one = len(jobs) == 1
+        for addr in to:
+            try:
+                email_html.send(addr, f"Today: {jobs[0].name} at {jobs[0].start_at:%H:%M}" if one else f"Today: {len(jobs)} jobs",
+                                account=a, heading="Your jobs today", lines=lines,
+                                button={"label": "Open the job" if one else "Open your calendar",
+                                        "url": public_url(url_for("portal.job", lid=jobs[0].id) if one else url_for("portal.calendar"))},
+                                after=["Finished one? Tap “Job done ✓” on it to send the customer a review link."])
+            except Exception as exc:
+                print(f"[JOBS_TODAY] {addr}: {exc}")
+        db.session.add(SystemState(key=key, value=str(len(jobs))))
+        db.session.commit()
+        sent += 1
+    return sent

@@ -325,8 +325,15 @@ def calendar():
     days = {}
     for r in upcoming:
         days.setdefault(r.start_at.date(), []).append(r)
+    reminders = {}
+    if a.slug == "hapitech" and current_user.is_admin:            # Aaron's own calendar: task reminders too
+        from models.tasks import Task
+        for t in Task.query.filter(Task.status != "done", Task.remind_on.isnot(None)).order_by(Task.remind_on).all():
+            reminders.setdefault(max(t.remind_on, dt.date.today()), []).append(t)
+    all_days = sorted(set(days) | set(reminders))
     feed = public_url(url_for("customer.calendar_feed", token=a.calendar_token))
-    return render_template("portal/calendar.html", days=days, feed=feed, today=dt.date.today())
+    return render_template("portal/calendar.html", days=days, reminders=reminders, all_days=all_days, feed=feed,
+                           today=dt.date.today())
 
 
 @portal_bp.route("/calendar/reset", methods=["POST"])
@@ -574,9 +581,9 @@ def client_for_lead(lead):
     email = (lead.email or "").strip().lower()
     if not email:
         return None
-    u = User.query.filter(db.func.lower(User.email) == email, User.account_id.isnot(None)).first()
-    if u and u.account and u.account.kind == "client":
-        return u.account
+    u = User.query.filter(db.func.lower(User.email) == email, User.account_id.isnot(None), User.role != "admin").first()
+    if u and u.account and u.account.kind in ("client", "internal"):
+        return u.account                         # (internal = HapiTech's own login, handy for testing the loop)
     return Account.query.filter(Account.kind == "client", db.func.lower(Account.contact_email) == email).first()
 
 

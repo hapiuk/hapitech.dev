@@ -1852,3 +1852,84 @@ def test_hapitech_job_accepted_becomes_client_task(app):
     assert f"T-{tid}" in adm.get(f"/portal/jobs/{lid}?as=hapitech").get_data(as_text=True)
     owner = app.test_client(); _login(owner, "roland@test")
     assert "new gallery" in owner.get("/portal/changes").get_data(as_text=True)
+
+
+def test_change_requests_hide_completed_and_due_tasks_highlighted(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account, ChangeRequest
+    from models.tasks import Task
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        db.session.add_all([ChangeRequest(account_id=a.id, body="Open one please"),
+                            ChangeRequest(account_id=a.id, body="Finished thing", status="done"),
+                            Task(title="Due thing", remind_on=dt.date.today())])
+        db.session.commit()
+    adm = app.test_client(); _login(adm, "admin@test")
+    page = adm.get("/admin/requests").get_data(as_text=True)
+    assert "Open one please" in page and "Finished thing" not in page
+    assert "Finished thing" in adm.get("/admin/requests?show=done").get_data(as_text=True)
+    tab = adm.get("/admin/clients/rolands?tab=requests").get_data(as_text=True)
+    assert "Open one please" in tab and "Finished thing" not in tab
+    lst = adm.get("/admin/tasks").get_data(as_text=True)
+    assert "task-row is-due" in lst and "1 reminder due" in lst
+
+
+def test_jobs_today_email_upcoming_on_home_and_review_link(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account
+    from models.work import Lead
+    from utils.tasks import send_jobs_today
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        a.contact_email = "roland@test"
+        today9 = dt.datetime.combine(dt.date.today(), dt.time(9))
+        l = Lead(account_id=a.id, name="Sarah Jones", status="booked", start_at=today9, days=1, title="Fit shelves",
+                 postcode="WV1 1AA")
+        n = Lead(account_id=a.id, name="Tom", status="accepted", title="Hang doors")
+        db.session.add_all([l, n]); db.session.commit(); lid = l.id
+    with app.test_request_context("/", base_url="https://hapitech.test"):
+        assert send_jobs_today(dt.datetime.combine(dt.date.today(), dt.time(7, 5))) == 1
+        assert send_jobs_today(dt.datetime.combine(dt.date.today(), dt.time(9))) == 0          # once a day
+    mail = [m for m in _outbox(app) if "To: roland@test" in m and "Today: Sarah Jones at 09:00" in m]
+    assert mail and f"/portal/jobs/{lid}" in mail[0].replace("=\n", "")
+    c = app.test_client(); _login(c, "roland@test")
+    home = c.get("/portal/").get_data(as_text=True)
+    assert "Upcoming jobs" in home and f"/portal/jobs/{lid}" in home and "Needs a date" in home
+    job = c.get(f"/portal/jobs/{lid}").get_data(as_text=True)
+    assert "Show the review QR code" in job and "name=Sarah" in job
+    ask = c.get("/portal/ask?name=Sarah&job=Fit+shelves").get_data(as_text=True)
+    assert 'value="Sarah"' in ask and 'value="Fit shelves"' in ask
+
+
+def test_hapitech_homepage_request_loop_and_calendar_reminders(app):
+    import datetime as dt
+    from models import db
+    from models.core import User
+    from models.tasks import Task
+    from models.work import Lead
+    from utils.hapitech_account import get as hapitech
+    with app.app_context():
+        ht = hapitech()
+        ht.calendar_token = "x" * 24
+        db.session.add(User(email="owner@hapitech.test", username="owner@hapitech.test", role="owner", account_id=ht.id,
+                            name="Aaron (as a client)"))
+        lead = Lead(account_id=ht.id, source="enquiry", name="Aaron", email="owner@hapitech.test",
+                    title="Website build", message="Testing the loop")
+        db.session.add(lead); db.session.commit(); lid = lead.id
+    adm = app.test_client(); _login(adm, "admin@test")
+    assert "Accept: task for HapiTech" in adm.get(f"/portal/jobs/{lid}?as=hapitech").get_data(as_text=True)
+    _form(adm, f"/portal/jobs/{lid}?as=hapitech", {"action": "accept-task"}, page=f"/portal/jobs/{lid}?as=hapitech")
+    with app.app_context():
+        t = Task.query.filter_by(lead_id=lid).one()
+        assert t.account.slug == "hapitech" and t.shared
+        t.remind_on = dt.date.today(); db.session.commit(); tid = t.id
+    assert any("To: owner@hapitech.test" in m and f"Accepted (T-{tid})" in m for m in _outbox(app))   # the owner login hears
+    assert not any("To: aaron@hapitech.dev" in m and f"Accepted (T-{tid})" in m for m in _outbox(app))
+    owner = app.test_client(); _login(owner, "owner@hapitech.test")
+    assert "Testing the loop" in owner.get(f"/portal/changes/T-{tid}").get_data(as_text=True)
+    ics = app.test_client().get("/cal/" + "x" * 24 + ".ics").get_data(as_text=True)
+    assert f"T-{tid}" in ics and "VALARM" in ics
+    cal = adm.get("/portal/calendar?as=hapitech").get_data(as_text=True)
+    assert f"T-{tid}" in cal

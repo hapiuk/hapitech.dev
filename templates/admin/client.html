@@ -32,7 +32,7 @@
   <section class="card">
     <div class="card__head"><h2>Open tasks</h2><a class="small" href="{{ url_for('admin.task_new', **{'for': a.slug}) }}">+ New task</a></div>
     {% if open_tasks %}<ul class="list">{% for t in open_tasks[:6] %}
-      <li><a href="{{ url_for('admin.task', tid=t.id) }}"><span class="ref">{{ t.ref }}</span> {{ t.title }}</a>
+      <li class="{{ 'is-due' if t.due }}"><a href="{{ url_for('admin.task', tid=t.id) }}"><span class="ref">{{ t.ref }}</span> {{ t.title }}</a>
         <span class="small" style="white-space:nowrap">{% if t.shared %}👁 {% endif %}{% if t.remind_on %}<span class="{{ 'task-due' if t.due else 'muted' }}">⏰ {{ t.remind_on | ukdate('%-d %b') }}</span> {% endif %}<span class="badge badge--{{ 'warn' if t.status == 'waiting' else 'acc' }}">{{ t.status_label }}</span></span></li>
     {% endfor %}</ul>
     {% else %}<p class="muted small">No open tasks.</p>{% endif %}
@@ -117,8 +117,9 @@
 </section>
 {% elif tab == 'requests' %}
 <p class="muted small" style="margin:8px 0 12px">What {{ a.name }} asked for from their dashboard. Accepting one makes a task they can follow; they're emailed at each step.</p>
+<p class="row" style="gap:6px;margin:0 0 12px">{% for k, label in [('open','Open'),('done','Completed'),('all','All')] %}<a class="chip {{ 'is-on' if rshow == k }}" href="{{ url_for('admin.client', slug=a.slug, tab='requests', show=k) }}">{{ label }}</a>{% endfor %}</p>
 {% if client_requests %}<section class="card card--flush">{% with rows=client_requests, show_client=False %}{% include "admin/_change_requests.html" %}{% endwith %}</section>
-{% else %}{{ empty('No change requests yet') }}{% endif %}
+{% else %}{{ empty('Nothing open' if rshow == 'open' else 'Nothing here') }}{% endif %}
 {% elif tab == 'jobs' %}
 <section class="card">
   <div class="card__head"><h2>Add a job or quote</h2></div>

@@ -3,7 +3,8 @@
 {% block title %}Change requests{% endblock %}
 {% block content %}
 <div class="page-top"><div><h1>Change requests</h1><p>What clients have asked for from their dashboard. <b>Accept</b> one to turn it into a task they can follow; finishing the task marks it done. They're emailed at each step.</p></div></div>
+<nav class="subnav">{% for k, label in [('open','Open'),('done','Completed'),('all','All')] %}<a href="{{ url_for('admin.change_requests', show=k) }}" {% if show == k %}aria-current="page"{% endif %}>{{ label }}{% if k != 'all' and counts.get(k) %} <span class="badge {{ 'badge--acc' if k == 'open' else '' }}">{{ counts.get(k) }}</span>{% endif %}</a>{% endfor %}</nav>
 {% if rows %}
 <section class="card card--flush">{% with show_client=True %}{% include "admin/_change_requests.html" %}{% endwith %}</section>
-{% else %}{{ empty('Nothing yet', 'Requests from the "Requests" page in a client dashboard show up here.') }}{% endif %}
+{% else %}{{ empty('Nothing open' if show == 'open' else 'Nothing here', 'Requests from the "Requests" page in a client dashboard show up here.' if show == 'open' else '') }}{% endif %}
 {% endblock %}

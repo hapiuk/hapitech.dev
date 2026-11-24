@@ -60,6 +60,7 @@
           <label class="check"><input type="checkbox" name="ask_review" value="1" {{ 'checked' if lead.email else 'disabled' }}> <span>Email them a review link</span></label>
           <button class="btn btn--block">Job done ✓</button>
         </form>
+        {% if g.account.has_addon() %}<p class="small" style="margin-top:8px;text-align:center"><a href="{{ url_for('portal.ask', name=lead.name.split()[0], job=lead.title or '') }}">With them now? Show the review QR code →</a></p>{% endif %}
         <details class="fold" style="margin-top:10px"><summary class="small">Change the date</summary>
           <form method="post" class="form-grid">
             <input type="hidden" name="action" value="book">
@@ -76,7 +77,7 @@
           {% set unpaid = lead.invoices | selectattr('status', 'ne', 'paid') | list %}
           {% if current_user.is_owner and not lead.invoices %}<a class="btn btn--block" href="{{ url_for('portal.priced', lid=lead.id, kind='invoice') }}">Send the invoice</a>{% endif %}
           {% if lead.review_requested_at %}<p class="small muted">Review link emailed {{ lead.review_requested_at | ago }}.</p>
-          {% else %}<a class="btn btn--ghost btn--block" href="{{ url_for('portal.ask') }}">Ask for a review (QR code)</a>{% endif %}
+          {% else %}<a class="btn btn--ghost btn--block" href="{{ url_for('portal.ask', name=lead.name.split()[0], job=lead.title or '') }}">Ask for a review (QR code)</a>{% endif %}
         </div>
       {% else %}
         <div class="card__head"><h2>Not going ahead</h2></div>

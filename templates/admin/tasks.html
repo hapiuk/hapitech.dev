@@ -13,6 +13,8 @@
   </select>
   <input type="hidden" name="show" value="{{ show }}"><button class="btn btn--ghost btn--sm" type="submit">Search</button>
 </form>
+{% set due_n = rows | selectattr('due') | list | length %}
+{% if due_n and show != 'due' and not q %}<p class="due-banner"><a href="{{ url_for('admin.tasks', show='due') }}">⏰ {{ due_n }} reminder{{ '' if due_n == 1 else 's' }} due</a></p>{% endif %}
 {% if not q %}<nav class="subnav">{% for k, label in shows %}<a href="{{ url_for('admin.tasks', show=k, **({'for': tag} if tag else {})) }}" {% if show == k %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
 {% else %}<p class="small muted" style="margin:0 0 10px">{{ rows|length }} result{{ '' if rows|length == 1 else 's' }} for “{{ q }}” · <a href="{{ url_for('admin.tasks') }}">clear</a></p>{% endif %}
 <section class="card card--flush">

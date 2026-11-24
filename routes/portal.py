@@ -131,7 +131,16 @@ def home():
     stats["pending"] = scoped(Review, status="pending").count()
     stats["rate_year"], stats["rate_month"] = reply_rate(a, dt.date(dt.date.today().year, 1, 1)), reply_rate(a, dt.date.today().replace(day=1))
     from utils.traffic import summary
+    upcoming, needs_date = [], []
+    if a.has_feature("jobs") and a.has_addon():
+        from models.work import Lead
+        today = dt.datetime.combine(dt.date.today(), dt.time())
+        booked = (scoped(Lead).filter(Lead.status == "booked", Lead.archived_at.is_(None),
+                                      Lead.start_at >= today - dt.timedelta(days=60)).order_by(Lead.start_at).all())
+        upcoming = [l for l in booked if l.end_at >= today][:5]
+        needs_date = scoped(Lead).filter(Lead.status == "accepted", Lead.archived_at.is_(None)).order_by(Lead.created_at).all()
     return render_template("portal/home.html", stats=stats, last_post=last_post, t=summary(a), tips=TIPS,
+                           upcoming=upcoming, needs_date=needs_date, today=dt.date.today(),
                            tip_start=dt.date.today().timetuple().tm_yday % len(TIPS))
 
 
@@ -150,7 +159,8 @@ def ask():
         db.session.add(req)
         db.session.commit()
         return redirect(url_for("portal.ask_send", rid=req.id))
-    return render_template("portal/ask.html", f={})
+    return render_template("portal/ask.html", f={"customer_name": request.args.get("name", "")[:120],
+                                                 "job_ref": request.args.get("job", "")[:160]})
 
 
 @portal_bp.route("/ask/<int:rid>", methods=["GET", "POST"])
