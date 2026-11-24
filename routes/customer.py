@@ -13,7 +13,7 @@ customer_bp = Blueprint("customer", __name__)
 
 
 def _notify_owner(account, subject, heading, lines, box=None):
-    """Tell the business owner something happened (HapiTech-branded, with a button to their dashboard)."""
+    """Tell the business owner something happened (in their own name and colours, with a button to their dashboard)."""
     if not account.contact_email:
         return
     try:
@@ -21,7 +21,7 @@ def _notify_owner(account, subject, heading, lines, box=None):
 
         from utils import email_html
         from utils.links import public_url
-        email_html.send(account.contact_email, subject, heading=heading, lines=lines, box=box,
+        email_html.send(account.contact_email, subject, account=account, heading=heading, lines=lines, box=box,
                         button={"label": "Open your dashboard", "url": public_url(url_for("portal.jobs"))})
     except Exception as exc:
         print(f"[CUSTOMER_NOTIFY] {exc}")

@@ -1933,3 +1933,51 @@ def test_hapitech_homepage_request_loop_and_calendar_reminders(app):
     assert f"T-{tid}" in ics and "VALARM" in ics
     cal = adm.get("/portal/calendar?as=hapitech").get_data(as_text=True)
     assert f"T-{tid}" in cal
+
+
+def _html_of(raw):
+    import email as _email
+    m = _email.message_from_string(raw)
+    for part in m.walk():
+        if part.get_content_type() == "text/html":
+            return part.get_payload(decode=True).decode()
+    return ""
+
+
+def test_emails_have_no_images_show_content_and_use_client_branding(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account
+    from models.work import Lead
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        a.contact_email, a.brand_colour, a.logo_path = "roland@test", "#f97316", "media/clients/x.png"
+        db.session.commit()
+    # homepage enquiry: saved, emailed with the full message and a link straight to the job
+    pub = app.test_client()
+    tok = _csrf(pub)
+    r = pub.post("/contact", json={"name": "Jo", "email": "jo@example.com", "message": "Line one\nLine two",
+                                   "need": "Website"}, headers={"X-CSRF-Token": tok})
+    assert r.status_code == 200
+    with app.app_context():
+        lid = Lead.query.filter_by(email="jo@example.com").one().id
+    raw = [m for m in _outbox(app) if "jo@example.com" in m and "Contact" in m][-1]
+    html = _html_of(raw)
+    assert "Line one\nLine two" in html and f"/portal/jobs/{lid}" in html and "Open it in Jobs" in html
+    # a client's own notification: their colour, no HapiTech footer, no images anywhere
+    c = app.test_client(); _login(c, "roland@test")
+    _form(c, "/portal/changes", {"body": "Please add\na gutters page"}, page="/portal/changes")
+    adm = app.test_client(); _login(adm, "admin@test")
+    from models.core import ChangeRequest
+    with app.app_context():
+        crid = ChangeRequest.query.one().id
+    _form(adm, f"/admin/requests/{crid}", {"status": "doing"}, page="/admin/requests")
+    accepted = _html_of([m for m in _outbox(app) if "To: roland@test" in m and "Accepted" in m][-1])
+    assert "Please add\na gutters page" in accepted and "What you asked" in accepted
+    with app.test_request_context("/", base_url="https://hapitech.test"):
+        from utils import email_html
+        _, own = email_html.build("x", account=Account.query.filter_by(slug="rolands").first(), heading="Hi", lines=["a"])
+        _, ht = email_html.build("x", heading="Hi", lines=["a"])
+    assert "#f97316" in own and "Sent by" not in own and "Roland's Handyman" in own.replace("&#39;", "'")
+    assert "Sent by" in ht
+    assert all("<img" not in _html_of(m) for m in _outbox(app))

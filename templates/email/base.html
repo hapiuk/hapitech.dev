@@ -9,13 +9,17 @@
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
     <tr><td style="padding:0 4px 16px 4px;">
       <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-        {% if brand.logo %}<td style="padding-right:12px;"><img src="{{ brand.logo }}" width="44" height="44" alt="" style="display:block;width:44px;height:44px;border-radius:10px;border:1px solid #e3e0da;background:#fff;object-fit:cover;"></td>{% endif %}
-        <td style="font:700 17px/1.3 -apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#16181d;">{{ brand.name }}</td>
+        <td style="width:10px;background:{{ brand.colour }};border-radius:3px;">&nbsp;</td>
+        <td style="padding-left:10px;font:700 17px/1.3 -apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#16181d;">{{ brand.name }}</td>
       </tr></table>
     </td></tr>
     <tr><td style="background:#ffffff;border-radius:16px;border:1px solid #e6e3dd;border-top:4px solid {{ brand.colour }};padding:30px 28px;font:16px/1.6 -apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#2b2f36;">
       {% if heading %}<h1 style="margin:0 0 14px 0;font:700 22px/1.3 -apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#16181d;">{{ heading }}</h1>{% endif %}
-      {% for p in lines %}<p style="margin:0 0 14px 0;">{{ p }}</p>{% endfor %}
+      {% for p in lines %}<p style="margin:0 0 14px 0;white-space:pre-line;">{{ p }}</p>{% endfor %}
+      {% if quote %}
+      {% if quote_label %}<p style="margin:0 0 6px 0;font-size:13px;color:#7a7f89;">{{ quote_label }}</p>{% endif %}
+      <div style="margin:0 0 18px 0;padding:14px 16px;background:#f7f6f3;border-left:4px solid {{ brand.colour }};border-radius:8px;white-space:pre-line;color:#16181d;">{{ quote }}</div>
+      {% endif %}
       {% if code %}<p style="margin:8px 0 18px 0;"><span style="display:inline-block;padding:14px 22px;border-radius:12px;background:#f5f4f1;border:1px solid #e3e0da;font:700 30px/1 'SF Mono',Menlo,Consolas,monospace;letter-spacing:8px;color:#16181d;">{{ code }}</span></p>{% endif %}
       {% if box %}
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 18px 0;background:#f7f6f3;border-radius:12px;border:1px solid #ece9e3;">
@@ -29,11 +33,11 @@
       </td></tr></table>
       <p style="margin:0 0 14px 0;font-size:13px;color:#7a7f89;">Button not working? Copy this link: <a href="{{ button.url }}" style="color:#7a7f89;word-break:break-all;">{{ button.url }}</a></p>
       {% endif %}
-      {% for p in after %}<p style="margin:0 0 14px 0;">{{ p }}</p>{% endfor %}
-      {% if sign %}<p style="margin:18px 0 0 0;">{{ sign }}</p>{% endif %}
+      {% for p in after %}<p style="margin:0 0 14px 0;white-space:pre-line;">{{ p }}</p>{% endfor %}
+      {% if sign %}<p style="margin:18px 0 0 0;white-space:pre-line;">{{ sign }}</p>{% endif %}
     </td></tr>
     <tr><td style="padding:16px 8px;font:12px/1.5 -apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#8a8f99;text-align:center;">
-      {{ footer or '' }}{% if footer %}<br>{% endif %}{% if brand.site %}<a href="{{ brand.site }}" style="color:#8a8f99;">{{ brand.site_label }}</a> · {% endif %}Sent by <a href="https://hapitech.dev" style="color:#8a8f99;">HapiTech</a>
+      {{ footer or '' }}{% if footer %}<br>{% endif %}{% if brand.site %}<a href="{{ brand.site }}" style="color:#8a8f99;">{{ brand.site_label }}</a>{% endif %}{% if brand.is_hapitech %}{% if brand.site %} · {% endif %}Sent by <a href="https://hapitech.dev" style="color:#8a8f99;">HapiTech</a>{% endif %}
     </td></tr>
   </table>
 </td></tr>

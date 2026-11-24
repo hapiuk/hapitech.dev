@@ -165,8 +165,9 @@ def enquiry(slug):
         from utils.mailer import send_email
         try:
             from utils import email_html
-            email_html.send(a.contact_email, f"New booking request from {name}", heading="New booking request",
+            email_html.send(a.contact_email, f"New booking request from {name}", account=a, heading="New booking request",
                             lines=[f"{name} would like to book in with you."],
+                            quote=lead.message, quote_label="Their message",
                             box=[("Job", lead.title or (lead.message or "")[:120] or "—"),
                                  ("Preferred", lead.preferred or "Any time"), ("Postcode", lead.postcode or "—")],
                             button={"label": "Confirm it in your dashboard",

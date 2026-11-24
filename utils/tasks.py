@@ -146,11 +146,13 @@ def send_task_reminders(now=None) -> int:
                              Task.reminded_at.is_(None)).order_by(Task.remind_on).all())
     if not due:
         return 0
-    lines = [f"• {t.ref} {t.title} ({t.tag}){' — ' + t.notes[-1].body.splitlines()[0][:140] if t.notes else ''}" for t in due]
+    lines = [f"• {t.ref} {t.title} ({t.tag})" for t in due]
     one = len(due) == 1
+    last = due[0].notes[-1] if one and due[0].notes else None
     email_html.send(ADMIN_EMAIL, f"Reminder {due[0].ref}: {due[0].title}" if one else f"{len(due)} task reminders",
                     heading="Task reminder" if one else f"{len(due)} tasks to follow up",
                     lines=["You asked to be reminded about:"] + lines,
+                    quote=last.body if last else None, quote_label=f"Latest note ({last.author_label})" if last else None,
                     button={"label": "Open the task" if one else "Open Tasks",
                             "url": public_url(url_for("admin.task", tid=due[0].id) if one else url_for("admin.tasks", show="due"))})
     for t in due:

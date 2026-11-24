@@ -130,7 +130,7 @@ def task(tid):
                 t.updated_at = dt.datetime.utcnow()
                 db.session.commit()
                 if n.shared and kind == "aaron":
-                    task_mail.tell_client_task(t, "Aaron replied", "Aaron replied", [n.body])
+                    task_mail.tell_client_task(t, "Aaron replied", "Aaron replied", [], quote=n.body, quote_label="Aaron wrote")
                 flash("Note added" + (" and sent to the client." if n.shared else " (private)."), "ok")
         elif action == "save":
             title = (f.get("title") or "").strip()[:200]

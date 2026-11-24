@@ -75,7 +75,7 @@ def request_task(tid):
             t.updated_at = dt.datetime.utcnow()
             db.session.commit()
             if admin:
-                task_mail.tell_client_task(t, "Aaron replied", "Aaron replied", [n.body])
+                task_mail.tell_client_task(t, "Aaron replied", "Aaron replied", [], quote=n.body, quote_label="Aaron wrote")
             else:
                 task_mail.tell_aaron_comment(t, n, current_user)
             flash("Sent to Aaron." if not admin else "Reply sent.", "ok")

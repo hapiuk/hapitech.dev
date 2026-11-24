@@ -25,21 +25,28 @@ def brand(account=None):
     else:
         b = {"name": account.name, "logo_path": account.logo_path, "colour": account.brand_colour or "#2563eb",
              "site": f"https://{account.domain}" if account.domain else None, "site_label": account.domain}
-    b["logo"] = public_url(url_for("static", filename=b["logo_path"])) if b.get("logo_path") else None
+    # HapiTech's own emails say "Sent by HapiTech"; a client's (to them or their customers) are theirs alone.
+    b["is_hapitech"] = account is None or account.slug == "hapitech"
+    # No images in emails (spam filters score image-only branding and remote images); the name + colour carry it.
+    b["logo"] = None
     b["on_colour"] = _on_colour(b["colour"])
     return b
 
 
 def build(subject, *, account=None, heading=None, lines=(), code=None, box=None, button=None, after=(),
-          sign=None, footer=None, html_block=None, preheader=None):
-    """Returns (text, html) for send_email(text=..., html=...)."""
+          sign=None, footer=None, html_block=None, preheader=None, quote=None, quote_label=None):
+    """Returns (text, html) for send_email(text=..., html=...). `quote` is someone's own words (a message,
+    a request), shown in full with its line breaks, under `quote_label`."""
     b = brand(account)
     html = render_template("email/base.html", subject=subject, brand=b, heading=heading, lines=list(lines), code=code,
                            box=box, button=button, after=list(after), sign=sign, footer=footer,
+                           quote=quote, quote_label=quote_label,
                            html_block=Markup(html_block) if html_block else None,
                            preheader=preheader or (lines[0] if lines else heading or subject))
     parts = [heading] if heading else []
     parts += list(lines)
+    if quote:
+        parts.append((f"{quote_label}:\n" if quote_label else "") + "\n".join("> " + l for l in str(quote).splitlines()))
     if code:
         parts.append(code)
     if box:

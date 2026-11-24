@@ -57,7 +57,11 @@ def contact():
         "referer": request.headers.get("Referer", ""),
         "utc": datetime.datetime.utcnow().isoformat(),
     }
-    _save_enquiry(name, email, message, data)
+    lead_id = _save_enquiry(name, email, message, data)
+    if lead_id:
+        from flask import url_for
+        from utils.links import public_url
+        meta["job_url"] = public_url(url_for("portal.job", lid=lead_id, **{"as": "hapitech"}))
     try:
         send_contact_email(name=name, email=email, message=message, meta=meta)
     except Exception as e:
@@ -127,5 +131,7 @@ def _save_enquiry(name, email, message, data):
             lead.status, lead.notes = "spam", f"Blocked as spam: {spam}"
         db.session.add(lead)
         db.session.commit()
+        return None if spam else lead.id
     except Exception as exc:          # never lose the email over this
         print(f"[ENQUIRY_SAVE] {exc}")
+        return None

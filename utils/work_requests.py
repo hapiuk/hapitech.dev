@@ -47,7 +47,7 @@ def create(account, user, kind, what, offer):
         from utils import email_html
         email_html.send("aaron@hapitech.dev", f"Work request from {account.name}: {first[:60]}",
                         heading=f"{account.name} would like some work done",
-                        lines=[f"{user.name or user.email} asked for: {label.lower()}.", what],
+                        lines=[f"{user.name or user.email} asked for: {label.lower()}."], quote=what,
                         box=[("Business", account.name), ("Offer", f"£{offer:,.2f}" if offer else "None: quote them"),
                              ("Their email", user.email)],
                         button={"label": "Open it in your jobs", "url": public_url(url_for("portal.job", lid=lead.id, **{"as": ht.slug}))},

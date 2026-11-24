@@ -86,6 +86,7 @@ def send_contact_email(*, name: str, email: str, message: str, meta: dict) -> No
         f"IP: {meta.get('ip', '')}\nUser-Agent: {meta.get('ua', '')}\n"
         f"Referer: {meta.get('referer', '')}\nTime (UTC): {meta.get('utc', '')}\n\n"
         f"Message:\n{message}\n"
+        + (f"\nOpen it in Jobs: {meta['job_url']}\n" if meta.get("job_url") else "")
     )
     html = None
     try:
@@ -93,7 +94,9 @@ def send_contact_email(*, name: str, email: str, message: str, meta: dict) -> No
         _, html = email_html.build(subject, heading="New enquiry from hapitech.dev",
                                    lines=[f"{name} sent a message through the website."],
                                    box=[("Name", name), ("Email", email), ("Form", meta.get("client", "") or "—")],
-                                   after=[message], footer="Reply to this email to answer them directly.")
+                                   quote=message, quote_label="Their message",
+                                   button={"label": "Open it in Jobs", "url": meta["job_url"]} if meta.get("job_url") else None,
+                                   footer="Reply to this email to answer them directly.")
     except Exception as exc:          # never lose an enquiry over styling
         print(f"[CONTACT_HTML] {exc}")
     send_email(to=to, subject=subject, text=body, html=html, reply_to=email)

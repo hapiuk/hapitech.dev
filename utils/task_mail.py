@@ -43,14 +43,24 @@ def _send(to_list, subject, **content):
             print(f"[TASK_MAIL] {to}: {exc}")
 
 
-def tell_client_task(t, subject, heading, lines, box=None):
-    """A shared task changed (accepted, status, a reply from Aaron)."""
+def _asked(t):
+    """The client's own words that started a task (their request / enquiry), if any."""
+    first = next((n for n in t.notes if n.author_kind == "client" and n.shared), None)
+    return first.body if first else None
+
+
+def tell_client_task(t, subject, heading, lines, box=None, quote=None, quote_label=None):
+    """A shared task changed (accepted, status, a reply from Aaron). Shows the message itself, or what they asked."""
     if not (t.shared and t.account):
         return
     cr_author = t.change_request.author if t.change_request else None
+    if quote is None:
+        quote, quote_label = _asked(t), "What you asked"
     _send(_client_emails(t.account, cr_author), f"{subject} ({t.ref})", heading=heading, lines=lines,
+          quote=quote, quote_label=quote_label,
           box=[("Reference", t.ref + (f" (your request {t.change_request.ref})" if t.change_request else "")),
-               ("What", t.title)] + (box or []),
+               ("What", t.title), ("Status", {"todo": "Accepted", "doing": "In progress", "waiting": "On hold",
+                                              "done": "Done"}.get(t.status, t.status))] + (box or []),
           button={"label": "Open it", "url": client_task_url(t)},
           after=["You can reply to Aaron on that page."])
 
@@ -58,17 +68,17 @@ def tell_client_task(t, subject, heading, lines, box=None):
 def tell_client_request(cr, subject, heading, lines):
     """A change request changed but has no task (e.g. marked done straight away)."""
     _send(_client_emails(cr.account, cr.author), f"{subject} ({cr.ref})", heading=heading, lines=lines,
-          box=[("Reference", cr.ref), ("Your request", (cr.body or "")[:300])],
+          quote=cr.body, quote_label="What you asked", box=[("Reference", cr.ref)],
           button={"label": "Open it", "url": client_request_url(cr)})
 
 
 def tell_aaron_new_request(cr, user):
     _send([ADMIN_EMAIL], f"Change request {cr.ref}: {cr.account.name}", heading=f"{cr.account.name} asked for a change",
-          lines=[f"From {user.name or user.email}:", cr.body], box=[("Reference", cr.ref)],
+          lines=[f"From {user.name or user.email}:"], quote=cr.body, box=[("Reference", cr.ref), ("Business", cr.account.name)],
           button={"label": "Open the request", "url": admin_request_url(cr)})
 
 
 def tell_aaron_comment(t, note, user):
     _send([ADMIN_EMAIL], f"{t.tag} replied on {t.ref}: {t.title[:60]}", heading=f"New comment on {t.ref}",
-          lines=[f"{user.name or user.email} ({t.tag}) wrote:", note.body], box=[("Task", f"{t.ref} · {t.title}")],
+          lines=[f"{user.name or user.email} ({t.tag}) wrote:"], quote=note.body, box=[("Task", f"{t.ref} · {t.title}")],
           button={"label": "Open the task", "url": admin_task_url(t)})

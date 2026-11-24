@@ -112,13 +112,13 @@ def _tell_owner_pending(a, review):
     try:
         from utils import email_html
         from utils.links import public_url
-        email_html.send(a.contact_email, f"New review from {review.author_name}: waiting for your OK",
+        email_html.send(a.contact_email, f"New review from {review.author_name}: waiting for your OK", account=a,
                         heading="A new review is waiting for your OK",
                         lines=[f"{review.author_name} left a {review.rating}-star review from your website.",
                                "Approve it to show it on your site. Please approve every genuine review, good or bad. "
                                f"Only mark spam or fake ones. If you don't get to it, it goes live by itself after "
                                f"{PENDING_AUTO_PUBLISH_DAYS} days."],
-                        box=[("Review", (review.body or "(no text)")[:300])],
+                        quote=review.body or "(no words, just stars)", quote_label=f"{review.author_name} wrote",
                         button={"label": "Check the review", "url": public_url(url_for("portal.reviews", show="pending"))})
     except Exception as exc:
         print(f"[REVIEW_PENDING_NOTIFY] {exc}")
@@ -134,7 +134,7 @@ def _tell_new_review(a, review):
     from utils.links import public_url
     stars = "★" * review.rating + "☆" * (5 - review.rating)
     photos = len(json.loads(review.photos or "[]"))
-    box = [("Rating", f"{stars} ({review.rating} out of 5)"), ("Review", (review.body or "(no words, just stars)")[:400])]
+    box = [("Rating", f"{stars} ({review.rating} out of 5)")]
     if photos:
         box.append(("Photos", f"{photos} photo{'' if photos == 1 else 's'}"))
     via = "through your review link" if review.request_id else "from your website"
@@ -142,7 +142,8 @@ def _tell_new_review(a, review):
     owner = (a.contact_email or "").strip()
     if live and owner and owner.lower() != ADMIN_EMAIL:
         try:
-            email_html.send(owner, f"New {review.rating}-star review from {review.author_name}",
+            email_html.send(owner, f"New {review.rating}-star review from {review.author_name}", account=a,
+                            quote=review.body or "(no words, just stars)", quote_label=f"{review.author_name} wrote",
                             heading=f"{review.author_name} left you a review",
                             lines=[f"{review.author_name} left you a {review.rating}-star review {via}. "
                                    "It's on your website and on hapitech.report now.",
@@ -158,6 +159,7 @@ def _tell_new_review(a, review):
                         lines=[f"{review.author_name} left a {review.rating}-star review "
                                f"{'through a review link' if review.request_id else 'from the website form'}."],
                         box=[("Status", state)] + box,
+                        quote=review.body or "(no words, just stars)", quote_label=f"{review.author_name} wrote",
                         button={"label": "Open their reviews",
                                 "url": public_url(url_for("portal.reviews", **{"as": a.slug}))},
                         after=[f"Public page: {public_url(url_for('reviews_public.business', slug=a.slug))}"])
