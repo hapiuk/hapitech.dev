@@ -98,6 +98,12 @@ class Lead(TimestampMixin, db.Model):
         return {"done": "Done: send the invoice", "invoiced": "Invoiced", "paid": "Paid"}.get(self.stage, self.status_label)
 
     @property
+    def pay_clicked_at(self):
+        """When the customer last opened the Pay now link on an unpaid invoice (None if never). Not proof of payment."""
+        ts = [i.pay_clicked_at for i in self.invoices if i.status == "sent" and i.pay_clicked_at]
+        return max(ts) if ts else None
+
+    @property
     def delete_on(self):
         if self.status == "declined" and self.declined_at:
             return (self.declined_at + dt.timedelta(days=DECLINED_RETENTION_DAYS)).date()
@@ -158,6 +164,8 @@ class Invoice(_Priced, TimestampMixin, db.Model):
     token = db.Column(db.String(48), unique=True, nullable=False, default=_token)
     sent_at = db.Column(db.DateTime)
     paid_at = db.Column(db.DateTime)
+    pay_clicked_at = db.Column(db.DateTime)     # customer last opened the "Pay now" link (NOT proof they paid)
+    pay_clicks = db.Column(db.Integer, nullable=False, default=0, server_default="0")
     lead = db.relationship("Lead", back_populates="invoices")
 
 

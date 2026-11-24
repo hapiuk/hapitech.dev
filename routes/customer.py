@@ -14,14 +14,15 @@ customer_bp = Blueprint("customer", __name__)
 
 def _notify_owner(account, subject, heading, lines, box=None):
     """Tell the business owner something happened (in their own name and colours, with a button to their dashboard)."""
-    if not account.contact_email:
+    to = account.contact_email or next((u.email for u in account.users if u.role == "owner" and u.is_active), None)
+    if not to:
         return
     try:
         from flask import url_for
 
         from utils import email_html
         from utils.links import public_url
-        email_html.send(account.contact_email, subject, account=account, heading=heading, lines=lines, box=box,
+        email_html.send(to, subject, account=account, heading=heading, lines=lines, box=box,
                         button={"label": "Open your dashboard", "url": public_url(url_for("portal.jobs"))})
     except Exception as exc:
         print(f"[CUSTOMER_NOTIFY] {exc}")
@@ -55,15 +56,61 @@ def quote(token):
     return render_template("customer/quote.html", a=a, q=q, lead=lead)
 
 
+def pay_for(inv):
+    """The invoice's "Pay now" button, pointed at our own /i/<token>/pay step (so the business hears the link was
+    opened) instead of straight at the provider. None when paid or there's no link."""
+    from flask import url_for
+
+    from utils.links import public_url
+    from utils.pay_links import for_invoice
+    if inv.status == "paid":
+        return None
+    pay = for_invoice(inv.lead.account, float(inv.totals[2]))
+    if pay:
+        pay["dest"], pay["url"] = pay["url"], public_url(url_for("customer.invoice_pay", token=inv.token))
+    return pay
+
+
 @customer_bp.route("/i/<token>")
 def invoice(token):
     inv = Invoice.query.filter_by(token=token).first()
     if not inv or inv.status == "draft":
         abort(404)
-    from utils.pay_links import for_invoice
+    return render_template("customer/invoice.html", a=inv.lead.account, inv=inv, lead=inv.lead, pay=pay_for(inv))
+
+
+PAY_ALERT_GAP = dt.timedelta(hours=6)          # at most one "pay link opened" email per invoice per 6 hours
+
+
+@customer_bp.route("/i/<token>/pay", methods=["GET", "POST"])
+def invoice_pay(token):
+    """The customer pressed "Pay now". GET shows a moment's "taking you to Revolut" page whose script reports the
+    click (POST) and then moves on, so email link-scanners that only fetch the page don't count as a click.
+    This only tells the business the link was OPENED: it is not proof of payment."""
+    inv = Invoice.query.filter_by(token=token).first()
+    if not inv or inv.status == "draft":
+        abort(404)
     a = inv.lead.account
-    return render_template("customer/invoice.html", a=a, inv=inv, lead=inv.lead,
-                           pay=None if inv.status == "paid" else for_invoice(a, float(inv.totals[2])))
+    pay = pay_for(inv)
+    if not pay:                                  # paid already, or the link was removed: show the invoice
+        from flask import redirect, url_for
+        return redirect(url_for("customer.invoice", token=token))
+    if request.method == "POST":
+        now = dt.datetime.utcnow()
+        first_in_a_while = not inv.pay_clicked_at or now - inv.pay_clicked_at > PAY_ALERT_GAP
+        inv.pay_clicked_at, inv.pay_clicks = now, (inv.pay_clicks or 0) + 1
+        db.session.commit()
+        if first_in_a_while:
+            lead = inv.lead
+            _notify_owner(a, f"{lead.name} opened the payment link for {inv.number}",
+                          "Payment link opened",
+                          [f"{lead.name} just opened the {pay['label']} payment link on invoice {inv.number}.",
+                           "This only means they opened the link. It isn't confirmation that they've paid. "
+                           "Check your account, then press Mark paid on the job when the money arrives."],
+                          box=[("Invoice", inv.number), ("Amount", f"£{inv.totals[2]:,.2f}"),
+                               ("Reference", inv.reference), ("Job", lead.label)])
+        return ("", 204)
+    return render_template("customer/pay_go.html", a=a, inv=inv, pay=pay)
 
 
 @customer_bp.route("/u/<token>", methods=["GET", "POST"])

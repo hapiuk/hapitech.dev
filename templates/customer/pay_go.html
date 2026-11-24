@@ -1,0 +1,23 @@
+{% extends "reviews/_base.html" %}
+{% block title %}Pay {{ inv.number }} | {{ a.name }}{% endblock %}
+{% block meta %}<meta name="robots" content="noindex"><link rel="stylesheet" href="{{ url_for('static', filename='css/docs.css') }}">{% endblock %}
+{% block footnote %}Sent with{% endblock %}
+{% block content %}
+<section class="rv__card" style="text-align:center">
+  <h1 style="font-size:1.3rem">Taking you to {{ pay.label if pay.kind != 'other' else 'the payment page' }}…</h1>
+  <p>Pay <b>£{{ '%.2f' % inv.totals[2] }}</b>{% if not pay.with_amount %} and add <b>{{ inv.reference }}</b> as the reference{% endif %}.</p>
+  <p><a class="doc__paybtn" style="--pay:{{ a.brand_colour or '#16181d' }}" href="{{ pay.dest }}" rel="noopener" id="go">Continue to {{ pay.label if pay.kind != 'other' else 'payment' }}</a></p>
+  <p class="small"><a href="{{ url_for('customer.invoice', token=inv.token) }}">Back to the invoice</a></p>
+</section>
+<script>
+(function () {
+  var dest = document.getElementById("go").href, done = false;
+  function go() { if (!done) { done = true; window.location.replace(dest); } }
+  try {
+    fetch(window.location.pathname, { method: "POST", credentials: "same-origin", keepalive: true,
+      headers: { "X-CSRF-Token": {{ csrf_token() | tojson }} } }).then(go, go);
+  } catch (e) { go(); }
+  setTimeout(go, 1500);
+})();
+</script>
+{% endblock %}

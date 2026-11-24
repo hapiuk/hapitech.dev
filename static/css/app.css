@@ -879,3 +879,5 @@ details.platforms[open] > summary::after{content:" ▴"}
 @container main (max-width:560px){.bank-grid{grid-template-columns:1fr}}
 .priced-lock{border:0;padding:0;margin:0;display:grid;gap:12px;min-width:0}
 .priced-lock:disabled{opacity:.7}
+.paylink-note{margin:6px 0;padding:8px 10px;border-radius:10px;background:var(--acc-soft);border:1px solid color-mix(in srgb,var(--acc) 35%,transparent)}
+.pay-ask{margin-top:10px}.pay-ask>summary{list-style:none;display:inline-flex}.pay-ask>summary::-webkit-details-marker{display:none}

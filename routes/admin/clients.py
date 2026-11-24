@@ -500,8 +500,9 @@ def change_requests():
     elif show == "done":
         q = q.filter(ChangeRequest.status == "done")
     rows = q.order_by(ChangeRequest.created_at.desc()).all()
-    counts = dict(db.session.query(db.case((ChangeRequest.status == "done", "done"), else_="open"), db.func.count())
-                  .group_by(db.case((ChangeRequest.status == "done", "done"), else_="open")).all())
+    counts = {"open": 0, "done": 0}             # group by the raw status (Postgres won't group a parameterised CASE)
+    for st, n in db.session.query(ChangeRequest.status, db.func.count()).group_by(ChangeRequest.status).all():
+        counts["done" if st == "done" else "open"] += n
     from models.tasks import Task
     tasks = {t.change_request_id: t for t in Task.query.filter(Task.change_request_id.isnot(None)).all()}
     return render_template("admin/change_requests.html", rows=rows, tasks=tasks, hl=hl, show=show, counts=counts)

@@ -66,11 +66,11 @@ def send_booking_reminder(lead):
 def send_invoice(invoice, updated=False):
     """The invoice email: the business's payment message, the reference to quote, their pay link and/or bank
     details. `updated` = it was changed after it was first sent."""
-    from utils.pay_links import for_invoice
+    from routes.customer import pay_for
     lead, a = invoice.lead, invoice.lead.account
     total = f"£{invoice.totals[2]:,.2f}"
     page = public_url(url_for("customer.invoice", token=invoice.token))
-    pay = for_invoice(a, float(invoice.totals[2]))
+    pay = pay_for(invoice)
     box = [("Invoice", invoice.number), ("Amount", total), ("Your reference", invoice.reference)]
     if invoice.due_date:
         box.append(("Please pay by", invoice.due_date.strftime("%-d %B %Y")))

@@ -83,14 +83,10 @@
   <label class="field full"><span>Business address <small>optional</small></span><textarea name="business_address" rows="3">{{ g.account.business_address or '' }}</textarea></label>
   <fieldset class="field full pay-pick" id="pay">
     <span>How customers can pay <small>shown on every invoice and invoice email. Use one or both.</small></span>
-    <label class="check"><input type="checkbox" name="pay_link_on" value="1" {{ 'checked' if g.account.pay_link_kind }}> <span><b>Online payment link</b> (one provider)</span></label>
-    <div class="pay-pick__row">
-      <select name="pay_link_kind" aria-label="Payment provider">
-        {% for k, p in pay_providers.items() %}<option value="{{ k }}" {{ 'selected' if g.account.pay_link_kind == k }}>{{ p[0] }}</option>{% endfor %}
-      </select>
-      <input name="pay_link" value="{{ g.account.pay_link or '' }}" placeholder="Your payment link, e.g. https://revolut.me/yourname" inputmode="url" autocomplete="off">
-    </div>
-    <small class="muted">Revolut: in the app tap your name → <b>Share revolut.me link</b>. PayPal and Monzo links get the amount filled in.</small>
+    <label class="check"><input type="checkbox" name="pay_link_on" value="1" {{ 'checked' if g.account.pay_link_kind }}> <span><b>Revolut payment link</b></span></label>
+    <input type="hidden" name="pay_link_kind" value="revolut">
+    <input name="pay_link" value="{{ g.account.pay_link or '' }}" placeholder="Your Revolut link, e.g. https://revolut.me/yourname" inputmode="url" autocomplete="off" aria-label="Your Revolut link">
+    <small class="muted">In the Revolut app tap your name → <b>Share revolut.me link</b>. You'll get an email when a customer opens it (that's not confirmation they've paid).</small>
     <label class="check" style="margin-top:8px"><input type="checkbox" name="pay_bank" value="1" {{ 'checked' if g.account.pay_bank }}> <span><b>Bank transfer</b></span></label>
     <div class="bank-grid">
       <label class="field"><span>Bank</span><input name="bank_name" value="{{ g.account.bank_name or '' }}" placeholder="e.g. Revolut, Barclays" maxlength="80"></label>
@@ -105,6 +101,17 @@
   <label class="field full"><span>Terms <small>optional, shown on quotes</small></span><textarea name="quote_terms" rows="3" placeholder="Quote valid for 30 days. Materials charged at cost.">{{ g.account.quote_terms or '' }}</textarea></label>
   <div class="form-actions full"><button class="btn btn--sm">Save</button></div>
 </form>
+{% if g.account.kind != 'internal' %}
+<details class="pay-ask">
+  <summary class="btn btn--ghost btn--sm">Use a different payment provider? Ask us</summary>
+  <form method="post" action="{{ url_for('portal.changes') }}" class="stack" style="margin-top:8px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="field"><span>Which provider would you like? <small>e.g. PayPal, Monzo, SumUp, Stripe</small></span>
+      <input name="provider" required maxlength="80"></label>
+    <button class="btn btn--sm" type="submit">Send request</button>
+  </form>
+</details>
+{% endif %}
   </div>
 </details>
 {% endblock %}

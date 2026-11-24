@@ -5,12 +5,8 @@ from urllib.parse import urlparse
 
 PROVIDERS = {
     # key: (label, allowed hosts, how to add the amount (None = can't), example)
+    # Only Revolut for now (the one we've tested end to end). Others are added on request: see Settings.
     "revolut": ("Revolut", ("revolut.me", "checkout.revolut.com", "pay.revolut.com"), None, "https://revolut.me/yourname"),
-    "paypal": ("PayPal", ("paypal.me", "www.paypal.me", "www.paypal.com", "paypal.com"), "/{n}GBP", "https://paypal.me/yourname"),
-    "monzo": ("Monzo", ("monzo.me",), "/{n}", "https://monzo.me/yourname"),
-    "sumup": ("SumUp", ("pay.sumup.com", "pay.sumup.io", "sumup.me", "sumup.link"), None, "https://pay.sumup.com/b2c/..."),
-    "stripe": ("Stripe", ("buy.stripe.com", "checkout.stripe.com"), None, "https://buy.stripe.com/..."),
-    "other": ("Other", None, None, "https://..."),
 }
 
 
@@ -30,8 +26,6 @@ def clean(kind, url):
     hosts = PROVIDERS[kind][1]
     if hosts and p.netloc.lower() not in hosts:
         raise ValueError(f"That isn't a {PROVIDERS[kind][0]} link. It should look like {PROVIDERS[kind][3]}")
-    if kind == "monzo" or (kind == "paypal" and "paypal.me" in p.netloc.lower()):
-        url = url.rstrip("/")
     return kind, url[:300]
 
 

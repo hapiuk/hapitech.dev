@@ -2132,9 +2132,9 @@ def test_pay_link_on_invoices_and_your_business_on_admin(app):
     page = f"/portal/jobs/{lid}/invoice?as=hapitech"
     _form(adm, page, {"desc": "Page", "qty": "1", "price": "80", "vat_rate": "0", "action": "send"}, page=page)
     mail = _html_of([m for m in _outbox(app) if "To: roland@test" in m and "Invoice INV" in m][-1])
-    assert "Pay £80.00 with Revolut" in mail and "https://revolut.me/aaron" in mail
     with app.app_context():
         inv = Invoice.query.filter_by(lead_id=lid).one(); token, iid = inv.token, inv.id
+    assert "Pay £80.00 with Revolut" in mail and f"/i/{token}/pay" in mail and "revolut.me" not in mail   # via our step
     assert "Pay £80.00 with Revolut" in app.test_client().get(f"/i/{token}").get_data(as_text=True)
     assert "Invoice INV" in adm.get("/admin/").get_data(as_text=True) and "Unpaid" in adm.get("/admin/").get_data(as_text=True)
     pd = f"/portal/jobs/{lid}/invoice/{iid}?as=hapitech"
@@ -2193,12 +2193,14 @@ def test_job_done_invoice_invoiced_paid_with_bank_transfer(app):
     c = app.test_client(); _login(c, "roland@test")
     _form(c, "/portal/settings", {"action": "business", "pay_bank": "1", "payment_details": "Sort code 00-00-00\nAccount 12345678",
                                   "pay_link_on": "1", "pay_link_kind": "monzo", "pay_link": "monzo.me/roland"}, page="/portal/settings")
+    with app.app_context():
+        assert Account.query.filter_by(slug="rolands").first().pay_link_kind is None      # only Revolut for now
     r = _form(c, f"/portal/jobs/{lid}", {"action": "done"}, page=f"/portal/jobs/{lid}")
     assert r.headers["Location"].endswith(f"/portal/jobs/{lid}/invoice")                  # done -> invoice
     page = f"/portal/jobs/{lid}/invoice"
     _form(c, page, {"desc": "Shelves", "qty": "1", "price": "60", "vat_rate": "0", "action": "send"}, page=page)
     mail = _html_of([m for m in _outbox(app) if "To: sarah@example.com" in m and "Invoice INV" in m][-1])
-    assert "monzo.me/roland/60.00" in mail and "Sort code 00-00-00" in mail and "Your reference" in mail
+    assert "monzo.me" not in mail and "Sort code 00-00-00" in mail and "Your reference" in mail
     assert "Thanks! Use the payment link provided" in mail
     with app.app_context():
         assert db.session.get(Lead, lid).stage == "invoiced"
@@ -2275,3 +2277,46 @@ def test_needs_attention_lists_work_waiting_to_be_invoiced(app):
     adm = app.test_client(); _login(adm, "admin@test")
     home = adm.get("/admin/").get_data(as_text=True)
     assert "Waiting to be invoiced" in home and "New page" in home
+
+
+def test_pay_link_opened_alert_revolut_only_and_requests_page(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account, ChangeRequest
+    from models.work import Invoice, Lead
+    with app.app_context():
+        a = Account.query.filter_by(slug="rolands").first()
+        l = Lead(account_id=a.id, name="Sarah Jones", email="sarah@example.com", status="done", title="Shelves",
+                 done_at=dt.datetime.utcnow())
+        db.session.add(l); db.session.commit(); lid = l.id
+    c = app.test_client(); _login(c, "roland@test")
+    s = "/portal/settings"
+    page = c.get(s).get_data(as_text=True)
+    assert "Revolut payment link" in page and "PayPal</option>" not in page and "Use a different payment provider?" in page
+    _form(c, s, {"action": "business", "pay_link_on": "1", "pay_link_kind": "revolut", "pay_link": "revolut.me/roland"}, page=s)
+    inv_page = f"/portal/jobs/{lid}/invoice"
+    _form(c, inv_page, {"desc": "Shelves", "qty": "1", "price": "60", "vat_rate": "0", "action": "send"}, page=inv_page)
+    with app.app_context():
+        token = Invoice.query.filter_by(lead_id=lid).one().token
+    cust = app.test_client()
+    assert f"/i/{token}/pay" in cust.get(f"/i/{token}").get_data(as_text=True)
+    go = cust.get(f"/i/{token}/pay").get_data(as_text=True)                  # a link-scanner fetch: no alert
+    assert "https://revolut.me/roland" in go
+    with app.app_context():
+        assert Invoice.query.filter_by(lead_id=lid).one().pay_clicks == 0
+    before = len(_outbox(app))
+    for _ in range(2):                                                            # the page's script reports the click
+        assert cust.post(f"/i/{token}/pay", headers={"X-CSRF-Token": _csrf(cust, f"/i/{token}/pay")}).status_code == 204
+    alerts = [m for m in _outbox(app)[before:] if "opened the payment link" in m]
+    assert len(alerts) == 1 and "confirmation" in _html_of(alerts[0])           # one email, says it's not proof
+    with app.app_context():
+        assert Invoice.query.filter_by(lead_id=lid).one().pay_clicks == 2
+    assert "Payment link opened" in c.get(f"/portal/jobs/{lid}").get_data(as_text=True)
+    assert "Pay link opened" in c.get("/portal/").get_data(as_text=True)
+    # ask for another provider -> a change request for Aaron
+    _form(c, "/portal/changes", {"provider": "PayPal"}, page=s)
+    with app.app_context():
+        assert ChangeRequest.query.filter(ChangeRequest.body.contains("PayPal")).count() == 1
+    adm = app.test_client(); _login(adm, "admin@test")
+    for show in ("open", "done", "all"):
+        assert adm.get(f"/admin/requests?show={show}").status_code == 200

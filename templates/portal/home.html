@@ -47,7 +47,7 @@
          when=('Today' if l.start_at.date() <= today else (l.start_at | ukdate('%a %-d %b'))) ~ ' · ' ~ l.start_at.strftime('%H:%M')) }}{% endfor %}{% endif %}
   {% set to_inv = unpaid | selectattr('stage', 'eq', 'done') | list %}{% set waiting_pay = unpaid | selectattr('stage', 'eq', 'invoiced') | list %}
   {% if to_inv %}<p class="work-group">Finished: send the invoice <span class="badge badge--acc">{{ to_inv|length }}</span></p>{% for l in to_inv[:5] %}{{ row(l, 'To invoice', 'acc') }}{% endfor %}{% endif %}
-  {% if waiting_pay %}<p class="work-group">Invoiced: waiting for payment</p>{% for l in waiting_pay[:5] %}{{ row(l, 'Invoiced', 'warn') }}{% endfor %}{% endif %}
+  {% if waiting_pay %}<p class="work-group">Invoiced: waiting for payment</p>{% for l in waiting_pay[:5] %}{{ row(l, 'Pay link opened' if l.pay_clicked_at else 'Invoiced', 'acc' if l.pay_clicked_at else 'warn') }}{% endfor %}{% endif %}
   {% if quoted %}<p class="work-group">Quotes waiting for an answer</p>{% for l in quoted[:5] %}{{ row(l, 'Quote sent', '') }}{% endfor %}{% endif %}
 </section>
 {% endif %}

@@ -33,6 +33,9 @@ def new_request(body):
 def changes():
     if request.method == "POST":
         body = (request.form.get("body") or "").strip()
+        provider = (request.form.get("provider") or "").strip()[:80]
+        if provider and not body:                    # Settings → "Use a different payment provider? Ask us"
+            body = f"Please add a payment provider for my invoices: {provider}"
         if not body:
             flash("Describe what you'd like.", "err")
             return redirect(url_for("portal.changes"))
