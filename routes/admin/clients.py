@@ -55,7 +55,8 @@ def home():
     unpaid_jobs = []
     for acc in Account.query.filter(Account.kind == "client").all():
         work = sum(float(j.price_gbp or 0) for j in acc.jobs if j.status == "done")
-        paid = sum(float(p.amount_gbp or 0) for p in acc.payments if not p.subscription_id)
+        paid = sum(float(p.amount_gbp or 0) for p in acc.payments
+                   if not p.subscription_id and p.method != "invoice")     # HapiTech invoices settle themselves
         if work - paid > 0.005:
             unpaid_jobs.append({"account": acc, "owed": round(work - paid, 2)})
     active_jobs = Job.query.filter(Job.status.in_(["booked", "in_progress"])).order_by(Job.due_date).all()
@@ -64,6 +65,22 @@ def home():
     latest_run = BenchRun.query.order_by(BenchRun.created_at.desc()).first()
     clients = Account.query.filter(Account.kind == "client", Account.status != "archived").order_by(Account.name).all()
     changes = ChangeRequest.query.filter(ChangeRequest.status != "done").order_by(ChangeRequest.created_at.desc()).limit(5).all()
+    # your own business (HapiTech's Jobs): new enquiries, quotes out, invoices waiting to be paid
+    from models.tasks import Task
+    from models.work import Invoice, Lead, Quote
+    from utils.hapitech_account import get as _ht
+    ht = _ht(create=False)
+    biz = {"enquiries": [], "quotes": [], "unpaid": [], "paid_month": 0}
+    if ht:
+        biz["enquiries"] = (Lead.query.filter(Lead.account_id == ht.id, Lead.status == "new", Lead.archived_at.is_(None))
+                            .order_by(Lead.created_at.desc()).all())
+        biz["quotes"] = Quote.query.filter(Quote.account_id == ht.id, Quote.status == "sent").order_by(Quote.sent_at).all()
+        biz["unpaid"] = Invoice.query.filter(Invoice.account_id == ht.id, Invoice.status == "sent").order_by(Invoice.sent_at).all()
+        biz["paid_month"] = sum(float(i.totals[2]) for i in Invoice.query.filter(
+            Invoice.account_id == ht.id, Invoice.status == "paid",
+            Invoice.paid_at >= dt.datetime.combine(month_start, dt.time())).all())
+        task_by_lead = {t.lead_id: t for t in Task.query.filter(Task.lead_id.isnot(None)).all()}
+        biz["task_for"] = task_by_lead
     from models.tasks import Task
     open_q = Task.query.filter(Task.status != "done")
     tasks_top = (open_q.filter(Task.status != "waiting")
@@ -71,7 +88,7 @@ def home():
                            Task.updated_at.desc()).limit(6).all())
     due_first = [t for t in open_q.filter(Task.status == "waiting").all() if t.due]   # waiting ones only when due
     tasks_top = (due_first + tasks_top)[:6]
-    return render_template("admin/home.html", tasks_top=tasks_top, tasks_open=open_q.count(),
+    return render_template("admin/home.html", tasks_top=tasks_top, tasks_open=open_q.count(), biz=biz,
                            tasks_due=any(t.due for t in tasks_top),
                            paid_month=paid_month, mrr=mrr, overdue=overdue, due_soon=due_soon,
                            unpaid_jobs=unpaid_jobs, active_jobs=active_jobs, new_reviews=new_reviews,

@@ -18,6 +18,7 @@
       {% endif %}
       {% if area == 'portal' %}
       var w = null; try { w = localStorage.getItem("layout"); } catch (e) {}
+      {% if current_user.is_admin %}if (!w) w = "wide";      // Aaron: same desktop layout as admin{% endif %}
       document.documentElement.setAttribute("data-layout", w === "wide" ? "wide" : "compact");
       {% endif %}
       document.documentElement.classList.add("js");
@@ -111,6 +112,10 @@
     </header>
 
     <main id="main" class="content">
+      {% if area == 'portal' and current_user.is_admin %}
+      <div class="viewing-as"><span>{% if g.account.slug == 'hapitech' %}🧰 <b>Your business</b>: HapiTech's own enquiries, jobs, quotes and invoices{% else %}👀 Viewing <b>{{ g.account.name }}</b>'s dashboard{% endif %}</span>
+        <a href="{{ url_for('admin.home') if g.account.slug == 'hapitech' else url_for('admin.client', slug=g.account.slug) }}">← Back to admin</a></div>
+      {% endif %}
       {% if area == 'portal' and g.account.offers_lv %}<div class="lang-row"><div class="lang" role="group" aria-label="Language" data-no-translate><button type="button" data-lang="en">EN</button><button type="button" data-lang="lv">LV</button></div></div>{% endif %}
       <div class="install" id="installBanner" hidden data-sw="/{{ area }}/sw.js" data-scope="/{{ area }}/">
         <img src="/app/{{ app_slug }}/icon-192.png" alt="" width="44" height="44" class="install__icon">

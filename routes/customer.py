@@ -60,7 +60,10 @@ def invoice(token):
     inv = Invoice.query.filter_by(token=token).first()
     if not inv or inv.status == "draft":
         abort(404)
-    return render_template("customer/invoice.html", a=inv.lead.account, inv=inv, lead=inv.lead)
+    from utils.pay_links import for_invoice
+    a = inv.lead.account
+    return render_template("customer/invoice.html", a=a, inv=inv, lead=inv.lead,
+                           pay=None if inv.status == "paid" else for_invoice(a, float(inv.totals[2])))
 
 
 @customer_bp.route("/u/<token>", methods=["GET", "POST"])

@@ -83,6 +83,8 @@ class Account(TimestampMixin, db.Model):
     business_address = db.Column(db.Text)
     vat_number = db.Column(db.String(40))                                    # blank = not VAT registered
     payment_details = db.Column(db.Text)                                     # e.g. bank name / sort code / account
+    pay_link_kind = db.Column(db.String(20))                                 # revolut | paypal | monzo | sumup | stripe | other
+    pay_link = db.Column(db.String(300))                                     # their link; one "Pay now" button on invoices
     quote_terms = db.Column(db.Text)
     # holiday / away mode (shown on their website while active)
     away_until = db.Column(db.Date)

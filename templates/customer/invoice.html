@@ -6,7 +6,11 @@
 <section class="rv__card">
   {% with d=inv, kind=('Receipt' if inv.status == 'paid' else 'Invoice') %}{% include "customer/_doc.html" %}{% endwith %}
   {% if inv.status == 'paid' %}<p class="doc__state ok">✓ Paid{% if inv.paid_at %} {{ inv.paid_at | ukdate }}{% endif %}. Thank you!</p>
-  {% elif a.payment_details %}<div class="doc__pay"><strong>How to pay</strong><p>{{ a.payment_details | nl2br }}</p><p class="small">Please use <b>{{ inv.number }}</b> as the reference.</p></div>{% endif %}
+  {% else %}
+    {% if pay %}<div class="doc__paynow noprint"><a class="doc__paybtn" style="--pay:{{ a.brand_colour or '#16181d' }}" href="{{ pay.url }}" target="_blank" rel="noopener">Pay {{ ('£%.2f' % inv.totals[2]) }} {{ 'online' if pay.kind == 'other' else 'with ' ~ pay.label }}</a>
+      <p class="small">{% if not pay.with_amount %}Enter <b>£{{ '%.2f' % inv.totals[2] }}</b> and {% else %}Please {% endif %}use <b>{{ inv.number }}</b> as the reference.</p></div>{% endif %}
+    {% if a.payment_details %}<div class="doc__pay"><strong>{{ 'Or pay by bank' if pay else 'How to pay' }}</strong><p>{{ a.payment_details | nl2br }}</p><p class="small">Please use <b>{{ inv.number }}</b> as the reference.</p></div>{% endif %}
+  {% endif %}
   <p class="noprint small" style="text-align:center"><a href="#" onclick="window.print();return false">Print or save as PDF</a></p>
 </section>
 {% endblock %}

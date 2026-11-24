@@ -263,6 +263,10 @@ def priced(lid, kind, did=None):
             db.session.add(doc)
         if f.get("action") == "paid" and kind == "invoice":
             doc.status, doc.paid_at = "paid", dt.datetime.utcnow()
+            if g.account.kind == "internal":
+                from utils.task_money import record_payment
+                db.session.flush()
+                record_payment(doc)
             db.session.commit()
             flash(f"{doc.number} marked as paid.", "ok")
             from models.tasks import Task
@@ -368,6 +372,13 @@ def settings():
             a.business_address = (f.get("business_address") or "").strip()[:500] or None
             a.vat_number = (f.get("vat_number") or "").strip()[:40] or None
             a.payment_details = (f.get("payment_details") or "").strip()[:500] or None
+            from utils.pay_links import clean
+            try:
+                a.pay_link_kind, a.pay_link = clean(f.get("pay_link_kind"), f.get("pay_link"))
+            except ValueError as e:
+                db.session.rollback()
+                flash(str(e), "err")
+                return redirect(url_for("portal.settings") + "#pay")
             a.quote_terms = (f.get("quote_terms") or "").strip()[:2000] or None
             a.contact_email = (f.get("contact_email") or "").strip()[:255] or a.contact_email
             flash("Saved. These show on your quotes and invoices.", "ok")
@@ -410,7 +421,8 @@ def settings():
         db.session.commit()
         return redirect(url_for("portal.settings"))
     staff = User.query.filter_by(account_id=a.id).order_by(User.role, User.email).all()
-    return render_template("portal/settings.html", staff=staff, today=dt.date.today())
+    from utils.pay_links import PROVIDERS
+    return render_template("portal/settings.html", staff=staff, today=dt.date.today(), pay_providers=PROVIDERS)
 
 
 # ---------------------------------------------------------------- top-of-page (hero) photo

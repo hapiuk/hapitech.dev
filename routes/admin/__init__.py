@@ -22,6 +22,9 @@ def _shell():
               "requests": ChangeRequest.query.filter_by(status="new").count() or None}
     from models.work import Lead
     counts["issues"] = Lead.query.filter_by(source="issue", status="new", archived_at=None).count() or None
+    from utils.hapitech_account import get as _ht
+    ht = _ht(create=False)
+    counts["my_jobs"] = (Lead.query.filter_by(account_id=ht.id, status="new", archived_at=None).count() or None) if ht else None
     from models.tasks import due_count
     counts["tasks"] = due_count() or None
     return {"area": "admin", "nav": admin_nav(counts)}

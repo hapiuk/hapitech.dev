@@ -24,3 +24,7 @@
   .rv__head,.rv__foot,.noprint{display:none!important}
   .rv__card{box-shadow:none;border:0;padding:0}
 }
+.doc__paynow{display:grid;gap:8px;justify-items:stretch;margin:14px 0}
+.doc__paybtn{display:block;text-align:center;padding:15px 18px;border-radius:999px;background:var(--pay,#16181d);color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none}
+.doc__paybtn:hover{filter:brightness(1.08)}
+.doc__paynow .small{text-align:center;margin:0}

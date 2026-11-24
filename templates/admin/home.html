@@ -30,6 +30,25 @@
       {% endfor %}</ul>
       {% else %}{{ empty('No open tasks', 'Add one from Tasks, or accept a change request.') }}{% endif %}
     </section>
+    <section class="card {{ 'card--accent' if biz.enquiries }}">
+      <div class="card__head"><h2>Your business</h2><a href="{{ url_for('admin.me', what='jobs') }}">Enquiries &amp; jobs →</a></div>
+      {% if not biz.enquiries and not biz.quotes and not biz.unpaid %}
+        <p class="small muted">No new enquiries, quotes out or unpaid invoices.{% if biz.paid_month %} {{ biz.paid_month | gbp(true) }} paid this month.{% endif %}</p>
+      {% else %}
+      <ul class="list">
+        {% for l in biz.enquiries[:5] %}
+        <li><a href="{{ url_for('admin.view_portal', slug='hapitech', next='/portal/jobs/' ~ l.id) }}"><strong>{{ l.name }}</strong> · {{ l.label }}</a><span class="badge badge--acc">New enquiry</span></li>
+        {% endfor %}
+        {% for q in biz.quotes %}{% set t = biz.task_for.get(q.lead_id) %}
+        <li><a href="{{ url_for('admin.task', tid=t.id) if t else url_for('admin.view_portal', slug='hapitech', next='/portal/jobs/' ~ q.lead_id) }}">Quote {{ q.number }} · {{ q.lead.name }}</a><span class="small">{{ q.totals[2] | gbp(true) }} <span class="badge">Waiting for an answer</span></span></li>
+        {% endfor %}
+        {% for i in biz.unpaid %}{% set t = biz.task_for.get(i.lead_id) %}
+        <li><a href="{{ url_for('admin.task', tid=t.id) if t else url_for('admin.view_portal', slug='hapitech', next='/portal/jobs/' ~ i.lead_id) }}">Invoice {{ i.number }} · {{ i.lead.name }}</a><span class="small">{{ i.totals[2] | gbp(true) }} <span class="badge badge--warn">Unpaid{% if i.sent_at %} · {{ i.sent_at | ago }}{% endif %}</span></span></li>
+        {% endfor %}
+      </ul>
+      {% if biz.paid_month %}<p class="small muted" style="margin-top:8px">{{ biz.paid_month | gbp(true) }} of your invoices paid this month.</p>{% endif %}
+      {% endif %}
+    </section>
     <section class="card">
       <div class="card__head"><h2>Needs attention</h2></div>
       {% if not overdue and not unpaid_jobs and not due_soon and not changes %}

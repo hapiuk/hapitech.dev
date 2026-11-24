@@ -815,3 +815,10 @@ details.platforms[open] > summary::after{content:" ▴"}
   .tipbar__text{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 }
 @media (max-width:960px){.look__row--desk{display:none}}
+.pay-pick{border:0;padding:0;margin:0;display:grid;gap:6px}
+.pay-pick__row{display:grid;grid-template-columns:200px minmax(0,1fr);gap:8px}
+@container main (max-width:640px){.pay-pick__row{grid-template-columns:1fr}}
+.viewing-as{display:flex;gap:8px 14px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin:0 0 14px;padding:8px 14px;border-radius:12px;
+  background:color-mix(in srgb,#f5b041 14%,var(--card));border:1px solid color-mix(in srgb,#f5b041 40%,transparent);font-size:.86rem}
+.viewing-as a{font-weight:700;white-space:nowrap}
+.page-home .content > .viewing-as{margin-bottom:8px}

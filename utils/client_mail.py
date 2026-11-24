@@ -68,11 +68,24 @@ def send_invoice(invoice):
     box = [("Invoice", invoice.number), ("Amount", f"£{invoice.totals[2]:,.2f}")]
     if invoice.due_date:
         box.append(("Please pay by", invoice.due_date.strftime("%-d %B %Y")))
+    from utils.pay_links import for_invoice
+    page = public_url(url_for("customer.invoice", token=invoice.token))
+    pay = for_invoice(lead.account, float(invoice.totals[2]))
+    if pay:                                          # one tap to pay; the invoice itself is a link underneath
+        _send(lead, f"Invoice {invoice.number} from {lead.account.name}",
+              heading=f"Thanks again, {_first(lead)}",
+              lines=[f"Here's the invoice for {lead.label.lower()}."],
+              box=box + [("Reference", invoice.number)],
+              button={"label": f"Pay £{invoice.totals[2]:,.2f} " + ("online" if pay["kind"] == "other" else f"with {pay['label']}"),
+                      "url": pay["url"]},
+              after=[("" if pay["with_amount"] else f"Enter £{invoice.totals[2]:,.2f} and ") + f"use {invoice.number} as the reference.",
+                     f"See the full invoice (or other ways to pay): {page}"])
+        return
     _send(lead, f"Invoice {invoice.number} from {lead.account.name}",
           heading=f"Thanks again, {_first(lead)}",
           lines=[f"Here's the invoice for {lead.label.lower()}. Payment details are on it."],
           box=box,
-          button={"label": "View your invoice", "url": public_url(url_for("customer.invoice", token=invoice.token))},
+          button={"label": "View your invoice", "url": page},
           after=["You can print it or save it as a PDF from that page."])
 
 

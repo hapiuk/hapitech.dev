@@ -63,7 +63,24 @@ def make_receipt(t, user_id=None):
     if inv.status != "paid":
         inv.status, inv.paid_at = "paid", dt.datetime.utcnow()
     db.session.flush()
+    record_payment(inv)
     client_mail.send_receipt(inv)
     inv.sent_at = dt.datetime.utcnow()
     db.session.commit()
     return inv
+
+
+def record_payment(inv):
+    """A HapiTech invoice was paid: record it on the client's Money tab (once, ref = invoice number),
+    so admin totals ("Paid this month", the client's history) include it. Doesn't commit."""
+    from models import db
+    from models.core import Account, Payment
+    lead = inv.lead
+    if not lead or not lead.account or lead.account.kind != "internal" or not lead.for_account_id:
+        return None
+    if Payment.query.filter_by(account_id=lead.for_account_id, ref=inv.number).first():
+        return None
+    p = Payment(account_id=lead.for_account_id, amount_gbp=inv.totals[2],
+                paid_at=(inv.paid_at or dt.datetime.utcnow()).date(), method="invoice", ref=inv.number)
+    db.session.add(p)
+    return p

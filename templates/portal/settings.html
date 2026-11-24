@@ -71,6 +71,17 @@
   <label class="field"><span>VAT number <small>leave blank if you're not VAT registered</small></span><input name="vat_number" value="{{ g.account.vat_number or '' }}"></label>
   <label class="field full"><span>Business address <small>optional</small></span><textarea name="business_address" rows="3">{{ g.account.business_address or '' }}</textarea></label>
   <label class="field full"><span>How customers pay you <small>shown on invoices, e.g. bank, sort code, account number</small></span><textarea name="payment_details" rows="3">{{ g.account.payment_details or '' }}</textarea></label>
+  <fieldset class="field full pay-pick" id="pay">
+    <span>Online payment button <small>one "Pay now" button on your invoices and invoice emails. Pick one.</small></span>
+    <div class="pay-pick__row">
+      <select name="pay_link_kind" aria-label="Payment provider">
+        <option value="">No online payment</option>
+        {% for k, p in pay_providers.items() %}<option value="{{ k }}" {{ 'selected' if g.account.pay_link_kind == k }} data-example="{{ p[3] }}">{{ p[0] }}</option>{% endfor %}
+      </select>
+      <input name="pay_link" value="{{ g.account.pay_link or '' }}" placeholder="Your payment link, e.g. https://revolut.me/yourname" inputmode="url" autocomplete="off">
+    </div>
+    <small class="muted">Revolut: in the app tap your name → <b>Share revolut.me link</b>. PayPal and Monzo links get the invoice amount filled in for the customer.</small>
+  </fieldset>
   <label class="field full"><span>Terms <small>optional, shown on quotes</small></span><textarea name="quote_terms" rows="3" placeholder="Quote valid for 30 days. Materials charged at cost.">{{ g.account.quote_terms or '' }}</textarea></label>
   <div class="form-actions full"><button class="btn btn--sm">Save</button></div>
 </form>

@@ -1093,7 +1093,7 @@ def test_report_an_issue(app):
     assert o.post("/portal/issue", headers={"X-CSRF-Token": tok}, json={"what": ""}).status_code == 400
     adm = app.test_client(); _login(adm, "admin@test")
     home = adm.get("/admin/").get_data(as_text=True)
-    assert "Reported issues" in home
+    assert "Enquiries &amp; jobs" in home and "side__badge" in home      # issues land in your own Jobs
     adm.get("/admin/me/jobs")
     assert "Roland" in adm.get("/portal/jobs").get_data(as_text=True)
     # Roland's own Jobs never shows it
@@ -2093,3 +2093,46 @@ def test_dashboard_layout_switch_and_fitted_home(app):
     assert 'data-look="layout" data-val="compact"' in settings and 'data-val="wide"' in settings
     adm = app.test_client(); _login(adm, "admin@test")
     assert 'localStorage.getItem("layout")' not in adm.get("/admin/").get_data(as_text=True)   # admin unchanged
+
+
+def test_pay_link_on_invoices_and_your_business_on_admin(app):
+    from models import db
+    from models.core import Account, Payment
+    from models.work import Invoice, Lead
+    from utils.hapitech_account import get as hapitech
+    with app.app_context():
+        ht = hapitech()
+        ro = Account.query.filter_by(slug="rolands").first()
+        lead = Lead(account_id=ht.id, source="enquiry", status="new", name="Roland", email="roland@test",
+                    for_account_id=ro.id, title="New page")
+        db.session.add(lead); db.session.commit(); lid, roid = lead.id, ro.id
+    adm = app.test_client(); _login(adm, "admin@test")
+    # pick one provider in Settings; a bad link is refused
+    s = "/portal/settings?as=hapitech"
+    _form(adm, s, {"action": "business", "pay_link_kind": "revolut", "pay_link": "https://evil.example/x"}, page=s)
+    with app.app_context():
+        assert hapitech().pay_link is None
+    _form(adm, s, {"action": "business", "pay_link_kind": "revolut", "pay_link": "revolut.me/aaron"}, page=s)
+    with app.app_context():
+        assert hapitech().pay_link_kind == "revolut" and hapitech().pay_link == "https://revolut.me/aaron"
+    home = adm.get("/admin/").get_data(as_text=True)
+    assert "Your business" in home and "New enquiry" in home
+    # invoice sent: email + page have the Pay button; paid: recorded on the client's Money tab once
+    page = f"/portal/jobs/{lid}/invoice?as=hapitech"
+    _form(adm, page, {"desc": "Page", "qty": "1", "price": "80", "vat_rate": "0", "action": "send"}, page=page)
+    mail = _html_of([m for m in _outbox(app) if "To: roland@test" in m and "Invoice INV" in m][-1])
+    assert "Pay £80.00 with Revolut" in mail and "https://revolut.me/aaron" in mail
+    with app.app_context():
+        inv = Invoice.query.filter_by(lead_id=lid).one(); token, iid = inv.token, inv.id
+    assert "Pay £80.00 with Revolut" in app.test_client().get(f"/i/{token}").get_data(as_text=True)
+    assert "Invoice INV" in adm.get("/admin/").get_data(as_text=True) and "Unpaid" in adm.get("/admin/").get_data(as_text=True)
+    pd = f"/portal/jobs/{lid}/invoice/{iid}?as=hapitech"
+    _form(adm, pd, {"action": "paid"}, page=pd)
+    _form(adm, pd, {"action": "paid"}, page=pd)
+    with app.app_context():
+        pays = Payment.query.filter_by(account_id=roid).all()
+        assert len(pays) == 1 and float(pays[0].amount_gbp) == 80 and pays[0].ref.startswith("INV-")
+    assert "Pay £" not in app.test_client().get(f"/i/{token}").get_data(as_text=True)          # receipt: no button
+    # in a dashboard as admin: a clear "where am I" strip with a way back
+    assert "Your business" in adm.get("/portal/?as=hapitech").get_data(as_text=True)
+    assert "Viewing <b>Roland" in adm.get("/portal/?as=rolands").get_data(as_text=True)
