@@ -296,6 +296,19 @@ class ChangeRequest(db.Model):
     account = db.relationship("Account")
     author = db.relationship("User")
 
+    @property
+    def ref(self):
+        return f"R-{self.id}"
+
+    @property
+    def status_label(self):
+        return {"new": "Received", "doing": "Accepted", "done": "Done"}.get(self.status, self.status)
+
+    @property
+    def task(self):
+        from .tasks import Task
+        return Task.query.filter_by(change_request_id=self.id).first()
+
 
 class LoginAttempt(db.Model):
     """Failed/successful logins, used for rate limiting across workers."""

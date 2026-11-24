@@ -1,0 +1,40 @@
+{% extends "app/base.html" %}
+{% from "app/_macros.html" import empty with context %}
+{% block title %}Requests{% endblock %}
+{% block content %}
+<div class="page-top"><div><h1>Requests</h1><p>Changes and jobs you've asked Aaron for, and how they're going. Tap one to see updates or reply.</p></div></div>
+<div class="grid grid--side">
+  <div>
+    <form method="get" class="task-filters">
+      <input type="search" name="q" value="{{ q }}" placeholder="Search, or a number (T-12, R-3)" aria-label="Search your requests">
+      <button class="btn btn--ghost btn--sm" type="submit">Search</button>
+      {% if q %}<a class="btn btn--ghost btn--sm" href="{{ url_for('portal.changes') }}">Clear</a>{% endif %}
+    </form>
+    <section class="card card--flush">
+      {% for i in items %}{% if i.kind == 'cr' %}{% set r = i.r %}
+      <a class="job-row" href="{{ url_for('portal.request_cr', rid=r.id) }}">
+        <strong><span class="ref">{{ r.ref }}</span> {{ r.body.splitlines()[0][:90] }}{% if r.body|length > 90 %}…{% endif %}</strong>
+        <span class="badge badge--{{ {'new':'acc','doing':'warn','done':'ok'}[r.status] }}">{{ 'Waiting for Aaron' if r.status == 'new' else r.status_label }}</span>
+        <span class="job-row__meta"><span>Sent {{ r.created_at | ukdate('%-d %b %Y') }}</span></span>
+      </a>
+      {% else %}{% set t = i.t %}
+      <a class="job-row" href="{{ url_for('portal.request_task', tid=t.id) }}">
+        <strong><span class="ref">{{ t.ref }}</span> {{ t.title }}</strong>
+        <span class="badge badge--{{ {'todo':'acc','doing':'warn','waiting':'','done':'ok'}[t.status] }}">{{ {'todo':'Accepted','doing':'In progress','waiting':'On hold','done':'Done'}[t.status] }}</span>
+        <span class="job-row__meta">{% if t.change_request_id %}<span>your request R-{{ t.change_request_id }}</span>{% endif %}
+          {% if t.shared_notes %}<span>💬 {{ t.shared_notes|length }}</span>{% endif %}<span>updated {{ t.updated_at | ago }}</span></span>
+      </a>
+      {% endif %}{% endfor %}
+      {% if not items %}<div style="padding:22px">{{ empty('Nothing here' if q else 'No requests yet', 'Ask for a change using the box.' if not q else '') }}</div>{% endif %}
+    </section>
+  </div>
+  <aside>
+    <form method="post" class="card stack">
+      <div class="card__head"><h3>Ask Aaron</h3></div>
+      <label class="field"><span>A change you'd like, or a question</span><textarea name="body" rows="5" required placeholder="e.g. Can we add a page for kitchen fitting?"></textarea></label>
+      <div><button class="btn btn--sm">Send</button></div>
+      <p class="small muted">You'll get an email when Aaron picks it up, and at each update.</p>
+    </form>
+  </aside>
+</div>
+{% endblock %}

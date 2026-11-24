@@ -195,10 +195,23 @@ def client(slug):
         traffic = summary(a)
     requests_sent = (ReviewRequest.query.filter_by(account_id=a.id).order_by(ReviewRequest.created_at.desc()).limit(50).all()
                      if tab == "reviews" else [])
-    from models.tasks import open_for
+    from models.tasks import Task, open_for
     open_tasks = open_for(a.id) if tab == "overview" else []
+    tab_counts = {"tasks": Task.query.filter(Task.account_id == a.id, Task.status != "done").count(),
+                  "requests": ChangeRequest.query.filter_by(account_id=a.id, status="new").count()}
+    crs = ChangeRequest.query.filter_by(account_id=a.id).order_by(
+        db.case((ChangeRequest.status == "done", 1), else_=0), ChangeRequest.created_at.desc())
+    recent_requests = crs.limit(5).all() if tab == "overview" else []
+    client_requests = crs.all() if tab == "requests" else []
+    cr_tasks = ({t.change_request_id: t for t in Task.query.filter(Task.change_request_id.in_([r.id for r in client_requests]))}
+                if client_requests else {})
+    client_tasks = []
+    if tab == "tasks":
+        from routes.admin.tasks import filtered
+        client_tasks = filtered("all", a.slug).all()
     return render_template("admin/client.html", a=a, tab=tab, reviews=reviews, stats=stats, requests_sent=requests_sent,
-                           open_tasks=open_tasks,
+                           open_tasks=open_tasks, tab_counts=tab_counts, recent_requests=recent_requests,
+                           client_requests=client_requests, tasks=cr_tasks, hl=None, client_tasks=client_tasks,
                            job_types=JOB_TYPES, job_statuses=JOB_STATUSES, today=dt.date.today(), new_key=new_key,
                            t=traffic, value=value, extras=__import__("utils.extras", fromlist=["x"]).EXTRAS,
                            extra_status=__import__("utils.extras", fromlist=["x"]).status, friends_end=__import__("utils.plans", fromlist=["x"]).friends_end_default())
@@ -456,22 +469,34 @@ def change_requests():
                                         ChangeRequest.created_at.desc()).all()
     from models.tasks import Task
     tasks = {t.change_request_id: t for t in Task.query.filter(Task.change_request_id.isnot(None)).all()}
-    return render_template("admin/change_requests.html", rows=rows, tasks=tasks)
+    hl = request.args.get("r", type=int)
+    return render_template("admin/change_requests.html", rows=rows, tasks=tasks, hl=hl)
 
 
 @admin_bp.route("/requests/<int:rid>", methods=["POST"])
 def change_request_set(rid):
     r = db.session.get(ChangeRequest, rid) or abort(404)
-    if request.form.get("status") in ("new", "doing", "done"):
-        r.status = request.form["status"]
-        if r.status == "doing":                 # accepted: it becomes a task (once), with their words as a note
-            from models.tasks import from_change_request
-            t, made = from_change_request(r, current_user.id)
-            db.session.commit()
+    new = request.form.get("status")
+    if new in ("new", "doing", "done") and new != r.status:
+        from routes.admin.tasks import accept_change_request, change_status
+        from utils import task_mail
+        if new == "doing":                      # accepted: it becomes a shared task (once); the client is told
+            t, made = accept_change_request(r)
             if made:
-                flash(f"Added to Tasks: {t.title}", "ok")
+                flash(f"Accepted: added to Tasks as {t.ref}.", "ok")
+        elif new == "done":
+            r.status = "done"
+            t = r.task
+            if t:
+                change_status(t, "done")        # tells the client, with a link to the task
+            else:
+                db.session.commit()
+                task_mail.tell_client_request(r, "Done", "Your request is done ✓",
+                                              ["Aaron has marked your request as done."])
+        else:
+            r.status = new
         db.session.commit()
-    return redirect(url_for("admin.change_requests"))
+    return redirect(url_for("admin.change_requests") + f"#r{rid}")
 
 
 # ---------------------------------------------------------------- update notes for clients (docs/client-updates.md)

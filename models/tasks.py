@@ -19,13 +19,24 @@ class Task(TimestampMixin, db.Model):
     status = db.Column(db.String(20), nullable=False, default="todo")
     account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), index=True)          # None = HapiTech infra
     change_request_id = db.Column(db.Integer, db.ForeignKey("change_requests.id"), index=True)
+    lead_id = db.Column(db.Integer, db.ForeignKey("leads.id"), index=True)              # a HapiTech job it came from
+    shared = db.Column(db.Boolean, nullable=False, default=False)                       # the client can see + comment
     remind_on = db.Column(db.Date)
     reminded_at = db.Column(db.DateTime)               # reminder email sent for the current remind_on
     done_at = db.Column(db.DateTime)
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"))
     account = db.relationship("Account")
     change_request = db.relationship("ChangeRequest")
+    lead = db.relationship("Lead")
     notes = db.relationship("TaskNote", lazy=True, cascade="all, delete-orphan", order_by="TaskNote.created_at")
+
+    @property
+    def ref(self):
+        return f"T-{self.id}"
+
+    @property
+    def shared_notes(self):
+        return [n for n in self.notes if n.shared]
 
     @property
     def tag(self):
@@ -59,10 +70,14 @@ class TaskNote(db.Model):
     author_kind = db.Column(db.String(20), nullable=False, default="aaron")   # aaron | claude | client
     author_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     body = db.Column(db.Text, nullable=False)
+    shared = db.Column(db.Boolean, nullable=False, default=False)      # shown to the client (client comments always are)
     created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
+    author = db.relationship("User")
 
     @property
     def author_label(self):
+        if self.author_kind == "client" and self.author and not self.author.is_admin:
+            return self.author.name or self.author.email
         return {"aaron": "Aaron", "claude": "Claude", "client": "Client"}.get(self.author_kind, self.author_kind)
 
 
@@ -83,7 +98,48 @@ def from_change_request(cr, user_id=None):
         return t, False
     first = (cr.body or "").strip().splitlines()[0] if (cr.body or "").strip() else "Change request"
     t = Task(title=f"Change: {first}"[:200], account_id=cr.account_id, change_request_id=cr.id,
-             status="doing", created_by=user_id)
-    t.notes.append(TaskNote(author_kind="client", body=cr.body or "", created_at=cr.created_at))
+             status="doing", created_by=user_id, shared=True)
+    t.notes.append(TaskNote(author_kind="client", author_id=cr.created_by, body=cr.body or "", shared=True,
+                            created_at=cr.created_at))
+    db.session.add(t)
+    return t, True
+
+
+def parse_ref(q):
+    """'T-12', 't12', '#12', '12' -> ("T", 12); 'R-3' -> ("R", 3); anything else -> (None, None)."""
+    import re
+    m = re.fullmatch(r"\s*#?\s*([TtRr])?\s*-?\s*(\d{1,9})\s*", q or "")
+    if not m:
+        return None, None
+    return (m.group(1) or "T").upper(), int(m.group(2))
+
+
+def text_filter(query, q, shared_only=False):
+    """Narrow a Task query by an ID or words in the title / notes (clients: only notes they can see)."""
+    kind, num = parse_ref(q)
+    if kind == "T":
+        return query.filter(Task.id == num)
+    if kind == "R":
+        return query.filter(Task.change_request_id == num)
+    like = f"%{q.strip()}%"
+    notes = db.session.query(TaskNote.task_id).filter(TaskNote.body.ilike(like))
+    if shared_only:
+        notes = notes.filter(TaskNote.shared.is_(True))
+    return query.filter(db.or_(Task.title.ilike(like), Task.id.in_(notes)))
+
+
+def from_lead(lead, account, user_id=None):
+    """An accepted HapiTech job becomes a task under the client (once). Shared with the client unless it's
+    a hapitech.report report about them."""
+    t = Task.query.filter_by(lead_id=lead.id).first()
+    if t:
+        return t, False
+    what = lead.title or ((lead.message or "").strip().splitlines() or [lead.name])[0]
+    t = Task(title=(what or "Job")[:200], account_id=account.id if account else None, lead_id=lead.id,
+             status="todo", created_by=user_id, shared=bool(account) and lead.source != "report")
+    if lead.message:
+        t.notes.append(TaskNote(author_kind="client", body=lead.message, shared=t.shared, created_at=lead.created_at))
+    if lead.notes:
+        t.notes.append(TaskNote(author_kind="aaron", author_id=user_id, body=lead.notes, shared=False))
     db.session.add(t)
     return t, True

@@ -1,0 +1,13 @@
+<a class="job-row task-row" href="{{ url_for('admin.task', tid=t.id) }}">
+  <strong><span class="ref">{{ t.ref }}</span> {{ t.title }}</strong>
+  <span class="badge badge--{{ {'todo':'acc','doing':'acc','waiting':'warn','done':'ok'}[t.status] }}">{{ t.status_label }}</span>
+  <span class="job-row__meta">
+    <span class="badge {{ '' if t.account else 'badge--acc' }}">{{ t.tag }}</span>
+    {% if t.shared %}<span title="The client can see this">👁 Shared</span>{% endif %}
+    {% if t.remind_on and t.status != 'done' %}<span class="{{ 'task-due' if t.due else '' }}">⏰ {{ 'Due ' if t.due else '' }}{{ t.remind_on | ukdate('%a %-d %b') }}</span>{% endif %}
+    {% if t.change_request_id %}<span>from R-{{ t.change_request_id }}</span>{% endif %}
+    {% if t.lead_id %}<span>from a job</span>{% endif %}
+    {% if t.notes %}<span>💬 {{ t.notes|length }}</span>{% endif %}
+    <span>{{ t.updated_at | ago }}</span>
+  </span>
+</a>

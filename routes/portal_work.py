@@ -166,32 +166,24 @@ def job(lid):
                     msg += f" (Review email failed: {exc})"
             flash(msg, "ok")
         elif action == "make-client" and current_user.is_admin and g.account.kind == "internal" and not lead.for_account_id:
-            from models.core import Account as _Acc, Note as _Note, User as _User, slugify as _slugify
-            from routes.admin.clients import ADDED_NOTE
-            email = (lead.email or "").strip().lower()
-            if not email or _User.query.filter(db.func.lower(_User.email) == email).first():
-                flash("They need an email address that doesn't already have a login.", "err")
+            acc, err = make_client_from_lead(lead)
+            if err:
+                flash(err, "err")
                 return redirect(url_for("portal.job", lid=lead.id))
-            business = ""
-            for line in (lead.notes or "").splitlines() + (lead.message or "").splitlines():
-                if line.startswith("Business: "):
-                    business = line[len("Business: "):].strip()
-                    break
-            name = business or lead.name
-            base, n, slug = _slugify(name), 2, _slugify(name)
-            while _Acc.query.filter_by(slug=slug).first():
-                slug, n = f"{base}-{n}", n + 1
-            acc = _Acc(kind="client", name=name[:160], slug=slug, contact_name=lead.name, contact_email=email,
-                          contact_phone=lead.phone)
-            db.session.add(acc)
-            db.session.flush()
-            db.session.add(_User(email=email, username=email, name=lead.name, role="owner", account_id=acc.id, is_active_flag=False))
-            db.session.add(_Note(account_id=acc.id, author_id=current_user.id, body=ADDED_NOTE))
-            db.session.add(_Note(account_id=acc.id, author_id=current_user.id, body=f"From enquiry: {lead.title or ''}\n\n{lead.message or ''}"[:4000]))
-            lead.for_account_id = acc.id
             db.session.commit()
             flash(f"{acc.name} is now a client (login off). Send their invite from Emails to clients → Invite new clients.", "ok")
             return redirect(url_for("admin.client", slug=acc.slug))
+        elif action == "accept-task" and current_user.is_admin and g.account.kind == "internal":
+            # HapiTech's own jobs: accepting one makes a task under the client instead of a booking
+            acc = client_for_lead(lead)
+            if not acc and f.get("as") == "new-client":
+                acc, err = make_client_from_lead(lead)
+                if err:
+                    flash(err, "err")
+                    return redirect(url_for("portal.job", lid=lead.id))
+            t, made = accept_into_task(lead, acc)
+            flash(f"Accepted: task {t.ref} for {t.tag}." if made else f"Already a task: {t.ref}.", "ok")
+            return redirect(url_for("admin.task", tid=t.id))
         elif action == "spam" and lead.status == "new":
             db.session.delete(lead)
             db.session.commit()
@@ -235,7 +227,11 @@ def job(lid):
         db.session.commit()
         return redirect(url_for("portal.job", lid=lid))
     staff = User.query.filter_by(account_id=g.account.id, is_active_flag=True).all()
-    return render_template("portal/job.html", lead=lead, staff=staff, today=dt.date.today())
+    own = {}
+    if g.account.kind == "internal" and current_user.is_admin:          # HapiTech's own job: accept → task
+        from models.tasks import Task
+        own = {"task": Task.query.filter_by(lead_id=lead.id).first(), "client": client_for_lead(lead)}
+    return render_template("portal/job.html", lead=lead, staff=staff, today=dt.date.today(), own=own)
 
 
 # ---------------------------------------------------------------- quotes & invoices
@@ -566,3 +562,63 @@ def prefs():
         current_user.set_pref("share_tip_off", bool(data["share_tip_off"]))
         db.session.commit()
     return jsonify({"ok": True})
+
+
+# ---------------------------------------------------------------- HapiTech's own jobs → Tasks
+
+def client_for_lead(lead):
+    """Which client a HapiTech job is about: the linked account, or the account of whoever sent it."""
+    from models.core import Account, User
+    if lead.for_account_id:
+        return db.session.get(Account, lead.for_account_id)
+    email = (lead.email or "").strip().lower()
+    if not email:
+        return None
+    u = User.query.filter(db.func.lower(User.email) == email, User.account_id.isnot(None)).first()
+    if u and u.account and u.account.kind == "client":
+        return u.account
+    return Account.query.filter(Account.kind == "client", db.func.lower(Account.contact_email) == email).first()
+
+
+def make_client_from_lead(lead):
+    """Set an enquirer up as a client (login off until invited). Returns (account, error). Doesn't commit."""
+    from models.core import Account as _Acc, Note as _Note, User as _User, slugify as _slugify
+    from routes.admin.clients import ADDED_NOTE
+    email = (lead.email or "").strip().lower()
+    if not email or _User.query.filter(db.func.lower(_User.email) == email).first():
+        return None, "They need an email address that doesn't already have a login."
+    business = ""
+    for line in (lead.notes or "").splitlines() + (lead.message or "").splitlines():
+        if line.startswith("Business: "):
+            business = line[len("Business: "):].strip()
+            break
+    name = business or lead.name
+    base, n, slug = _slugify(name), 2, _slugify(name)
+    while _Acc.query.filter_by(slug=slug).first():
+        slug, n = f"{base}-{n}", n + 1
+    acc = _Acc(kind="client", name=name[:160], slug=slug, contact_name=lead.name, contact_email=email,
+               contact_phone=lead.phone)
+    db.session.add(acc)
+    db.session.flush()
+    db.session.add(_User(email=email, username=email, name=lead.name, role="owner", account_id=acc.id, is_active_flag=False))
+    db.session.add(_Note(account_id=acc.id, author_id=current_user.id, body=ADDED_NOTE))
+    db.session.add(_Note(account_id=acc.id, author_id=current_user.id, body=f"From enquiry: {lead.title or ''}\n\n{lead.message or ''}"[:4000]))
+    lead.for_account_id = acc.id
+    return acc, None
+
+
+def accept_into_task(lead, acc, user_id=None):
+    """Mark a HapiTech job accepted and file it as a task under the client (or HapiTech infra). Commits.
+    Tells the client when the task is shared with them."""
+    from models.tasks import from_lead
+    from utils import task_mail
+    if lead.status in ("new", "quoted"):
+        lead.status = "accepted"
+    if acc and not lead.for_account_id:
+        lead.for_account_id = acc.id
+    t, made = from_lead(lead, acc, user_id or (current_user.id if current_user.is_authenticated else None))
+    db.session.commit()
+    if made and t.shared:
+        task_mail.tell_client_task(t, "Accepted", "Aaron's on it",
+                                   ["Aaron has accepted this and added it to your requests. You can follow it and reply there."])
+    return t, made

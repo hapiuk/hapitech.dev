@@ -39,6 +39,10 @@ def quote(token):
             q.status, q.responded_at = "accepted", now
             if lead.status in ("new", "quoted"):
                 lead.status = "accepted"
+            if a.kind == "internal":                 # HapiTech's own job: it becomes a task under the client
+                from routes.portal_work import accept_into_task, client_for_lead
+                db.session.commit()
+                accept_into_task(lead, client_for_lead(lead), user_id=None)
             _notify_owner(a, f"Good news: {lead.name} accepted your quote",
                           "Your quote was accepted 🎉", [f"{lead.name} accepted your quote. Next, pick a date for the job."],
                           box=[("Quote", q.number), ("Total", f"£{q.totals[2]:,.2f}"), ("Job", lead.label)])

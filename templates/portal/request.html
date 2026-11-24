@@ -1,0 +1,43 @@
+{% extends "app/base.html" %}
+{% block title %}{{ (t.ref if t else cr.ref) }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ url_for('portal.changes') }}">Requests</a> / {{ t.ref if t else cr.ref }}</p>
+{% if t %}
+{% set label = {'todo':'Accepted','doing':'In progress','waiting':'On hold','done':'Done ✓'}[t.status] %}
+<header class="task-head">
+  <div class="task-head__title">
+    <h1><span class="ref ref--lg">{{ t.ref }}</span> {{ t.title }}</h1>
+    <p class="task-head__meta"><span class="badge badge--{{ {'todo':'acc','doing':'warn','waiting':'','done':'ok'}[t.status] }}">{{ label }}</span>
+      {% if cr %}<span class="muted">your request {{ cr.ref }}, sent {{ cr.created_at | ukdate('%-d %b %Y') }}</span>{% endif %}
+      <span class="muted">updated {{ t.updated_at | ago }}</span></p>
+  </div>
+</header>
+<section class="card task-thread" style="max-width:820px">
+  <div class="card__head"><h2>Updates</h2></div>
+  {% if notes %}<ol class="notes">{% for n in notes %}
+    <li class="note note--{{ 'client' if n.author_kind == 'client' else 'aaron' }}"><div class="note__head"><strong>{{ 'You' if n.author_id == current_user.id and n.author_kind == 'client' else ('Aaron' if n.author_kind != 'client' else n.author_label) }}</strong>
+      <span class="muted small">{{ n.created_at | ukdate('%-d %b %Y, %H:%M') }}</span></div>
+      <div class="note__body">{{ n.body }}</div></li>
+  {% endfor %}</ol>{% else %}<p class="muted small">No updates yet.</p>{% endif %}
+  <form method="post" class="composer" id="reply">
+    <label class="sr-only" for="replyBody">Reply to Aaron</label>
+    <textarea id="replyBody" name="body" rows="3" required placeholder="Reply to Aaron…"></textarea>
+    <div class="composer__bar"><span class="small muted">Aaron gets an email.</span><button class="btn btn--sm" type="submit">Send</button></div>
+  </form>
+</section>
+{% else %}
+<header class="task-head">
+  <div class="task-head__title">
+    <h1><span class="ref ref--lg">{{ cr.ref }}</span> Your request</h1>
+    <p class="task-head__meta"><span class="badge badge--{{ {'new':'acc','doing':'warn','done':'ok'}[cr.status] }}">{{ 'Waiting for Aaron' if cr.status == 'new' else cr.status_label }}</span>
+      <span class="muted">sent {{ cr.created_at | ukdate('%-d %b %Y, %H:%M') }}{% if cr.author %} by {{ cr.author.name or cr.author.email }}{% endif %}</span></p>
+  </div>
+</header>
+<section class="card" style="max-width:820px">
+  <p class="note__body" style="margin:0">{{ cr.body }}</p>
+  <hr class="hr">
+  <p class="small muted">{% if cr.status == 'new' %}Aaron will look at it soon. You'll get an email when he accepts it, and you can follow it and reply here.{% elif cr.status == 'done' %}Marked as done.{% else %}Accepted.{% endif %}
+    Anything to add? Email <a href="mailto:aaron@hapitech.dev?subject={{ cr.ref | urlencode }}">aaron@hapitech.dev</a> quoting {{ cr.ref }}.</p>
+</section>
+{% endif %}
+{% endblock %}

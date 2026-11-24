@@ -18,7 +18,25 @@
   <div>
     {# ---------------- next step ---------------- #}
     <section class="card card--accent" id="book">
-      {% if lead.status in ('new', 'quoted', 'accepted') %}
+      {% if own and own.task %}
+        <div class="card__head"><h2>Accepted ✓ <span class="ref">{{ own.task.ref }}</span></h2></div>
+        <p>This is now a task for <strong>{{ own.task.tag }}</strong>{% if own.task.shared %}, and they can follow it in their dashboard{% endif %}.</p>
+        <p style="margin-top:10px"><a class="btn btn--block" href="{{ url_for('admin.task', tid=own.task.id) }}">Open {{ own.task.ref }}</a></p>
+      {% elif own and lead.status in ('new', 'quoted', 'accepted') %}
+        <div class="card__head"><h2>Next step</h2></div>
+        <div class="stack">
+          {% if lead.status != 'accepted' %}<a class="btn btn--ghost btn--block" href="{{ url_for('portal.priced', lid=lead.id, kind='quote') }}">{{ 'Send another quote' if lead.quotes else 'Write a quote' }}</a>{% endif %}
+          <p class="small muted">Accepting files it as a task in <a href="{{ url_for('admin.tasks') }}">Tasks</a> instead of booking it in{% if own.client %}, shared with {{ own.client.name }} so they can follow it{% endif %}.</p>
+          <form method="post" class="stack"><input type="hidden" name="action" value="accept-task">
+            {% if own.client %}
+              <button class="btn btn--block" type="submit">Accept: task for {{ own.client.name }}</button>
+            {% else %}
+              {% if lead.email and lead.source not in ('report', 'issue') %}<button class="btn btn--block" type="submit" name="as" value="new-client" data-confirm="Set {{ lead.name }} up as a client (login off until you invite them) and make a task?">Accept: make them a client + task</button>{% endif %}
+              <button class="btn btn--ghost btn--block" type="submit" name="as" value="infra">Accept as a HapiTech infra task</button>
+            {% endif %}
+          </form>
+        </div>
+      {% elif lead.status in ('new', 'quoted', 'accepted') %}
         <div class="card__head"><h2>{{ 'They accepted your quote. Pick a date' if lead.status == 'accepted' else 'Next step' }}</h2></div>
         <div class="stack">
           {% if lead.status != 'accepted' and current_user.is_owner %}

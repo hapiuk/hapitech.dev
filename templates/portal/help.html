@@ -39,8 +39,8 @@
       <div><button class="btn btn--sm">Send</button></div>
       <p class="small muted">Or email <a href="mailto:aaron@hapitech.dev">aaron@hapitech.dev</a></p>
     </form>
-    {% if rows %}<section class="card"><div class="card__head"><h3>Your requests</h3></div>
-      <ul class="list">{% for r in rows %}<li class="small"><span>{{ r.body[:70] }}{% if r.body|length > 70 %}…{% endif %}</span>{{ status_badge(r.status) }}</li>{% endfor %}</ul></section>{% endif %}
+    {% if rows %}<section class="card"><div class="card__head"><h3>Your requests</h3><a class="small" href="{{ url_for('portal.changes') }}">All →</a></div>
+      <ul class="list">{% for r in rows[:5] %}<li class="small"><a href="{{ url_for('portal.request_cr', rid=r.id) }}"><span class="ref">{{ r.ref }}</span> {{ r.body[:60] }}{% if r.body|length > 60 %}…{% endif %}</a><span class="badge badge--{{ {'new':'acc','doing':'warn','done':'ok'}[r.status] }}">{{ r.status_label }}</span></li>{% endfor %}</ul></section>{% endif %}
   </aside>
 </div>
 {% endblock %}

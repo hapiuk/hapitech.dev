@@ -16,8 +16,8 @@
 </div>
 
 <nav class="subnav" aria-label="Client sections">
-  {% for key, label in [('overview','Overview'),('jobs','Jobs'),('money','Money'),('users','Logins'),('reviews','Reviews'),('traffic','Visitors'),('site','Website')] if not (key == 'money' and a.kind == 'internal') %}
-    <a href="{{ url_for('admin.client', slug=a.slug, tab=key) }}" {% if tab == key %}aria-current="page"{% endif %}>{{ label }}</a>
+  {% for key, label in [('overview','Overview'),('tasks','Tasks'),('requests','Requests'),('jobs','Jobs'),('money','Money'),('users','Logins'),('reviews','Reviews'),('traffic','Visitors'),('site','Website')] if not (key == 'money' and a.kind == 'internal') %}
+    <a href="{{ url_for('admin.client', slug=a.slug, tab=key) }}" {% if tab == key %}aria-current="page"{% endif %}>{{ label }}{% if key == 'tasks' and tab_counts.tasks %} <span class="badge">{{ tab_counts.tasks }}</span>{% elif key == 'requests' and tab_counts.requests %} <span class="badge badge--acc">{{ tab_counts.requests }}</span>{% endif %}</a>
   {% endfor %}
 </nav>
 
@@ -28,17 +28,28 @@
   {{ stat('Reviews', stats.reviews, ('%.1f★ average' % stats.avg) if stats.avg else 'none yet') }}
   {{ stat('Review requests', stats.requests, 'sent from their dashboard') }}
 </div>
+<div class="grid grid--2 grid--eq" style="margin-top:16px">
+  <section class="card">
+    <div class="card__head"><h2>Open tasks</h2><a class="small" href="{{ url_for('admin.task_new', **{'for': a.slug}) }}">+ New task</a></div>
+    {% if open_tasks %}<ul class="list">{% for t in open_tasks[:6] %}
+      <li><a href="{{ url_for('admin.task', tid=t.id) }}"><span class="ref">{{ t.ref }}</span> {{ t.title }}</a>
+        <span class="small" style="white-space:nowrap">{% if t.shared %}👁 {% endif %}{% if t.remind_on %}<span class="{{ 'task-due' if t.due else 'muted' }}">⏰ {{ t.remind_on | ukdate('%-d %b') }}</span> {% endif %}<span class="badge badge--{{ 'warn' if t.status == 'waiting' else 'acc' }}">{{ t.status_label }}</span></span></li>
+    {% endfor %}</ul>
+    {% else %}<p class="muted small">No open tasks.</p>{% endif %}
+    <p class="small card__foot"><a href="{{ url_for('admin.client', slug=a.slug, tab='tasks') }}">All tasks →</a></p>
+  </section>
+  <section class="card">
+    <div class="card__head"><h2>Change requests</h2>{% if tab_counts.requests %}<span class="badge badge--acc">{{ tab_counts.requests }} new</span>{% endif %}</div>
+    {% if recent_requests %}<ul class="list">{% for r in recent_requests %}{% set t = r.task %}
+      <li><a href="{{ url_for('admin.task', tid=t.id) if t else url_for('admin.client', slug=a.slug, tab='requests') ~ '#r' ~ r.id }}"><span class="ref">{{ r.ref }}</span> {{ r.body[:70] }}{% if r.body|length > 70 %}…{% endif %}</a>
+        <span class="small" style="white-space:nowrap"><span class="muted">{{ r.created_at | ago }}</span> <span class="badge badge--{{ {'new':'acc','doing':'warn','done':'ok'}[r.status] }}">{{ r.status_label }}</span></span></li>
+    {% endfor %}</ul>
+    {% else %}<p class="muted small">None yet.</p>{% endif %}
+    <p class="small card__foot"><a href="{{ url_for('admin.client', slug=a.slug, tab='requests') }}">All requests →</a></p>
+  </section>
+</div>
 <div class="grid grid--side" style="margin-top:16px">
   <div>
-  <section class="card">
-    <div class="card__head"><h2>Tasks</h2><a class="small" href="{{ url_for('admin.task_new', **{'for': a.slug}) }}">+ New task</a></div>
-    {% if open_tasks %}<ul class="list">{% for t in open_tasks %}
-      <li><a href="{{ url_for('admin.task', tid=t.id) }}">{{ t.title }}</a>
-        <span class="small">{% if t.remind_on %}<span class="{{ 'task-due' if t.due else 'muted' }}">⏰ {{ t.remind_on | ukdate('%-d %b') }}</span> {% endif %}<span class="badge badge--{{ 'warn' if t.status == 'waiting' else 'acc' }}">{{ t.status_label }}</span></span></li>
-    {% endfor %}</ul>
-    <p class="small" style="margin-top:8px"><a href="{{ url_for('admin.tasks', **{'for': a.slug}) }}">All tasks for {{ a.name }} →</a></p>
-    {% else %}<p class="muted small">No open tasks.</p>{% endif %}
-  </section>
   <section class="card">
     <div class="card__head"><h2>Notes</h2></div>
     <form method="post" action="{{ url_for('admin.note_add', slug=a.slug) }}" class="stack">
@@ -98,6 +109,16 @@
   </div>
 </div>
 
+{% elif tab == 'tasks' %}
+<div class="page-top" style="margin-top:8px"><p class="muted small" style="margin:0">Tasks for {{ a.name }}. 👁 = they can see it in their dashboard and comment.</p>
+  <a class="btn btn--sm" href="{{ url_for('admin.task_new', **{'for': a.slug}) }}">New task</a></div>
+<section class="card card--flush">
+  {% for t in client_tasks %}{% include "admin/_task_row.html" %}{% else %}<div style="padding:22px">{{ empty('No tasks yet') }}</div>{% endfor %}
+</section>
+{% elif tab == 'requests' %}
+<p class="muted small" style="margin:8px 0 12px">What {{ a.name }} asked for from their dashboard. Accepting one makes a task they can follow; they're emailed at each step.</p>
+{% if client_requests %}<section class="card card--flush">{% with rows=client_requests, show_client=False %}{% include "admin/_change_requests.html" %}{% endwith %}</section>
+{% else %}{{ empty('No change requests yet') }}{% endif %}
 {% elif tab == 'jobs' %}
 <section class="card">
   <div class="card__head"><h2>Add a job or quote</h2></div>

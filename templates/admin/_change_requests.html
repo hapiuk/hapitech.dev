@@ -1,0 +1,20 @@
+{# One row per change request. Needs: rows, tasks ({cr_id: task}), show_client, hl (highlighted id) #}
+<div class="cr-list">
+{% for r in rows %}{% set t = tasks.get(r.id) %}
+  <article class="cr-row {{ 'is-hl' if hl == r.id }} {{ 'is-done' if r.status == 'done' }}" id="r{{ r.id }}">
+    <div class="cr-row__main">
+      <p class="cr-row__meta small"><span class="ref">{{ r.ref }}</span>
+        {% if show_client %}<a href="{{ url_for('admin.client', slug=r.account.slug, tab='requests') }}"><strong>{{ r.account.name }}</strong></a> ·{% endif %}
+        {{ r.author.name if r.author else '' }} · <span class="muted">{{ r.created_at | ukdate('%-d %b %Y') }} ({{ r.created_at | ago }})</span></p>
+      <p class="cr-row__body">{{ r.body }}</p>
+    </div>
+    <div class="cr-row__side">
+      <form method="post" action="{{ url_for('admin.change_request_set', rid=r.id) }}">
+        <select name="status" data-autosubmit aria-label="Status of {{ r.ref }}">{% for s, l in [('new','Received'),('doing','Accepted'),('done','Done')] %}<option value="{{ s }}" {{ 'selected' if r.status == s }}>{{ l }}</option>{% endfor %}</select>
+      </form>
+      {% if t %}<a class="btn btn--ghost btn--sm" href="{{ url_for('admin.task', tid=t.id) }}">{{ t.ref }} · {{ t.status_label }} →</a>
+      {% elif r.status != 'done' %}<form method="post" action="{{ url_for('admin.change_request_task', rid=r.id) }}"><button class="btn btn--sm" type="submit">Accept → task</button></form>{% endif %}
+    </div>
+  </article>
+{% endfor %}
+</div>

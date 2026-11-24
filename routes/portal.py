@@ -499,19 +499,10 @@ def help():
         if not body:
             flash("Describe the change you'd like.", "err")
         else:
-            cr = ChangeRequest(account_id=g.account.id, body=body[:5000], created_by=current_user.id)
-            db.session.add(cr)
-            db.session.commit()
-            try:
-                from utils import email_html
-                email_html.send("aaron@hapitech.dev", f"Change request: {g.account.name}",
-                                heading=f"{g.account.name} asked for a change",
-                                lines=[f"From {current_user.name or current_user.email}:", body],
-                                button={"label": "Open change requests",
-                                        "url": public_url(url_for("admin.change_requests"))})
-            except Exception as exc:
-                print(f"[CHANGE_REQUEST_EMAIL_ERROR] {exc}")
-            flash("Sent to HapiTech. Aaron will be in touch.", "ok")
+            from routes.portal_requests import new_request
+            cr = new_request(body)
+            flash(f"Sent to Aaron as {cr.ref}. You'll get an email when he picks it up.", "ok")
+            return redirect(url_for("portal.request_cr", rid=cr.id))
         return redirect(url_for("portal.help"))
     rows = scoped(ChangeRequest).order_by(ChangeRequest.created_at.desc()).limit(20).all()
     return render_template("portal/help.html", rows=rows)
@@ -564,3 +555,4 @@ def report_issue():
 
 
 from . import portal_work  # noqa: E402,F401  (jobs, quotes, invoices, calendar, settings)
+from . import portal_requests  # noqa: E402,F401  (Requests: change requests + shared tasks)

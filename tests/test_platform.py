@@ -1724,7 +1724,7 @@ def test_task_reminder_email_and_badge(app):
     with app.test_request_context("/", base_url="https://hapitech.test"):
         assert send_task_reminders() == 1
         assert send_task_reminders() == 0                                                   # once per date
-    assert any("Reminder: Follow up: has Roland logged in?" in m for m in _outbox(app))
+    assert any("Follow up: has Roland logged in?" in m and "Reminder T-" in m for m in _outbox(app))
 
 
 def test_change_request_accepted_becomes_task_and_closes_when_done(app):
@@ -1748,3 +1748,107 @@ def test_change_request_accepted_becomes_task_and_closes_when_done(app):
     _form(adm, f"/admin/tasks/{tid}", {"action": "status", "status": "done"}, page=f"/admin/tasks/{tid}")
     with app.app_context():
         assert db.session.get(ChangeRequest, crid).status == "done"
+
+
+def test_client_sees_only_shared_tasks_and_notes_and_can_comment(app):
+    from models import db
+    from models.core import Account
+    from models.tasks import Task, TaskNote
+    with app.app_context():
+        ro, ray = Account.query.filter_by(slug="rolands").first(), Account.query.filter_by(slug="rayg").first()
+        ro.contact_email = "roland@test"
+        shared = Task(title="New kitchen page", account_id=ro.id, shared=True)
+        shared.notes.append(TaskNote(author_kind="aaron", body="Draft is ready", shared=True))
+        shared.notes.append(TaskNote(author_kind="claude", body="SECRET internal steps", shared=False))
+        private = Task(title="Chase Roland for Google access", account_id=ro.id, shared=False)
+        other = Task(title="Ray's thing", account_id=ray.id, shared=True)
+        db.session.add_all([shared, private, other]); db.session.commit()
+        sid, pid, oid = shared.id, private.id, other.id
+    c = app.test_client(); _login(c, "roland@test")
+    lst = c.get("/portal/changes").get_data(as_text=True)
+    assert f"T-{sid}" in lst and "New kitchen page" in lst and "Chase Roland" not in lst and "Ray's thing" not in lst
+    page = c.get(f"/portal/changes/T-{sid}").get_data(as_text=True)
+    assert "Draft is ready" in page and "SECRET" not in page
+    assert c.get(f"/portal/changes/T-{pid}").status_code == 404 and c.get(f"/portal/changes/T-{oid}").status_code == 404
+    assert c.get(f"/admin/tasks/{sid}").status_code == 403                       # can't edit or delete
+    assert c.post(f"/admin/tasks/{sid}", data={"action": "delete"}).status_code in (400, 403)
+    # search by ID and by words (only what they can see)
+    assert c.get(f"/portal/changes?q=T-{sid}").headers["Location"].endswith(f"/portal/changes/T-{sid}")
+    assert "New kitchen page" not in c.get("/portal/changes?q=SECRET").get_data(as_text=True)
+    # comment -> Aaron emailed with a direct admin link
+    _form(c, f"/portal/changes/T-{sid}", {"body": "Looks great, go ahead"}, page=f"/portal/changes/T-{sid}")
+    with app.app_context():
+        n = Task.query.get(sid).notes[-1]
+        assert n.author_kind == "client" and n.shared and n.body == "Looks great, go ahead"
+    mail = [m for m in _outbox(app) if f"replied on T-{sid}" in m]
+    assert mail and (f"/admin/tasks/{sid}" in mail[0])
+    # Aaron replies (shared) -> client emailed with a direct dashboard link
+    adm = app.test_client(); _login(adm, "admin@test")
+    _form(adm, f"/admin/tasks/{sid}", {"action": "note", "note": "Live now", "author": "aaron", "note_shared": "1"},
+          page=f"/admin/tasks/{sid}")
+    to_client = [m for m in _outbox(app) if "To: roland@test" in m and f"T-{sid}" in m and "Aaron replied" in m]
+    assert to_client and f"/portal/changes/T-{sid}" in to_client[-1].replace("=\n", "")
+    assert "Live now" in c.get(f"/portal/changes/T-{sid}").get_data(as_text=True)
+    # a private note never reaches the client
+    _form(adm, f"/admin/tasks/{sid}", {"action": "note", "note": "PRIVATE thought", "author": "aaron"}, page=f"/admin/tasks/{sid}")
+    assert "PRIVATE thought" not in c.get(f"/portal/changes/T-{sid}").get_data(as_text=True)
+    # admin search
+    assert adm.get(f"/admin/tasks?q=T-{sid}").headers["Location"].endswith(f"/admin/tasks/{sid}")
+    assert "Chase Roland" in adm.get("/admin/tasks?q=google").get_data(as_text=True)
+
+
+def test_change_request_flow_emails_client_and_admin_with_links(app):
+    from models import db
+    from models.core import Account, ChangeRequest
+    from models.tasks import Task
+    with app.app_context():
+        Account.query.filter_by(slug="rolands").first().contact_email = "roland@test"; db.session.commit()
+    c = app.test_client(); _login(c, "roland@test")
+    r = _form(c, "/portal/changes", {"body": "Add a gutter cleaning page"}, page="/portal/changes")
+    with app.app_context():
+        cr = ChangeRequest.query.filter_by(body="Add a gutter cleaning page").one(); crid = cr.id
+    assert r.headers["Location"].endswith(f"/portal/changes/R-{crid}")
+    assert "Waiting for Aaron" in c.get(f"/portal/changes/R-{crid}").get_data(as_text=True)
+    to_admin = [m for m in _outbox(app) if f"Change request R-{crid}" in m]
+    assert to_admin and f"r={crid}" in to_admin[0].replace("=3D", "=").replace("=\n", "")
+    adm = app.test_client(); _login(adm, "admin@test")
+    _form(adm, f"/admin/requests/{crid}", {"status": "doing"}, page="/admin/requests")
+    with app.app_context():
+        t = Task.query.filter_by(change_request_id=crid).one(); tid = t.id
+        assert t.shared and t.notes[0].shared
+    accepted = [m for m in _outbox(app) if "To: roland@test" in m and "Accepted" in m]
+    assert accepted and f"/portal/changes/T-{tid}" in accepted[-1].replace("=\n", "")
+    assert c.get(f"/portal/changes/R-{crid}").headers["Location"].endswith(f"/portal/changes/T-{tid}")
+    assert "Gutter" in adm.get("/admin/clients/rolands?tab=requests").get_data(as_text=True).replace("gutter", "Gutter")
+    assert f"T-{tid}" in adm.get("/admin/clients/rolands?tab=tasks").get_data(as_text=True)
+    _form(adm, f"/admin/requests/{crid}", {"status": "done"}, page="/admin/requests")
+    with app.app_context():
+        assert Task.query.get(tid).status == "done"
+    assert any("To: roland@test" in m and f"Done (T-{tid})" in m for m in _outbox(app))
+
+
+def test_hapitech_job_accepted_becomes_client_task(app):
+    from models import db
+    from models.core import Account
+    from models.tasks import Task
+    from models.work import Lead
+    from utils.hapitech_account import get as hapitech
+    with app.app_context():
+        ht = hapitech()
+        ro = Account.query.filter_by(slug="rolands").first()
+        lead = Lead(account_id=ht.id, source="request", for_account_id=ro.id, name=ro.name, email="roland@test",
+                    title="Website change: new gallery", message="Please add a gallery page")
+        db.session.add(lead); db.session.commit(); lid = lead.id
+    adm = app.test_client(); _login(adm, "admin@test")
+    page = adm.get(f"/portal/jobs/{lid}?as=hapitech").get_data(as_text=True)
+    assert "Accept: task for Roland" in page and "Book it in" not in page
+    r = _form(adm, f"/portal/jobs/{lid}?as=hapitech", {"action": "accept-task"}, page=f"/portal/jobs/{lid}?as=hapitech")
+    with app.app_context():
+        t = Task.query.filter_by(lead_id=lid).one()
+        assert t.account.slug == "rolands" and t.shared and db.session.get(Lead, lid).status == "accepted"
+        assert t.notes[0].body == "Please add a gallery page"
+        tid = t.id
+    assert r.headers["Location"].endswith(f"/admin/tasks/{tid}")
+    assert f"T-{tid}" in adm.get(f"/portal/jobs/{lid}?as=hapitech").get_data(as_text=True)
+    owner = app.test_client(); _login(owner, "roland@test")
+    assert "new gallery" in owner.get("/portal/changes").get_data(as_text=True)
