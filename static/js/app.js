@@ -546,3 +546,14 @@ document.querySelectorAll("[data-autosubmit-check]").forEach(function (c) { c.ad
   el.classList.add("is-target");
   setTimeout(function () { el.scrollIntoView({ block: "center" }); }, 60);
 })();
+
+
+/* sidebar: switch between the phone-style column and the wide layout (saved on this device) */
+document.querySelectorAll("[data-layout-toggle]").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var root = document.documentElement, next = root.getAttribute("data-layout") === "compact" ? "wide" : "compact";
+    root.setAttribute("data-layout", next);
+    try { localStorage.setItem("layout", next); } catch (e) {}
+    document.body.classList.remove("side-open");
+  });
+});

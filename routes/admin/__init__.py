@@ -13,11 +13,10 @@ def _guard():
         abort(403)
 
 
-@admin_bp.context_processor
-def _shell():
+def admin_counts():
+    """Badges for the admin menu (also used when HapiTech's own Jobs etc. are shown inside admin)."""
     from models.core import ChangeRequest
     from models.reviews import Review
-    from utils.nav import admin_nav
     counts = {"reported": Review.query.filter_by(status="reported").count() or None,
               "requests": ChangeRequest.query.filter_by(status="new").count() or None}
     from models.work import Lead
@@ -25,9 +24,18 @@ def _shell():
     from utils.hapitech_account import get as _ht
     ht = _ht(create=False)
     counts["my_jobs"] = (Lead.query.filter_by(account_id=ht.id, status="new", archived_at=None).count() or None) if ht else None
-    from models.tasks import due_count
-    counts["tasks"] = due_count() or None
-    return {"area": "admin", "nav": admin_nav(counts)}
+    from models.tasks import due_count, fresh_accepted
+    counts["tasks"] = (due_count() + len(fresh_accepted())) or None
+    if ht:      # your jobs needing action: new enquiries + accepted quotes still waiting for a task / date
+        counts["my_jobs"] = (Lead.query.filter(Lead.account_id == ht.id, Lead.status == "new",
+                                               Lead.archived_at.is_(None)).count() or None)
+    return counts
+
+
+@admin_bp.context_processor
+def _shell():
+    from utils.nav import admin_nav
+    return {"area": "admin", "nav": admin_nav(admin_counts())}
 
 
 from . import clients, reviews, lab, settings, tasks  # noqa: E402,F401

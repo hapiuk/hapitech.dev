@@ -28,25 +28,30 @@ def _item(label, endpoint, icon, prefix=None, **kw):
     url = kw.pop("url", None) or url_for(endpoint, **kw.pop("args", {}))
     active_prefix = prefix or url
     path = request.path.rstrip("/") or "/"
-    active = path == active_prefix.rstrip("/") or (prefix and path.startswith(prefix))
+    also = kw.pop("also", ())
+    active = path == active_prefix.rstrip("/") or (prefix and path.startswith(prefix)) or any(path.startswith(a) for a in also)
     return {"label": label, "url": url, "icon": ICONS[icon], "active": active, **kw}
 
 
 def admin_nav(counts=None):
     c = counts or {}
     return [
-        _item("Overview", "admin.home", "home", url="/admin", prefix=None),
-        _item("Tasks", "admin.tasks", "check", prefix="/admin/tasks", badge=c.get("tasks")),
-        _item("Clients", "admin.clients", "users", prefix="/admin/clients"),
+        _item("Overview", "admin.home", "home", url="/admin", prefix=None, tab=1),
+        _item("Tasks", "admin.tasks", "check", prefix="/admin/tasks", badge=c.get("tasks"), tab=2),
+        _item("Clients", "admin.clients", "users", prefix="/admin/clients", tab=4),
         _item("Clients' jobs", "admin.work", "briefcase", prefix="/admin/work"),
         _item("Reviews", "admin.reviews", "star", prefix="/admin/reviews", badge=c.get("reported")),
         _item("Change requests", "admin.change_requests", "inbox", prefix="/admin/requests", badge=c.get("requests")),
         _item("Emails to clients", "admin.updates", "send", prefix="/admin/updates"),
         {"section": "My business (HapiTech)"},
-        _item("Enquiries & jobs", "admin.me", "briefcase", url="/admin/me/jobs", prefix="/admin/me/jobs", badge=c.get("my_jobs")),
-        _item("My updates", "admin.me", "image", url="/admin/me/posts", prefix="/admin/me/posts"),
-        _item("My reviews", "admin.me", "star", url="/admin/me/reviews", prefix="/admin/me/reviews"),
-        _item("Ask for a review", "admin.me", "send", url="/admin/me/ask", prefix="/admin/me/ask"),
+        _item("Enquiries & jobs", "admin.me", "briefcase", url="/admin/me/jobs", prefix="/admin/me/jobs", badge=c.get("my_jobs"),
+              also=("/portal/jobs",), tab=3, short="Jobs"),
+        _item("Calendar", "admin.me", "calendar", url="/admin/me/calendar", prefix="/admin/me/calendar", also=("/portal/calendar",)),
+        _item("My updates", "admin.me", "image", url="/admin/me/posts", prefix="/admin/me/posts", also=("/portal/posts",)),
+        _item("My reviews", "admin.me", "star", url="/admin/me/reviews", prefix="/admin/me/reviews", also=("/portal/reviews",)),
+        _item("Ask for a review", "admin.me", "send", url="/admin/me/ask", prefix="/admin/me/ask", also=("/portal/ask",)),
+        _item("Business settings", "admin.me", "cog", url="/admin/me/settings", prefix="/admin/me/settings",
+              also=("/portal/settings", "/portal/plan")),
         {"section": "HapiTech Lab"},
         _item("Benchmark runs", "admin.bench_runs", "play", prefix="/admin/lab/runs"),
         _item("Prompts", "admin.bench_prompts", "doc", prefix="/admin/lab/prompts"),

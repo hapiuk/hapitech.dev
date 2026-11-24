@@ -66,11 +66,11 @@ def home():
     clients = Account.query.filter(Account.kind == "client", Account.status != "archived").order_by(Account.name).all()
     changes = ChangeRequest.query.filter(ChangeRequest.status != "done").order_by(ChangeRequest.created_at.desc()).limit(5).all()
     # your own business (HapiTech's Jobs): new enquiries, quotes out, invoices waiting to be paid
-    from models.tasks import Task
+    from models.tasks import Task, fresh_accepted
     from models.work import Invoice, Lead, Quote
     from utils.hapitech_account import get as _ht
     ht = _ht(create=False)
-    biz = {"enquiries": [], "quotes": [], "unpaid": [], "paid_month": 0}
+    biz = {"enquiries": [], "quotes": [], "unpaid": [], "paid_month": 0, "accepted": [], "task_for": {}}
     if ht:
         biz["enquiries"] = (Lead.query.filter(Lead.account_id == ht.id, Lead.status == "new", Lead.archived_at.is_(None))
                             .order_by(Lead.created_at.desc()).all())
@@ -81,6 +81,7 @@ def home():
             Invoice.paid_at >= dt.datetime.combine(month_start, dt.time())).all())
         task_by_lead = {t.lead_id: t for t in Task.query.filter(Task.lead_id.isnot(None)).all()}
         biz["task_for"] = task_by_lead
+        biz["accepted"] = fresh_accepted()
     from models.tasks import Task
     open_q = Task.query.filter(Task.status != "done")
     tasks_top = (open_q.filter(Task.status != "waiting")
@@ -758,7 +759,8 @@ def me(what):
     a = get()
     session["portal_as"] = a.slug
     target = {"post": "/portal/posts/new", "posts": "/portal/posts", "reviews": "/portal/reviews",
-              "ask": "/portal/ask", "jobs": "/portal/jobs"}.get(what, "/portal/posts")
+              "ask": "/portal/ask", "jobs": "/portal/jobs", "calendar": "/portal/calendar",
+              "settings": "/portal/settings"}.get(what, "/portal/posts")
     return redirect(target)
 
 

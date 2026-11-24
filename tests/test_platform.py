@@ -2092,7 +2092,8 @@ def test_dashboard_layout_switch_and_fitted_home(app):
     settings = c.get("/portal/settings").get_data(as_text=True)
     assert 'data-look="layout" data-val="compact"' in settings and 'data-val="wide"' in settings
     adm = app.test_client(); _login(adm, "admin@test")
-    assert 'localStorage.getItem("layout")' not in adm.get("/admin/").get_data(as_text=True)   # admin unchanged
+    ah = adm.get("/admin/").get_data(as_text=True)
+    assert 'localStorage.getItem("layout")' in ah and 'class="tabbar' in ah and "data-layout-toggle" in ah   # admin matches
 
 
 def test_pay_link_on_invoices_and_your_business_on_admin(app):
@@ -2134,5 +2135,36 @@ def test_pay_link_on_invoices_and_your_business_on_admin(app):
         assert len(pays) == 1 and float(pays[0].amount_gbp) == 80 and pays[0].ref.startswith("INV-")
     assert "Pay £" not in app.test_client().get(f"/i/{token}").get_data(as_text=True)          # receipt: no button
     # in a dashboard as admin: a clear "where am I" strip with a way back
-    assert "Your business" in adm.get("/portal/?as=hapitech").get_data(as_text=True)
+    assert adm.get("/portal/?as=hapitech").headers["Location"].endswith("/admin/")      # your home = admin overview
+    jobs = adm.get("/portal/jobs?as=hapitech").get_data(as_text=True)
+    assert "app--admin" in jobs and "Enquiries &amp; jobs" in jobs and "Benchmark runs" in jobs   # inside admin
     assert "Viewing <b>Roland" in adm.get("/portal/?as=rolands").get_data(as_text=True)
+
+
+def test_quote_accepted_notices_for_clients_and_admin(app):
+    import datetime as dt
+    from models import db
+    from models.core import Account
+    from models.work import Lead, Quote
+    from utils.hapitech_account import get as hapitech
+    with app.app_context():
+        ro = Account.query.filter_by(slug="rolands").first()
+        l = Lead(account_id=ro.id, name="Quinn", status="quoted", title="Decking")
+        db.session.add(l); db.session.flush()
+        q = Quote(account_id=ro.id, lead_id=l.id, number="Q-0001", items='[{"desc":"Decking","qty":1,"price":300}]', status="sent")
+        ht = hapitech()
+        hl = Lead(account_id=ht.id, source="request", name="Roland", email="roland@test", for_account_id=ro.id, title="New page", status="quoted")
+        db.session.add_all([q, hl]); db.session.flush()
+        hq = Quote(account_id=ht.id, lead_id=hl.id, number="Q-0001", items='[{"desc":"Page","qty":1,"price":90}]', status="sent")
+        db.session.add(hq); db.session.commit()
+        tokens = (q.token, hq.token)
+    for tok in tokens:                                   # both customers accept
+        cust = app.test_client()
+        csrf = re.search(r'name="csrf-token" content="([^"]+)"', cust.get(f"/q/{tok}").get_data(as_text=True)).group(1)
+        cust.post(f"/q/{tok}", data={"csrf_token": csrf, "answer": "accept"})
+    c = app.test_client(); _login(c, "roland@test")
+    home = c.get("/portal/").get_data(as_text=True)
+    assert "Quinn accepted your quote" in home and "pick a date" in home.lower() and "alert-dot" in home
+    adm = app.test_client(); _login(adm, "admin@test")
+    ov = adm.get("/admin/").get_data(as_text=True)
+    assert "Roland accepted quote Q-0001" in ov and "ready to start" in ov

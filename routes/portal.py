@@ -37,14 +37,34 @@ def _shell():
     from utils.nav import portal_nav
     if not getattr(g, "account", None):
         return {}
+    if current_user.is_admin and g.account.slug == "hapitech":     # your own business: inside admin
+        from routes.admin import admin_counts
+        from utils.nav import admin_nav
+        return {"area": "admin", "nav": admin_nav(admin_counts()), "addon": g.account.addon(), "brand_accent": None,
+                "own_business": True}
     unreplied = (Review.query.filter(Review.account_id == g.account.id, Review.status.in_(["published", "reported"]),
                                      ~Review.replies.any(), Review.reviewed_at.isnot(None), Review.reply_skipped_at.is_(None)).count()
                  + Review.query.filter_by(account_id=g.account.id, status="pending").count()) or None
     from models.work import Lead
-    new_jobs = Lead.query.filter_by(account_id=g.account.id, status="new", archived_at=None).count() or None   # spam has its own status
+    new_jobs = Lead.query.filter_by(account_id=g.account.id, status="new", archived_at=None).count()   # spam has its own status
+    new_jobs = (new_jobs + len(accepted_waiting(g.account))) or None       # + accepted quotes that need a date
     return {"area": "portal", "nav": portal_nav({"unreplied": unreplied, "new_jobs": new_jobs},
                                                 owner=current_user.is_owner, features=g.account.feature_set),
             "addon": g.account.addon(), "brand_accent": brand_accent(g.account)}
+
+
+def accepted_waiting(account, days=30):
+    """Jobs whose customer accepted the quote and that still need a date (newest first)."""
+    import datetime as _dt
+    from models.work import Lead, Quote
+    since = _dt.datetime.utcnow() - _dt.timedelta(days=days)
+    rows = (db.session.query(Lead, Quote).join(Quote, Quote.lead_id == Lead.id)
+            .filter(Lead.account_id == account.id, Lead.status == "accepted", Lead.archived_at.is_(None),
+                    Lead.start_at.is_(None), Quote.status == "accepted", Quote.responded_at >= since)
+            .order_by(Quote.responded_at.desc()).all())
+    if account.kind == "internal":                 # HapiTech's own: those become tasks instead
+        return []
+    return [{"lead": l, "quote": q} for l, q in rows]
 
 
 def brand_accent(account):
@@ -117,6 +137,8 @@ def reply_rate(account, since):
 @owner_required
 def home():
     a = g.account
+    if current_user.is_admin and a.slug == "hapitech":            # your business's home is the admin overview
+        return redirect(url_for("admin.home"))
     month_start = dt.datetime.combine(dt.date.today().replace(day=1), dt.time())
     live = scoped(Review).filter(Review.status.in_(["published", "reported"]))
     stats = {
@@ -146,7 +168,8 @@ def home():
                     .order_by(Lead.created_at.desc()).all())
         quoted = (scoped(Lead).filter(Lead.status == "quoted", Lead.archived_at.is_(None))
                   .order_by(Lead.updated_at.desc()).all())
-    return render_template("portal/home.html", stats=stats, last_post=last_post, t=summary(a), tips=TIPS,
+    accepted = accepted_waiting(a) if a.has_feature("jobs") else []
+    return render_template("portal/home.html", stats=stats, last_post=last_post, t=summary(a), tips=TIPS, accepted=accepted,
                            upcoming=upcoming, needs_date=needs_date, new_jobs=new_jobs, quoted=quoted,
                            today=dt.date.today(),
                            tip_start=dt.date.today().timetuple().tm_yday % len(TIPS))

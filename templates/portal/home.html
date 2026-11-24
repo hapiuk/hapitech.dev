@@ -4,6 +4,13 @@
 {% block body_class %}page-home{% endblock %}
 {% block content %}
 {% include "portal/_trial.html" %}
+{% for x in accepted[:2] %}
+<a class="notice notice--good" href="{{ url_for('portal.job', lid=x.lead.id) }}#book">
+  <span class="notice__icon" aria-hidden="true">🎉</span>
+  <span><b>{{ x.lead.name }} accepted your quote</b> ({{ x.quote.number }}, {{ x.quote.totals[2] | gbp(true) }}). Tap to pick a date.</span>
+  <span class="notice__go" aria-hidden="true">›</span>
+</a>
+{% endfor %}
 <section class="hello">
   <h1>Hi {{ (current_user.name if not current_user.is_admin else g.account.first_name) or g.account.first_name }} 👋</h1>
   <p>

@@ -13,6 +13,13 @@
   </div>
 </div>
 
+{% for x in biz.accepted %}
+    <a class="notice notice--good" href="{{ url_for('admin.task', tid=x.task.id) }}">
+      <span class="notice__icon" aria-hidden="true">🎉</span>
+      <span><b>{{ x.quote.lead.name }} accepted quote {{ x.quote.number }}</b> ({{ x.quote.totals[2] | gbp(true) }}). It's task <span class="ref">{{ x.task.ref }}</span>, ready to start.</span>
+      <span class="notice__go" aria-hidden="true">›</span>
+    </a>
+    {% endfor %}
 <div class="grid grid--4">
   {{ stat('Paid this month', paid_month | gbp) }}
   {{ stat('Recurring / month', mrr | gbp, 'from active subscriptions') }}

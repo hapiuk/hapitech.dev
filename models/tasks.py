@@ -148,3 +148,12 @@ def from_lead(lead, account, user_id=None, status="todo"):
         t.notes.append(TaskNote(author_kind="aaron", author_id=user_id, body=lead.notes, shared=False))
     db.session.add(t)
     return t, True
+
+
+def fresh_accepted(days=14):
+    """HapiTech tasks whose customer accepted the quote recently and that haven't been started yet."""
+    from .work import Quote
+    since = dt.datetime.utcnow() - dt.timedelta(days=days)
+    rows = (db.session.query(Task, Quote).join(Quote, Quote.lead_id == Task.lead_id)
+            .filter(Quote.status == "accepted", Quote.responded_at >= since, Task.status == "todo").all())
+    return [{"task": t, "quote": q} for t, q in rows]

@@ -59,7 +59,7 @@ body.app{font-size:15.5px;min-height:100dvh}
 /* portal: bottom tab bar on phones */
 .tabbar{display:none}
 @media (max-width:960px){
-  .app--portal .tabbar{
+  .app .tabbar{
     position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(4,1fr);
     padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:var(--bg-2);border-top:1px solid var(--line);
   }
@@ -747,27 +747,27 @@ details.platforms[open] > summary::after{content:" ▴"}
    (Settings → Dashboard look → "Wide" switches back to the full desktop layout)
    ========================================================== */
 @media (min-width:961px){
-  :root[data-layout="compact"] .app--portal{--col:560px;background:var(--bg-2)}
-  :root[data-layout="compact"] .app--portal .side{transform:translateX(-100%);transition:transform .25s var(--ease);box-shadow:var(--shadow-lg)}
-  :root[data-layout="compact"] .app--portal.side-open .side{transform:none}
-  :root[data-layout="compact"] .app--portal.side-open .side-scrim{display:block;position:fixed;inset:0;z-index:35;background:rgba(0,0,0,.5)}
-  :root[data-layout="compact"] .app--portal .main{margin:0 auto;max-width:var(--col);min-height:100dvh;background:var(--bg);
+  :root[data-layout="compact"] .app{--col:560px;background:var(--bg-2)}
+  :root[data-layout="compact"] .app .side{left:max(0px,calc(50% - var(--col) / 2));transform:translateX(-100%);opacity:0;pointer-events:none;transition:transform .25s var(--ease);box-shadow:var(--shadow-lg)}
+  :root[data-layout="compact"] .app.side-open .side{transform:none;opacity:1;pointer-events:auto}
+  :root[data-layout="compact"] .app.side-open .side-scrim{display:block;position:fixed;inset:0;z-index:35;background:rgba(0,0,0,.5)}
+  :root[data-layout="compact"] .app .main{margin:0 auto;max-width:var(--col);min-height:100dvh;background:var(--bg);
     border-left:1px solid var(--line);border-right:1px solid var(--line)}
-  :root[data-layout="compact"] .app--portal .topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:10px;height:58px;padding:0 12px;
+  :root[data-layout="compact"] .app .topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:10px;height:58px;padding:0 12px;
     background:var(--nav-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
-  :root[data-layout="compact"] .app--portal .topbar__menu{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;border:1px solid var(--line-2);background:transparent;color:var(--ink);cursor:pointer}
-  :root[data-layout="compact"] .app--portal .topbar__menu svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
-  :root[data-layout="compact"] .app--portal .topbar__title{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  :root[data-layout="compact"] .app--portal .content{padding-bottom:110px}
-  :root[data-layout="compact"] .app--portal .lang-row{display:none}
-  :root[data-layout="compact"] .app--portal .tabbar{position:fixed;left:50%;transform:translateX(-50%);width:min(var(--col),100%);bottom:0;z-index:30;display:grid;
+  :root[data-layout="compact"] .app .topbar__menu{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;border:1px solid var(--line-2);background:transparent;color:var(--ink);cursor:pointer}
+  :root[data-layout="compact"] .app .topbar__menu svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+  :root[data-layout="compact"] .app .topbar__title{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  :root[data-layout="compact"] .app .content{padding-bottom:110px}
+  :root[data-layout="compact"] .app .lang-row{display:none}
+  :root[data-layout="compact"] .app .tabbar{position:fixed;left:50%;transform:translateX(-50%);width:min(var(--col),100%);bottom:0;z-index:30;display:grid;
     grid-template-columns:repeat(4,1fr);padding:6px;background:var(--bg-2);border:1px solid var(--line);border-bottom:0;border-radius:16px 16px 0 0}
-  :root[data-layout="compact"] .app--portal .tabbar__item{display:grid;justify-items:center;gap:3px;padding:6px 2px;border-radius:12px;font-size:.72rem;font-weight:600;color:var(--ink-3)}
-  :root[data-layout="compact"] .app--portal .tabbar__item svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-  :root[data-layout="compact"] .app--portal .tabbar__item.is-active{color:var(--ink)}
-  :root[data-layout="compact"] .app--portal .tabbar__item--primary{color:var(--acc)}
-  :root[data-layout="compact"] .app--portal .tabbar__item--primary svg{width:26px;height:26px}
-  :root[data-layout="compact"] .app--portal .tabbar__item:hover{background:var(--card)}
+  :root[data-layout="compact"] .app .tabbar__item{display:grid;justify-items:center;gap:3px;padding:6px 2px;border-radius:12px;font-size:.72rem;font-weight:600;color:var(--ink-3)}
+  :root[data-layout="compact"] .app .tabbar__item svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  :root[data-layout="compact"] .app .tabbar__item.is-active{color:var(--ink)}
+  :root[data-layout="compact"] .app .tabbar__item--primary{color:var(--acc)}
+  :root[data-layout="compact"] .app .tabbar__item--primary svg{width:26px;height:26px}
+  :root[data-layout="compact"] .app .tabbar__item:hover{background:var(--card)}
 }
 
 /* ==========================================================
@@ -822,3 +822,16 @@ details.platforms[open] > summary::after{content:" ▴"}
   background:color-mix(in srgb,#f5b041 14%,var(--card));border:1px solid color-mix(in srgb,#f5b041 40%,transparent);font-size:.86rem}
 .viewing-as a{font-weight:700;white-space:nowrap}
 .page-home .content > .viewing-as{margin-bottom:8px}
+
+/* "something happened" notices at the top of a dashboard (e.g. a quote was accepted) */
+.notice{display:flex;align-items:center;gap:12px;margin:0 0 10px;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.notice--good{background:color-mix(in srgb,#16a34a 12%,var(--card));border-color:color-mix(in srgb,#16a34a 40%,transparent)}
+.notice__icon{font-size:1.3rem;line-height:1;flex:none}
+.notice__go{margin-left:auto;font:700 1.3rem/1 system-ui,sans-serif;color:var(--ink-3)}
+.notice:hover{filter:brightness(1.03)}
+
+/* layout switch (sidebar footer, computers only) */
+.side__layout{display:none;width:100%;padding:8px 10px;border-radius:10px;border:1px dashed var(--line-2);background:transparent;color:var(--ink-2);font:inherit;font-size:.82rem;cursor:pointer;text-align:left}
+.side__layout:hover{color:var(--ink);border-style:solid}
+@media (min-width:961px){.side__layout{display:block}}
+:root[data-layout="compact"] .side__layout-compact,:root:not([data-layout="compact"]) .side__layout-wide{display:none}
