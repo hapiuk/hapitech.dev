@@ -409,7 +409,7 @@ def settings():
             except ValueError as e:
                 db.session.rollback()
                 flash(str(e), "err")
-                return redirect(url_for("portal.settings") + "#pay")
+                return redirect(url_for("portal.settings") + "#business")
             a.quote_terms = (f.get("quote_terms") or "").strip()[:2000] or None
             a.contact_email = (f.get("contact_email") or "").strip()[:255] or a.contact_email
             flash("Saved. These show on your quotes and invoices.", "ok")
@@ -450,7 +450,9 @@ def settings():
                 u.is_active_flag = False
                 flash(f"{u.email} can no longer log in.", "ok")
         db.session.commit()
-        return redirect(url_for("portal.settings"))
+        section = {"business": "business", "away": "away", "back": "away", "invite": "logins", "remove-staff": "logins",
+                   "prefs": "sharing"}.get(action, "")
+        return redirect(url_for("portal.settings") + (f"#{section}" if section else ""))
     staff = User.query.filter_by(account_id=a.id).order_by(User.role, User.email).all()
     from utils.pay_links import PROVIDERS
     return render_template("portal/settings.html", staff=staff, today=dt.date.today(), pay_providers=PROVIDERS)

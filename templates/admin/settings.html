@@ -2,31 +2,34 @@
 {% block title %}Settings{% endblock %}
 {% block content %}
 <div class="page-top"><div><h1>Settings</h1></div></div>
-<div class="grid grid--2">
-  <section class="card">
-    <div class="card__head"><h2>Logging in</h2></div>
-    <p class="small muted">There are no passwords. Everyone (you included) logs in with a 6-digit code emailed to them. No password is stored anywhere.</p>
-  </section>
-  <section class="card">
-    <div class="card__head"><h2>☕ "Support HapiTech" button</h2><span class="badge {{ 'badge--ok' if support_paypal or support_revolut }}">{{ 'On' if support_paypal or support_revolut else 'Hidden' }}</span></div>
+<details class="card acc" id="login">
+  <summary class="acc__head"><h2>🔑 Logging in</h2><span class="small muted">email codes, no passwords</span><span class="acc__chev" aria-hidden="true"></span></summary>
+  <div class="acc__body"><p class="small muted">There are no passwords. Everyone (you included) logs in with a 6-digit code emailed to them. No password is stored anywhere.</p></div>
+</details>
+<details class="card acc" id="support">
+  <summary class="acc__head"><h2>☕ "Support HapiTech" button</h2><span class="badge {{ 'badge--ok' if support_paypal or support_revolut }}">{{ 'On' if support_paypal or support_revolut else 'Hidden' }}</span><span class="acc__chev" aria-hidden="true"></span></summary>
+  <div class="acc__body">
     <p class="small muted">A small button on My plan, Friends-plan clients only. It opens a box with these options. When someone picks one, it's noted on their account and you get an email. Leave both blank to hide it.</p>
     <form method="post" class="stack" style="margin-top:12px"><input type="hidden" name="action" value="support">
       <label class="field"><span>PayPal <small>your PayPal email, or a PayPal.me link</small></span><input name="support_paypal" value="{{ support_paypal }}" placeholder="aaron@hapitech.dev"></label>
       <label class="field"><span>Revolut <small>a checkout / payment link</small></span><input name="support_revolut" value="{{ support_revolut }}" placeholder="https://checkout.revolut.com/pay/…"></label>
       <div><button class="btn btn--sm">Save</button></div></form>
-  </section>
-  <div>
-    <section class="card">
-      <div class="card__head"><h2>Email</h2><span class="badge {{ 'badge--ok' if mail_mode == 'smtp' else 'badge--warn' }}">{{ 'Sending for real' if mail_mode == 'smtp' else 'Log only (local)' }}</span></div>
-      <p class="small muted">{% if mail_mode == 'smtp' %}Emails go out through your SMTP account.{% else %}Emails are written to <span class="mono">instance/mail_outbox/</span>, so nobody gets emailed while testing.{% endif %}</p>
-      <form method="post" style="margin-top:12px"><input type="hidden" name="action" value="test-email"><button class="btn btn--ghost btn--sm">Send me a test email</button></form>
-    </section>
-    <section class="card">
-      <div class="card__head"><h2>AI news feeds</h2><span class="small muted">refreshed {{ updated or 'never' }}</span></div>
-      <ul class="list">{% for f in feeds %}
-        <li><span>{{ f.name }}</span><span>{% if news.errors.get(f.id) %}<span class="badge badge--err">{{ news.errors[f.id] }}</span>{% endif %} <span class="small muted">{{ per_source.get(f.id, 0) }} items</span></span></li>
-      {% endfor %}</ul>
-    </section>
   </div>
-</div>
+</details>
+<details class="card acc" id="email">
+  <summary class="acc__head"><h2>✉️ Email</h2><span class="badge {{ 'badge--ok' if mail_mode == 'smtp' else 'badge--warn' }}">{{ 'Sending for real' if mail_mode == 'smtp' else 'Log only (local)' }}</span><span class="acc__chev" aria-hidden="true"></span></summary>
+  <div class="acc__body">
+    <p class="small muted">{% if mail_mode == 'smtp' %}Emails go out through your SMTP account.{% else %}Emails are written to <span class="mono">instance/mail_outbox/</span>, so nobody gets emailed while testing.{% endif %}</p>
+    <form method="post" style="margin-top:12px"><input type="hidden" name="action" value="test-email"><button class="btn btn--ghost btn--sm">Send me a test email</button></form>
+  </div>
+</details>
+<details class="card acc" id="news">
+  <summary class="acc__head"><h2>📰 AI news feeds</h2><span class="small muted">refreshed {{ updated or 'never' }}</span><span class="acc__chev" aria-hidden="true"></span></summary>
+  <div class="acc__body">
+    <ul class="list">{% for f in feeds %}
+      <li><span>{{ f.name }}</span><span>{% if news.errors.get(f.id) %}<span class="badge badge--err">{{ news.errors[f.id] }}</span>{% endif %} <span class="small muted">{{ per_source.get(f.id, 0) }} items</span></span></li>
+    {% endfor %}</ul>
+  </div>
+</details>
+<p class="small muted" style="margin-top:12px">Your own business details (payment link, bank details, invoice message) are under <a href="{{ url_for('admin.me', what='settings') }}">Business settings</a>.</p>
 {% endblock %}

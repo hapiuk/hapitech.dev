@@ -349,8 +349,8 @@ details.fold[open] > summary{margin-bottom:8px}
 /* customer details tucked away on the job page */
 details.card > summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
 details.card > summary::-webkit-details-marker{display:none}
-details.card > summary::after{content:"Edit";font-size:.84rem;font-weight:600;color:var(--acc)}
-details.card[open] > summary::after{content:"Close"}
+details.card:not(.acc) > summary::after{content:"Edit";font-size:.84rem;font-weight:600;color:var(--acc)}
+details.card:not(.acc)[open] > summary::after{content:"Close"}
 details.card[open] > summary{margin-bottom:12px}
 .review__acts{display:flex;flex-wrap:wrap;gap:0 18px;margin-top:8px}
 .review__acts > details.fold > summary{padding:6px 0}
@@ -835,3 +835,43 @@ details.platforms[open] > summary::after{content:" ▴"}
 .side__layout:hover{color:var(--ink);border-style:solid}
 @media (min-width:961px){.side__layout{display:block}}
 :root[data-layout="compact"] .side__layout-compact,:root:not([data-layout="compact"]) .side__layout-wide{display:none}
+
+/* accordions: tidy, tap to open */
+.acc{padding:0;margin:0 0 10px}
+.acc + .acc{margin-top:0}
+.acc__head{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:16px 20px;cursor:pointer;list-style:none;user-select:none}
+.acc__head::-webkit-details-marker{display:none}
+.acc__head h2,.acc__head h3{margin:0;font-size:1.02rem}
+.acc__head > :nth-last-child(2):not(h2):not(h3){margin-left:auto}
+.acc__chev{width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;margin-left:auto;transition:transform .2s}
+.acc__head > :nth-last-child(2):not(h2):not(h3) + .acc__chev{margin-left:0}
+.acc__chev::before{content:"";width:7px;height:7px;border-right:2px solid var(--ink-3);border-bottom:2px solid var(--ink-3);transform:rotate(45deg) translate(-2px,-2px)}
+.acc[open] > .acc__head .acc__chev{transform:rotate(180deg)}
+.acc__head:hover .acc__chev{background:var(--bg-2)}
+.acc__body{padding:0 20px 18px}
+.acc[open] > .acc__head{border-bottom:1px solid var(--line);margin-bottom:14px}
+@container main (max-width:700px){.acc__head{padding:13px 14px}.acc__body{padding:0 14px 14px}}
+.review__acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.review__acts .inline-form{display:inline-flex}
+.review__btn--google:not(.btn--ghost){background:#1a73e8;border-color:#1a73e8;color:#fff}
+.review__btn--facebook:not(.btn--ghost){background:#1877f2;border-color:#1877f2;color:#fff}
+.rv-acc .rv-search{margin:0;padding:0;border:0;background:none}
+.src-rows{display:grid;gap:8px}
+.src-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px}
+.src-row__stats{font-size:.88rem;color:var(--ink-2);min-width:0}
+.src-row__acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.src-more{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:10px}
+.src-more > details[open]{flex-basis:100%}
+@container main (max-width:640px){.src-row{grid-template-columns:auto minmax(0,1fr)}.src-row__acts{grid-column:1/-1;justify-content:flex-start}}
+.acc-search{display:flex;align-items:center;gap:8px;margin:0 0 12px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card)}
+.acc-search input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:inherit;font-size:16px;outline:none}
+.client-acc__name{display:grid;min-width:0;line-height:1.3}
+.client-acc__name .small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.client-acc__tags{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.client-acc__tags + .acc__chev{margin-left:0}
+.client-acc__stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.client-acc__stats div{padding:10px 12px;border-radius:10px;background:var(--bg-2)}
+.client-acc__stats dt{font-size:.75rem;color:var(--ink-3)}
+.client-acc__stats dd{margin:2px 0 0;font-weight:650}
+.client-acc__links{display:flex;flex-wrap:wrap;gap:6px}
+@container main (max-width:560px){.client-acc__stats{grid-template-columns:repeat(2,minmax(0,1fr))}}

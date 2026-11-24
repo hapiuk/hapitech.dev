@@ -313,19 +313,23 @@
 {% elif tab == 'reviews' %}
 {% set by_src = {} %}{% for r in reviews %}{% set _ = by_src.update({r.source: by_src.get(r.source, 0) + 1}) %}{% endfor %}
 <section class="card src-card" style="margin-bottom:14px">
-  <div class="card__head"><h2>Review sources</h2><span class="small muted">{% if a.reviews_synced_at %}last collected {{ a.reviews_synced_at | ago }}{% else %}not collected yet{% endif %}</span></div>
-  <div class="src-grid">
-    <div class="src src--google">
-      <p class="src__name"><span class="src-chip src-chip--google"><b>G</b> Google</span> {% if a.google_rating %}{{ a.google_rating }}★ · {{ a.google_count }} on Google{% endif %} · {{ by_src.get('google', 0) }} here</p>
-      <div class="row">{% if a.google_maps_url %}<a class="btn btn--sm" href="{{ a.google_maps_url }}" target="_blank" rel="noopener">Open on Google Maps ↗</a>{% endif %}
-        {% if a.google_reviews_url %}<a class="btn btn--ghost btn--sm" href="{{ a.google_reviews_url }}" target="_blank" rel="noopener">Google search ↗</a>{% endif %}</div>
+  <div class="card__head"><h2>Review sources</h2><span class="small muted">{% if a.reviews_synced_at %}collected {{ a.reviews_synced_at | ago }}{% else %}not collected yet{% endif %}</span></div>
+  <div class="src-rows">
+    <div class="src-row">
+      <span class="src-chip src-chip--google"><b>G</b> Google</span>
+      <span class="src-row__stats">{% if a.google_rating %}<b>{{ a.google_rating }}★</b> · {{ a.google_count }} on Google · {% endif %}{{ by_src.get('google', 0) }} here</span>
+      <span class="src-row__acts">{% if a.google_maps_url %}<a class="btn btn--sm" href="{{ a.google_maps_url }}" target="_blank" rel="noopener">Maps ↗</a>{% endif %}
+        {% if a.google_reviews_url %}<a class="btn btn--ghost btn--sm" href="{{ a.google_reviews_url }}" target="_blank" rel="noopener">Search ↗</a>{% endif %}
+        {% if not a.google_maps_url and not a.google_reviews_url %}<span class="small muted">no link yet</span>{% endif %}</span>
     </div>
-    <div class="src src--facebook">
-      <p class="src__name"><span class="src-chip src-chip--facebook"><b>f</b> Facebook</span> {% if a.facebook_pct is not none %}{{ a.facebook_pct }}% recommend · {{ a.facebook_count }} on Facebook{% endif %} · {{ by_src.get('facebook', 0) }} here</p>
-      <div class="row">{% if a.facebook_url %}<a class="btn btn--sm" href="{{ a.facebook_url }}" target="_blank" rel="noopener">Open on Facebook ↗</a>{% endif %}</div>
+    <div class="src-row">
+      <span class="src-chip src-chip--facebook"><b>f</b> Facebook</span>
+      <span class="src-row__stats">{% if a.facebook_pct is not none %}<b>{{ a.facebook_pct }}%</b> recommend · {{ a.facebook_count }} on Facebook · {% endif %}{{ by_src.get('facebook', 0) }} here</span>
+      <span class="src-row__acts">{% if a.facebook_url %}<a class="btn btn--sm" href="{{ a.facebook_url }}" target="_blank" rel="noopener">Facebook ↗</a>{% else %}<span class="small muted">no link yet</span>{% endif %}</span>
     </div>
   </div>
-  <details class="fold" style="margin-top:10px" {% if not a.google_maps_url and not a.facebook_url %}open{% endif %}><summary class="small">Change these links</summary>
+  <div class="src-more">
+  <details class="fold" {% if not a.google_maps_url and not a.facebook_url %}open{% endif %}><summary class="small">Change these links</summary>
     <form method="post" action="{{ url_for('admin.client_edit', slug=a.slug) }}" class="form-grid">
       <input type="hidden" name="name" value="{{ a.name }}"><input type="hidden" name="back" value="reviews">
       <label class="field full"><span>Google Maps page <small>where the Google script is run</small></span><input name="google_maps_url" value="{{ a.google_maps_url or '' }}" placeholder="https://www.google.com/maps/place/…"></label>
@@ -333,7 +337,10 @@
       <div class="form-actions full"><button class="btn btn--sm">Save links</button></div>
     </form>
   </details>
-  <p class="small muted" style="margin-top:10px">To collect new reviews: open the page, click your <b>HapiTech: collect reviews</b> bookmark (or paste the script in the console), then <b>Send to HapiTech</b>. <a href="{{ url_for('admin.reviews_import', client=a.slug) }}">Set up the bookmark / upload a file →</a></p>
+  <details class="fold"><summary class="small">How to collect new reviews</summary>
+    <p class="small muted">Open the page, click your <b>HapiTech: collect reviews</b> bookmark (or paste the script in the console), then <b>Send to HapiTech</b>. <a href="{{ url_for('admin.reviews_import', client=a.slug) }}">Set up the bookmark / upload a file →</a></p>
+  </details>
+  </div>
 </section>
 <details class="card fold" id="requests" style="margin-bottom:14px" {% if requests_sent | selectattr('state', 'equalto', 'expired') | list %}open{% endif %}>
   {% set exp = requests_sent | selectattr('state', 'equalto', 'expired') | list %}{% set done = requests_sent | selectattr('state', 'equalto', 'done') | list %}

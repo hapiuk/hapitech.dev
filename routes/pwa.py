@@ -13,7 +13,7 @@ pwa_bp = Blueprint("pwa", __name__)
 
 ICON_SIZES = (192, 512, 180)
 HAPITECH = {"slug": "_hapitech", "name": "HapiTech Admin", "short": "HapiTech", "logo": "media/logo.png",
-            "colour": "#0c0e12", "start": "/admin/", "scope": "/admin/"}
+            "colour": "#0c0e12", "start": "/admin/", "scope": "/"}       # whole site: your own pages under /portal stay full screen
 
 
 def _brand(slug):

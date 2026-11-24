@@ -557,3 +557,27 @@ document.querySelectorAll("[data-layout-toggle]").forEach(function (b) {
     document.body.classList.remove("side-open");
   });
 });
+
+/* accordions: open the one a link points at (e.g. Settings#business), and the one holding the target */
+(function () {
+  var id = (location.hash || "").slice(1); if (!id) return;
+  var el = document.getElementById(id); if (!el) return;
+  var d = el.tagName === "DETAILS" ? el : el.closest("details.acc");
+  if (d) { d.open = true; setTimeout(function () { el.scrollIntoView({ block: "start" }); }, 50); }
+})();
+
+
+/* searchable accordion lists (admin Clients): type to narrow; a single match opens */
+document.querySelectorAll("[data-acc-search]").forEach(function (input) {
+  var list = document.querySelector(input.getAttribute("data-acc-search")); if (!list) return;
+  var none = document.querySelector(".acc-search__none");
+  input.addEventListener("input", function () {
+    var q = input.value.trim().toLowerCase(), shown = [];
+    list.querySelectorAll("[data-find]").forEach(function (el) {
+      var hit = !q || el.getAttribute("data-find").indexOf(q) > -1;
+      el.hidden = !hit; if (hit) shown.push(el);
+    });
+    if (none) none.hidden = shown.length > 0;
+    if (q && shown.length === 1) shown[0].open = true;
+  });
+});

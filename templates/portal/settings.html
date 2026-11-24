@@ -9,8 +9,9 @@
   <div><p class="plan-card__name">You're on our {{ ad.plan.name }}{{ ' 😎' if ad.status == 'friends' }}</p><p class="small muted">{{ ad.plan.line }}</p></div>
 </section>
 {% endif %}
-<section class="card look" style="margin-bottom:12px">
-  <div class="card__head"><h2>🎨 Dashboard look</h2><span class="small muted">just on this device</span></div>
+<details class="card acc look" id="look">
+  <summary class="acc__head"><h2>🎨 Dashboard look</h2><span class="small muted">just on this device</span><span class="acc__chev" aria-hidden="true"></span></summary>
+  <div class="acc__body">
   <div class="look__rows">
     {% if brand_accent %}
     <div class="look__row"><span class="small muted">Colours</span>
@@ -30,17 +31,22 @@
         <button type="button" data-look="theme" data-val="light">☀️ Light</button>
       </div></div>
   </div>
-</section>
-<form method="post" class="card" style="margin-bottom:12px">
+  </div>
+</details>
+<details class="card acc " id="sharing">
+  <summary class="acc__head"><h2>📣 Sharing posts</h2><span class="acc__chev" aria-hidden="true"></span></summary>
+  <div class="acc__body">
+<form method="post">
   <input type="hidden" name="action" value="prefs">
-  <div class="card__head"><h2>📣 Sharing posts</h2></div>
   <label class="check"><input type="checkbox" name="share_tip" value="1" {{ '' if current_user.pref('share_tip_off') else 'checked' }} data-autosubmit-check>
     <span>Show the <b>"Your text is copied"</b> reminder when I share a post</span></label>
   <noscript><button class="btn btn--sm">Save</button></noscript>
 </form>
-<div class="grid grid--2">
-  <section class="card {{ 'card--accent' if g.account.is_away }}">
-    <div class="card__head"><h2>🏖️ Away mode</h2>{% if g.account.is_away %}<span class="badge badge--warn">On</span>{% endif %}</div>
+  </div>
+</details>
+<details class="card acc {{ 'card--accent' if g.account.is_away }}" id="away">
+  <summary class="acc__head"><h2>🏖️ Away mode</h2>{% if g.account.is_away %}<span class="badge badge--warn">On</span>{% endif %}<span class="acc__chev" aria-hidden="true"></span></summary>
+  <div class="acc__body">
     <p class="small muted">Going on holiday? Your website shows a short notice and booking requests are paused until you're back.</p>
     <form method="post" class="stack" style="margin-top:12px">
       <input type="hidden" name="action" value="away">
@@ -48,9 +54,12 @@
       <label class="field"><span>Message <small>optional</small></span><input name="away_message" maxlength="200" value="{{ g.account.away_message or '' }}" placeholder="Away until 3 January. Quote requests are still welcome!"></label>
       <div class="row"><button class="btn btn--sm">Save</button>{% if g.account.is_away %}<button class="btn btn--ghost btn--sm" name="action" value="back">I'm back</button>{% endif %}</div>
     </form>
-  </section>
-  <section class="card">
-    <div class="card__head"><h2>Logins</h2></div>
+  </div>
+</details>
+<details class="card acc " id="logins">
+  <summary class="acc__head"><h2>👥 Logins</h2><span class="small muted">{{ staff | selectattr("is_active") | list | length }} active</span><span class="acc__chev" aria-hidden="true"></span></summary>
+  <div class="acc__body">
+
     <ul class="list">{% for u in staff %}
       <li><span><strong>{{ u.name or u.email }}</strong><br><span class="small muted">{{ u.email }} · {{ 'Owner' if u.role == 'owner' else 'Helper' }}{% if not u.is_active %} · removed{% endif %}</span></span>
         {% if u.role == 'staff' and u.is_active %}<form method="post"><input type="hidden" name="action" value="remove-staff"><input type="hidden" name="uid" value="{{ u.id }}"><button class="btn btn--ghost btn--sm" data-confirm="Stop {{ u.email }} logging in?">Remove</button></form>{% endif %}</li>
@@ -62,11 +71,13 @@
         <label class="field"><span>Email</span><input type="email" name="email" required></label>
         <div><button class="btn btn--sm">Add helper</button></div></form>
     </details>
-  </section>
-</div>
-<form method="post" class="card form-grid" style="margin-top:16px">
+  </div>
+</details>
+<details class="card acc" id="business">
+  <summary class="acc__head"><h2>🧾 Quotes, invoices &amp; payments</h2>{% if g.account.pay_link_kind or g.account.pay_bank %}<span class="small muted">{{ [pay_providers[g.account.pay_link_kind][0] if g.account.pay_link_kind else None, 'bank transfer' if g.account.pay_bank else None] | select | join(' + ') }}</span>{% else %}<span class="badge badge--warn">No payment options yet</span>{% endif %}<span class="acc__chev" aria-hidden="true"></span></summary>
+  <div class="acc__body">
+<form method="post" class="form-grid">
   <input type="hidden" name="action" value="business">
-  <div class="card__head full"><h2>On your quotes &amp; invoices</h2></div>
   <label class="field"><span>Email customers reply to</span><input type="email" name="contact_email" value="{{ g.account.contact_email or '' }}"></label>
   <label class="field"><span>VAT number <small>leave blank if you're not VAT registered</small></span><input name="vat_number" value="{{ g.account.vat_number or '' }}"></label>
   <label class="field full"><span>Business address <small>optional</small></span><textarea name="business_address" rows="3">{{ g.account.business_address or '' }}</textarea></label>
@@ -88,4 +99,6 @@
   <label class="field full"><span>Terms <small>optional, shown on quotes</small></span><textarea name="quote_terms" rows="3" placeholder="Quote valid for 30 days. Materials charged at cost.">{{ g.account.quote_terms or '' }}</textarea></label>
   <div class="form-actions full"><button class="btn btn--sm">Save</button></div>
 </form>
+  </div>
+</details>
 {% endblock %}

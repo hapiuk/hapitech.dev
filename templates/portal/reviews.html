@@ -25,7 +25,7 @@
 {% macro owner_actions(r) %}
   <div class="review__acts">
   {% if r.external %}
-  {% if r.link %}<a class="small" href="{{ r.link }}" target="_blank" rel="noopener">{{ 'Your reply is on' if r.reply else 'Reply on' }} {{ r.source_label }} ↗</a>{% endif %}
+  {% if r.link %}<a class="btn btn--sm {{ 'btn--ghost' if r.reply }} review__btn review__btn--{{ r.source }}" href="{{ r.link }}" target="_blank" rel="noopener">{{ 'Your reply is on' if r.reply else 'Reply on' }} {{ r.source_label }} ↗</a>{% endif %}
   {% else %}
   <details class="fold">
     <summary class="small">{{ 'Edit your reply' if r.reply else 'Reply' }}</summary>
@@ -38,8 +38,8 @@
   {% endif %}
   {% if not r.reply %}
   <form method="post" action="{{ url_for('portal.review_action', rid=r.id, show=show) }}" class="inline-form">
-    {% if r.reply_skipped_at %}<button class="linkish small muted" name="action" value="unskip-reply">↺ Needs a reply after all</button>
-    {% else %}<button class="linkish small muted" name="action" value="skip-reply" title="Keeps it out of your Needs a reply list">✓ No reply needed</button>{% endif %}
+    {% if r.reply_skipped_at %}<button class="btn btn--ghost btn--sm" name="action" value="unskip-reply">↺ Needs a reply after all</button>
+    {% else %}<button class="btn btn--ghost btn--sm" name="action" value="skip-reply" title="Keeps it out of your Needs a reply list">✓ No reply needed</button>{% endif %}
   </form>
   {% endif %}
   {% if r.status != 'reported' %}

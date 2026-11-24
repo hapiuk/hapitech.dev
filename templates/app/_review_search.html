@@ -1,5 +1,9 @@
 {# Search + filters for a Reviews list. Expects: total (int), active (bool), keep (dict of hidden args). #}
-<form class="rv-search card" method="get" role="search">
+{% set used = request.args.get('q') or request.args.get('src') or request.args.get('stars') or request.args.get('replied') or request.args.get('sort', 'new') != 'new' %}
+<details class="card acc rv-acc" {{ 'open' if used }}>
+<summary class="acc__head"><h3>🔍 Search &amp; filter</h3><span class="small muted">{{ total }} review{{ '' if total == 1 else 's' }}{% if used %} · filtered{% endif %}</span><span class="acc__chev" aria-hidden="true"></span></summary>
+<div class="acc__body">
+<form class="rv-search" method="get" role="search">
   {% for k, v in keep.items() if v %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
   <label class="rv-search__q"><span aria-hidden="true">🔍</span><input type="search" name="q" value="{{ request.args.get('q', '') }}" placeholder="Search words, names or jobs…" aria-label="Search reviews" data-live-search {% if request.args.get('q') %}autofocus{% endif %}></label>
   <div class="rv-search__f">
@@ -10,3 +14,5 @@
   </div>
   <p class="small muted rv-search__n">{{ total }} review{{ '' if total == 1 else 's' }}{% if active %} {{ 'matches' if total == 1 else 'match' }} · <a href="?{% for k, v in keep.items() if v %}{{ k }}={{ v }}&{% endfor %}">clear</a>{% endif %}</p>
 </form>
+</div>
+</details>

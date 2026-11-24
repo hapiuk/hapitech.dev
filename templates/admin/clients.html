@@ -9,22 +9,42 @@
     <a class="btn btn--sm" href="{{ url_for('admin.client_new') }}">Add client</a>
   </div>
 </div>
-<section class="card card--flush">
-  {% if rows %}
-  <div class="table-wrap"><table class="table">
-    <thead><tr><th>Client</th><th>Status</th><th>Reviews &amp; Updates</th><th class="num">Reviews</th><th class="num">Open jobs</th><th class="num">Recurring</th><th class="num">Paid to date</th><th>Last seen</th></tr></thead>
-    <tbody>
-    {% for r in rows %}{% set a = r.a %}{% set ad = a.addon() %}
-      <tr>
-        <td><a class="rowlink" href="{{ url_for('admin.client', slug=a.slug) }}">{{ a.name }}</a>{% if a.kind == 'internal' %} <span class="badge badge--acc" title="HapiTech's own site: no costs">Ours · no charge</span>{% endif %}<div class="small muted">{{ a.domain or a.trade or '' }}</div></td>
-        <td>{{ status_badge(a.status) }}</td>
-        <td>{% if ad %}{{ status_badge(ad.status) }}{% if ad.trial_days_left is not none %} <span class="small muted">{{ ad.trial_days_left }}d left</span>{% endif %}{% else %}<span class="muted small">Off</span>{% endif %}</td>
-        <td class="num">{{ r.reviews }}</td><td class="num">{{ r.open_jobs }}</td>
-        <td class="num">{{ r.mrr | gbp }}</td><td class="num">{{ r.paid | gbp }}</td>
-        <td class="small" title="{{ r.seen | ukdate('%-d %b %Y, %H:%M') if r.seen else '' }}">{{ r.seen | ago if r.seen else '–' }}</td>
-      </tr>
-    {% endfor %}
-    </tbody></table></div>
-  {% else %}<div style="padding:22px">{{ empty('No clients here', 'Add your first client to start tracking jobs and payments.') }}</div>{% endif %}
-</section>
+{% if rows %}
+<label class="acc-search"><span aria-hidden="true">🔍</span><input type="search" placeholder="Find a client: name, website, trade or town" aria-label="Find a client" data-acc-search="#clientList" autocomplete="off"></label>
+<div id="clientList">
+{% for r in rows %}{% set a = r.a %}{% set ad = a.addon() %}
+<details class="card acc client-acc" data-find="{{ [a.name, a.domain, a.trade, a.town, a.contact_name, a.contact_email] | select | join(' ') | lower }}">
+  <summary class="acc__head">
+    <span class="client-acc__name"><strong>{{ a.name }}</strong><span class="small muted">{{ a.domain or a.trade or '' }}</span></span>
+    <span class="client-acc__tags">
+      {% if a.kind == 'internal' %}<span class="badge badge--acc">Ours</span>{% endif %}
+      {% if a.status != 'active' %}{{ status_badge(a.status) }}{% endif %}
+      {% if r.open_jobs %}<span class="badge badge--acc">{{ r.open_jobs }} open job{{ '' if r.open_jobs == 1 else 's' }}</span>{% endif %}
+      {% if ad %}{{ status_badge(ad.status) }}{% endif %}
+    </span>
+    <span class="acc__chev" aria-hidden="true"></span>
+  </summary>
+  <div class="acc__body">
+    <dl class="client-acc__stats">
+      <div><dt>Reviews</dt><dd>{{ r.reviews }}</dd></div>
+      <div><dt>Open jobs</dt><dd>{{ r.open_jobs }}</dd></div>
+      <div><dt>Recurring</dt><dd>{{ r.mrr | gbp }}</dd></div>
+      <div><dt>Paid to date</dt><dd>{{ r.paid | gbp }}</dd></div>
+      <div><dt>Dashboard plan</dt><dd>{% if ad %}{{ ad.status | capitalize }}{% if ad.trial_days_left is not none %} · {{ ad.trial_days_left }}d left{% endif %}{% else %}Off{% endif %}</dd></div>
+      <div><dt>Last seen</dt><dd title="{{ r.seen | ukdate('%-d %b %Y, %H:%M') if r.seen else '' }}">{{ r.seen | ago if r.seen else 'never' }}</dd></div>
+    </dl>
+    <div class="client-acc__links">
+      <a class="btn btn--sm" href="{{ url_for('admin.client', slug=a.slug) }}">Open client page</a>
+      <a class="btn btn--ghost btn--sm" href="{{ url_for('admin.view_portal', slug=a.slug) }}">Their dashboard</a>
+      <a class="btn btn--ghost btn--sm" href="{{ url_for('admin.client', slug=a.slug, tab='tasks') }}">Tasks</a>
+      <a class="btn btn--ghost btn--sm" href="{{ url_for('admin.client', slug=a.slug, tab='requests') }}">Requests</a>
+      <a class="btn btn--ghost btn--sm" href="{{ url_for('admin.client', slug=a.slug, tab='money') }}">Money</a>
+      {% if a.domain %}<a class="btn btn--ghost btn--sm" href="https://{{ a.domain }}" target="_blank" rel="noopener">Website ↗</a>{% endif %}
+    </div>
+  </div>
+</details>
+{% endfor %}
+</div>
+<p class="small muted acc-search__none" hidden>No client matches that.</p>
+{% else %}<section class="card">{{ empty('No clients here', 'Add your first client to start tracking jobs and payments.') }}</section>{% endif %}
 {% endblock %}
