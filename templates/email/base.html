@@ -28,8 +28,8 @@
       {% endif %}
       {% if html_block %}<div style="margin:0 0 14px 0;">{{ html_block }}</div>{% endif %}
       {% if button %}
-      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 18px 0;"><tr><td style="border-radius:999px;background:{{ brand.colour }};">
-        <a href="{{ button.url }}" style="display:inline-block;padding:14px 26px;font:700 16px/1 -apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:{{ brand.on_colour }};text-decoration:none;border-radius:999px;">{{ button.label }}</a>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 18px 0;"><tr><td align="center" style="border-radius:999px;background:{{ brand.colour }};">
+        <a href="{{ button.url }}" style="display:block;padding:15px 26px;font:700 16px/1 -apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:{{ brand.on_colour }};text-decoration:none;border-radius:999px;text-align:center;">{{ button.label }}</a>
       </td></tr></table>
       <p style="margin:0 0 14px 0;font-size:13px;color:#7a7f89;">Button not working? Copy this link: <a href="{{ button.url }}" style="color:#7a7f89;word-break:break-all;">{{ button.url }}</a></p>
       {% endif %}

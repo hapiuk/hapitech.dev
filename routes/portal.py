@@ -138,7 +138,10 @@ def home():
         booked = (scoped(Lead).filter(Lead.status == "booked", Lead.archived_at.is_(None),
                                       Lead.start_at >= today - dt.timedelta(days=60)).order_by(Lead.start_at).all())
         upcoming = [l for l in booked if l.end_at >= today][:5]
-        needs_date = scoped(Lead).filter(Lead.status == "accepted", Lead.archived_at.is_(None)).order_by(Lead.created_at).all()
+        from models.tasks import Task
+        needs_date = (scoped(Lead).filter(Lead.status == "accepted", Lead.archived_at.is_(None),
+                                          ~db.session.query(Task.id).filter(Task.lead_id == Lead.id).exists())
+                      .order_by(Lead.created_at).all())
     return render_template("portal/home.html", stats=stats, last_post=last_post, t=summary(a), tips=TIPS,
                            upcoming=upcoming, needs_date=needs_date, today=dt.date.today(),
                            tip_start=dt.date.today().timetuple().tm_yday % len(TIPS))

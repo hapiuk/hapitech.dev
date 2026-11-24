@@ -57,6 +57,11 @@ class Task(TimestampMixin, db.Model):
         self.done_at = dt.datetime.utcnow() if status == "done" else None
         if status == "done" and self.change_request and self.change_request.status != "done":
             self.change_request.status = "done"            # finishing the task closes the client's request
+        if self.lead:                                       # the HapiTech job it came from follows along
+            if status == "done" and self.lead.status in ("new", "quoted", "accepted", "booked"):
+                self.lead.status, self.lead.done_at = "done", self.done_at
+            elif status != "done" and self.lead.status == "done":
+                self.lead.status, self.lead.done_at = "accepted", None
 
     def set_remind_on(self, day):
         if day != self.remind_on:
@@ -128,7 +133,7 @@ def text_filter(query, q, shared_only=False):
     return query.filter(db.or_(Task.title.ilike(like), Task.id.in_(notes)))
 
 
-def from_lead(lead, account, user_id=None):
+def from_lead(lead, account, user_id=None, status="todo"):
     """An accepted HapiTech job becomes a task under the client (once). Shared with the client unless it's
     a hapitech.report report about them."""
     t = Task.query.filter_by(lead_id=lead.id).first()
@@ -136,7 +141,7 @@ def from_lead(lead, account, user_id=None):
         return t, False
     what = lead.title or ((lead.message or "").strip().splitlines() or [lead.name])[0]
     t = Task(title=(what or "Job")[:200], account_id=account.id if account else None, lead_id=lead.id,
-             status="todo", created_by=user_id, shared=bool(account) and lead.source != "report")
+             status=status, created_by=user_id, shared=bool(account) and lead.source != "report")
     if lead.message:
         t.notes.append(TaskNote(author_kind="client", body=lead.message, shared=t.shared, created_at=lead.created_at))
     if lead.notes:

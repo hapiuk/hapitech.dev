@@ -265,7 +265,9 @@ def priced(lid, kind, did=None):
             doc.status, doc.paid_at = "paid", dt.datetime.utcnow()
             db.session.commit()
             flash(f"{doc.number} marked as paid.", "ok")
-            return redirect(url_for("portal.job", lid=lid))
+            from models.tasks import Task
+            t = Task.query.filter_by(lead_id=lead.id).first() if g.account.kind == "internal" else None
+            return redirect(url_for("admin.task", tid=t.id) + "#money" if t else url_for("portal.job", lid=lid))
         if f.get("action") == "delete" and doc.status == "draft":
             db.session.delete(doc)
             db.session.commit()
@@ -287,6 +289,11 @@ def priced(lid, kind, did=None):
             setattr(doc, date_field, dt.date.fromisoformat(f.get(date_field)) if f.get(date_field) else None)
         except ValueError:
             pass
+        own_task = None
+        if g.account.kind == "internal" and current_user.is_admin:
+            from models.tasks import from_lead
+            own_task, _ = from_lead(lead, client_for_lead(lead), current_user.id,
+                                    status="waiting" if kind == "quote" else "todo")
         if f.get("action") == "send":
             if not lead.email:
                 db.session.commit()
@@ -304,6 +311,8 @@ def priced(lid, kind, did=None):
         else:
             flash(f"{doc.number} saved.", "ok")
         db.session.commit()
+        if own_task:                                    # HapiTech's own work: back to the task it belongs to
+            return redirect(url_for("admin.task", tid=own_task.id) + "#money")
         return redirect(url_for("portal.job", lid=lid))
     return _priced_form(kind, lead, doc)
 
@@ -624,6 +633,10 @@ def accept_into_task(lead, acc, user_id=None):
     if acc and not lead.for_account_id:
         lead.for_account_id = acc.id
     t, made = from_lead(lead, acc, user_id or (current_user.id if current_user.is_authenticated else None))
+    if not made and t.status == "waiting":          # it was waiting on the quote: now it's on
+        t.status = "todo"
+    if acc and not t.account_id:
+        t.account_id, t.shared = acc.id, lead.source != "report"
     db.session.commit()
     if made and t.shared:
         task_mail.tell_client_task(t, "Accepted", "Aaron's on it",

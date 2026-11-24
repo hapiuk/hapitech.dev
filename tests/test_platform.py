@@ -1981,3 +1981,83 @@ def test_emails_have_no_images_show_content_and_use_client_branding(app):
     assert "#f97316" in own and "Sent by" not in own and "Roland's Handyman" in own.replace("&#39;", "'")
     assert "Sent by" in ht
     assert all("<img" not in _html_of(m) for m in _outbox(app))
+
+
+def test_task_quote_receipt_and_job_sync(app):
+    from models import db
+    from models.core import Account
+    from models.tasks import Task
+    from models.work import Invoice, Lead
+    from utils.hapitech_account import get as hapitech
+    with app.app_context():
+        hapitech()
+        ro = Account.query.filter_by(slug="rolands").first()
+        ro.contact_email, ro.contact_name = "roland@test", "Roland"
+        t = Task(title="New gallery page", account_id=ro.id, shared=True)
+        db.session.add(t); db.session.commit(); tid, roid = t.id, ro.id
+    adm = app.test_client(); _login(adm, "admin@test")
+    r = _form(adm, f"/admin/tasks/{tid}", {"action": "quote"}, page=f"/admin/tasks/{tid}")
+    with app.app_context():
+        t = db.session.get(Task, tid); lid = t.lead_id
+        assert lid and t.lead.for_account_id == roid and t.lead.email == "roland@test"
+    assert f"/portal/jobs/{lid}/quote" in r.headers["Location"]
+    page = f"/portal/jobs/{lid}/quote?as=hapitech"
+    r = _form(adm, page, {"desc": "Gallery page", "qty": "1", "price": "120", "vat_rate": "0", "action": "save"}, page=page)
+    assert r.headers["Location"].endswith(f"/admin/tasks/{tid}#money")
+    assert "£120" in adm.get(f"/admin/tasks/{tid}").get_data(as_text=True)
+    # done -> the job is done too; receipt = paid invoice emailed to the client
+    _form(adm, f"/admin/tasks/{tid}", {"action": "status", "status": "done"}, page=f"/admin/tasks/{tid}")
+    _form(adm, f"/admin/tasks/{tid}", {"action": "receipt"}, page=f"/admin/tasks/{tid}")
+    with app.app_context():
+        assert db.session.get(Lead, lid).status == "done"
+        inv = Invoice.query.filter_by(lead_id=lid).one()
+        assert inv.status == "paid" and inv.totals[2] == 120 and inv.sent_at
+        token = inv.token
+    mail = [m for m in _outbox(app) if "To: roland@test" in m and "Receipt INV" in m]
+    assert mail and f"/i/{token}" in mail[-1].replace("=\n", "")
+    assert "Receipt" in app.test_client().get(f"/i/{token}").get_data(as_text=True)
+
+
+def test_quote_on_hapitech_job_makes_task_and_done_leaves_upcoming(app):
+    from models import db
+    from models.core import User
+    from models.tasks import Task
+    from models.work import Lead, Quote
+    from utils.hapitech_account import get as hapitech
+    with app.app_context():
+        ht = hapitech()
+        db.session.add(User(email="owner@hapitech.test", username="owner@hapitech.test", role="owner", account_id=ht.id))
+        lead = Lead(account_id=ht.id, source="enquiry", name="Aaron", email="owner@hapitech.test", title="IT support")
+        db.session.add(lead); db.session.commit(); lid = lead.id
+    adm = app.test_client(); _login(adm, "admin@test")
+    page = f"/portal/jobs/{lid}/quote?as=hapitech"
+    _form(adm, page, {"desc": "Setup", "qty": "1", "price": "50", "vat_rate": "0", "action": "save"}, page=page)
+    with app.app_context():
+        t = Task.query.filter_by(lead_id=lid).one()
+        assert t.status == "waiting" and t.account.slug == "hapitech"
+        token = Quote.query.filter_by(lead_id=lid).one().token
+        q = Quote.query.filter_by(lead_id=lid).one(); q.status = "sent"; db.session.commit()
+    cust = app.test_client()
+    tok = re.search(r'name="csrf-token" content="([^"]+)"', cust.get(f"/q/{token}").get_data(as_text=True)).group(1)
+    cust.post(f"/q/{token}", data={"csrf_token": tok, "answer": "accept"})
+    with app.app_context():
+        t = Task.query.filter_by(lead_id=lid).one(); tid = t.id
+        assert t.status == "todo" and db.session.get(Lead, lid).status == "accepted"
+    home = adm.get("/portal/?as=hapitech").get_data(as_text=True)
+    assert "Needs a date" not in home                                     # it's a task, not a booking
+    _form(adm, f"/admin/tasks/{tid}", {"action": "status", "status": "done"}, page=f"/admin/tasks/{tid}")
+    with app.app_context():
+        assert db.session.get(Lead, lid).status == "done"
+
+
+def test_contact_email_details_in_box_message_alone(app):
+    pub = app.test_client()
+    tok = _csrf(pub)
+    msg = "Looking for: IT support\nBusiness: Test Ltd\nPhone: 07700 900123\n\nPlease call me about my printer"
+    pub.post("/contact", json={"name": "Jo", "email": "jo@example.com", "message": msg, "need": "IT support",
+                               "business": "Test Ltd", "phone": "07700 900123"}, headers={"X-CSRF-Token": tok})
+    html = _html_of([m for m in _outbox(app) if "jo@example.com" in m and "Contact" in m][-1])
+    quote = html.split("Their message")[1].split("</div>")[0]
+    assert "Please call me about my printer" in quote and "Looking for" not in quote
+    assert ">Looking for<" in html and ">Test Ltd<" in html and ">07700 900123<" in html
+    assert 'width="100%"' in html.split("Open it in Jobs")[0][-900:]

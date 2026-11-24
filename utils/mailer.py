@@ -91,10 +91,21 @@ def send_contact_email(*, name: str, email: str, message: str, meta: dict) -> No
     html = None
     try:
         from utils import email_html
+        # the form puts "Looking for / Business / Phone" at the top of the message: those go in the box,
+        # and only what they actually wrote is shown as their message
+        details, words = {}, []
+        for line in (message or "").splitlines():
+            key, _, val = line.partition(":")
+            if not words and key in ("Looking for", "Business", "Phone") and val.strip():
+                details[key] = val.strip()
+            elif words or line.strip():
+                words.append(line)
+        box = [("Name", name), ("Email", email)] + [(k, details[k]) for k in ("Looking for", "Business", "Phone") if k in details]
+        box.append(("Form", meta.get("client", "") or "—"))
         _, html = email_html.build(subject, heading="New enquiry from hapitech.dev",
                                    lines=[f"{name} sent a message through the website."],
-                                   box=[("Name", name), ("Email", email), ("Form", meta.get("client", "") or "—")],
-                                   quote=message, quote_label="Their message",
+                                   box=box,
+                                   quote="\n".join(words).strip() or message, quote_label="Their message",
                                    button={"label": "Open it in Jobs", "url": meta["job_url"]} if meta.get("job_url") else None,
                                    footer="Reply to this email to answer them directly.")
     except Exception as exc:          # never lose an enquiry over styling

@@ -143,7 +143,8 @@ def task(tid):
             change_status(t, f.get("status") or t.status)
             flash("Saved.", "ok")
         elif action == "status":
-            change_status(t, f.get("status"))
+            if change_status(t, f.get("status")) and t.status == "done" and t.account:
+                flash("Done ✓. You can send a receipt from the Money panel.", "ok")
         elif action == "share":
             t.shared = bool(t.account) and f.get("on") == "1"
             flash(f"Now {'visible to ' + t.account.name if t.shared else 'private'}.", "ok")
@@ -151,6 +152,23 @@ def task(tid):
             n = db.session.get(TaskNote, int(f.get("nid") or 0))
             if n and n.task_id == t.id and n.author_kind != "claude":
                 n.shared = t.shared and f.get("on") == "1"
+        elif action in ("quote", "invoice"):
+            from utils.task_money import ensure_lead
+            lead = ensure_lead(t, current_user.id)
+            if lead is None:
+                flash("Set who the task is for first (a client), then add a quote.", "err")
+            else:
+                db.session.commit()
+                return redirect(url_for("portal.priced", lid=lead.id, kind=action, **{"as": "hapitech"}))
+        elif action == "receipt":
+            from utils.task_money import make_receipt
+            try:
+                inv = make_receipt(t, current_user.id)
+                flash(f"Receipt {inv.number} emailed to {inv.lead.email}.", "ok")
+            except Exception as exc:
+                db.session.rollback()
+                flash(f"Couldn't send the receipt: {exc}", "err")
+            return redirect(url_for("admin.task", tid=t.id) + "#money")
         elif action == "snooze":
             days = {"1d": 1, "1w": 7, "2w": 14, "1m": 30}.get(f.get("by"), 7)
             t.set_remind_on(dt.date.today() + dt.timedelta(days=days))
@@ -167,8 +185,9 @@ def task(tid):
             return redirect(url_for("admin.tasks"))
         db.session.commit()
         return redirect(url_for("admin.task", tid=t.id) + ("#notes" if action in ("note", "delete_note", "note_share") else ""))
+    from utils.task_money import money
     return render_template("admin/task.html", t=t, accounts=_accounts(), statuses=TASK_STATUSES,
-                           authors=NOTE_AUTHORS, preset="", today=dt.date.today())
+                           authors=NOTE_AUTHORS, preset="", today=dt.date.today(), m=money(t))
 
 
 def accept_change_request(cr):

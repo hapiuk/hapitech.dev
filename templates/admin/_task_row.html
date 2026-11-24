@@ -6,7 +6,7 @@
     {% if t.shared %}<span title="The client can see this">👁 Shared</span>{% endif %}
     {% if t.remind_on and t.status != 'done' %}<span class="{{ 'task-due' if t.due else '' }}">⏰ {{ 'Due ' if t.due else '' }}{{ t.remind_on | ukdate('%a %-d %b') }}</span>{% endif %}
     {% if t.change_request_id %}<span>from R-{{ t.change_request_id }}</span>{% endif %}
-    {% if t.lead_id %}<span>from a job</span>{% endif %}
+    {% if t.lead_id %}{% set qs = t.lead.quotes %}{% set inv = t.lead.invoices %}{% if inv %}<span>{{ 'Paid' if inv[0].status == 'paid' else 'Invoiced' }} {{ inv[0].totals[2] | gbp(true) }}</span>{% elif qs %}<span>Quoted {{ qs[0].totals[2] | gbp(true) }}</span>{% else %}<span>from a job</span>{% endif %}{% endif %}
     {% if t.notes %}<span>💬 {{ t.notes|length }}</span>{% endif %}
     <span>{{ t.updated_at | ago }}</span>
   </span>

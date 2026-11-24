@@ -76,6 +76,18 @@ def send_invoice(invoice):
           after=["You can print it or save it as a PDF from that page."])
 
 
+def send_receipt(invoice):
+    """A paid invoice, sent as a receipt (the same page shows "Receipt" and "✓ Paid")."""
+    lead = invoice.lead
+    _send(lead, f"Receipt {invoice.number} from {lead.account.name}",
+          heading=f"Thanks, {_first(lead)}: all done ✓",
+          lines=[f"Here's your receipt for {lead.label.lower()}."],
+          box=[("Receipt", invoice.number), ("Amount", f"£{invoice.totals[2]:,.2f}"),
+               ("Paid", (invoice.paid_at or invoice.updated_at).strftime("%-d %B %Y") if invoice.totals[2] else "Nothing to pay")],
+          button={"label": "View your receipt", "url": public_url(url_for("customer.invoice", token=invoice.token))},
+          after=["You can print it or save it as a PDF from that page."])
+
+
 def send_review_request(lead, link, first_name=None):
     who = first_name or (_first(lead) if getattr(lead, "name", None) else None)
     a = lead.account

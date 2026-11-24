@@ -712,3 +712,6 @@ details.platforms[open] > summary::after{content:" ▴"}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .due-banner{color:#fbbf24}}
 .chip.is-on{border-color:var(--acc);background:var(--acc-soft);color:var(--acc);font-weight:600}
 .upcoming .job-row{padding-left:0;padding-right:0}
+.money-list{list-style:none;margin:4px 0 8px;padding:0;display:grid;gap:6px}
+.money-list li{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:.88rem}
+.money-list li > span{white-space:nowrap}
